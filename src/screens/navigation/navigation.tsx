@@ -1,4 +1,5 @@
 import React from "react";
+import "./navigation.styles.scss";
 import { Outlet, Link, useNavigate } from "react-router-dom";
 import { styled, useTheme, Theme, CSSObject } from "@mui/material/styles";
 import Box from "@mui/material/Box";
@@ -24,7 +25,9 @@ import SettingsApplicationsOutlinedIcon from "@mui/icons-material/SettingsApplic
 import Brightness3Icon from "@mui/icons-material/Brightness3";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
-import { setTheme } from "../../app/slices/settings-slice";
+import { setTheme, switchScreen } from "../../app/slices/settings-slice";
+import { setCurrentUser } from "../../app/slices/user-slice";
+import { Container } from "@mui/system";
 
 const drawerWidth = 240;
 
@@ -98,7 +101,8 @@ const Drawer = styled(MuiDrawer, {
 }));
 
 const Navigation = () => {
-  const { theme } = useAppSelector((state) => state.Settings);
+  const { theme } = useAppSelector((state) => state.settings);
+  const { currentUser } = useAppSelector((state) => state.user);
   const dispatch = useAppDispatch();
   const navigation = useNavigate();
   const [open, setOpen] = React.useState(false);
@@ -115,7 +119,7 @@ const Navigation = () => {
     <Box sx={{ display: "flex" }}>
       <CssBaseline />
       <AppBar position="fixed" open={open}>
-        <Toolbar>
+        <Toolbar className="nav-toolbar">
           <IconButton
             color="inherit"
             aria-label="open drawer"
@@ -128,19 +132,24 @@ const Navigation = () => {
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div">
-            VoChat
-          </Typography>
+          <span className="nav-toolbar-components">
+            <Typography variant="h6" noWrap component="div">
+              VoChat
+            </Typography>
+            {currentUser ? (
+              <Link to="/login" onClick={() => dispatch(setCurrentUser(null))}>
+                Log Out
+              </Link>
+            ) : (
+              <Link to="login">Log In</Link>
+            )}
+          </span>
         </Toolbar>
       </AppBar>
       <Drawer variant="permanent" open={open}>
         <DrawerHeader>
           <IconButton onClick={handleDrawerClose}>
-            {theme.direction === "rtl" ? (
-              <ChevronRightIcon />
-            ) : (
-              <ChevronLeftIcon />
-            )}
+            <ChevronLeftIcon />
           </IconButton>
         </DrawerHeader>
         <Divider />
@@ -172,7 +181,10 @@ const Navigation = () => {
 
           <ListItem
             disablePadding
-            onClick={() => navigation("contacts")}
+            onClick={() => {
+              dispatch(switchScreen("contacts"));
+              navigation("contacts");
+            }}
             sx={{ display: "block" }}
           >
             <ListItemButton
@@ -258,8 +270,18 @@ const Navigation = () => {
           ))}
         </List>
       </Drawer>
-      <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
-        <DrawerHeader />
+      <DrawerHeader />
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          p: 3,
+          height: "90vh",
+          marginTop: "0.5rem",
+          alignSelf: "center",
+          padding: "0.2rem",
+        }}
+      >
         <Outlet />
       </Box>
     </Box>

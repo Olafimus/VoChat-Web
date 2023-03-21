@@ -9,14 +9,21 @@ import { persistReducer } from "redux-persist";
 import persistStore from "redux-persist/es/persistStore";
 import thunk from "redux-thunk";
 import SettingsReducer from "./slices/settings-slice";
+import UserReducer from "./slices/user-slice";
+import vocabsReducer from "./slices/vocabs-slice";
+import conversationReducer from "./slices/conversation-slice";
 
 const persistConfig = {
   key: "root",
   storage,
+  blacklist: [UserReducer],
 };
 
 const appReducer = combineReducers({
-  Settings: SettingsReducer,
+  settings: SettingsReducer,
+  user: UserReducer,
+  vocabs: vocabsReducer,
+  conversations: conversationReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, appReducer);
