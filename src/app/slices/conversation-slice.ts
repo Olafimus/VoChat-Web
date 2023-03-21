@@ -36,7 +36,7 @@ export const ConversationSlice = createSlice({
     switchActiveConv: (state, action: PayloadAction<string>) => {
       state.activeConv = action.payload;
     },
-    newMsgReceived: (state, action) => {
+    newMsgReceived: (state) => {
       state.newMsg = !state.newMsg;
     },
   },
