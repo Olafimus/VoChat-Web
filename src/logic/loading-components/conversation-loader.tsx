@@ -17,9 +17,8 @@ const ConversationLoader: React.FC<Prop> = ({ conversation }) => {
   const { friends, id } = useAppSelector((state) => state.user);
   const dispatch = useAppDispatch();
 
-  // console.log("fr conv: ", friend.conversation);
-
-  if (conversation === "") return;
+  if (conversation === "")
+    return <div style={{ display: "none" }}>ConversationLoader</div>;
 
   const [value, loading, error] = useDocument(
     doc(db, "conversations", conversation),

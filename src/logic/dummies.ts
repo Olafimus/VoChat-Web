@@ -1,7 +1,6 @@
-import { User } from "./classes/user.class";
 import { AllVocabs, Vocab } from "./classes/vocab.class";
 
-const user = new User("Horst", "AfjeiA2", 2321, ["german"], ["english"]);
+// const user = new User("Horst", "AfjeiA2", 2321, ["german"], ["english"]);
 const voc = {
   id: "4213123",
   vocab: ["blue"],

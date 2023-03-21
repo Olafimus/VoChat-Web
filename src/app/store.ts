@@ -16,8 +16,14 @@ import conversationReducer from "./slices/conversation-slice";
 const persistConfig = {
   key: "root",
   storage,
-  blacklist: [UserReducer],
+  blacklist: ["user"],
 };
+
+// const userConfig = {
+//   key: "user",
+//   storage,
+//   blacklist: ["currentUser"],
+// };
 
 const appReducer = combineReducers({
   settings: SettingsReducer,
