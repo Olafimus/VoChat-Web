@@ -8,7 +8,7 @@ interface Settings {
 }
 
 const initialState: Settings = {
-  theme: "light",
+  theme: "dark",
   activeScreen: "",
 };
 

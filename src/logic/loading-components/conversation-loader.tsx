@@ -2,7 +2,10 @@ import { doc } from "firebase/firestore";
 import React, { useEffect } from "react";
 import { useDocument } from "react-firebase-hooks/firestore";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
-import { addConversation } from "../../app/slices/conversation-slice";
+import {
+  addConversation,
+  newMsgReceived,
+} from "../../app/slices/conversation-slice";
 import { addFriend } from "../../app/slices/user-slice";
 import { db } from "../../utils/firebase";
 import { Conversation } from "../classes/conversation.class";
@@ -28,10 +31,8 @@ const ConversationLoader: React.FC<Prop> = ({ conversation }) => {
   );
 
   useEffect(() => {
-    console.log(conversation);
-    console.log(value?.data());
     if (!value?.data()) return;
-    console.log("fired2");
+
     const conv: Conversation = {
       id: value.data()?.id ?? "",
       users: value.data()?.users,
@@ -47,8 +48,6 @@ const ConversationLoader: React.FC<Prop> = ({ conversation }) => {
       if (!frIdArr.includes(usr) || usr !== id) return true;
     });
 
-    console.log(filtUsers);
-
     if (filtUsers)
       filtUsers.forEach((usr) => {
         const newFriend: Friend = {
@@ -60,7 +59,7 @@ const ConversationLoader: React.FC<Prop> = ({ conversation }) => {
       });
 
     dispatch(addConversation(conv));
-    console.log("fired");
+    dispatch(newMsgReceived());
   }, [value]);
 
   return <div style={{ display: "none" }}>ConversationLoader</div>;

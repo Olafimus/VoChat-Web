@@ -5,11 +5,13 @@ import { VocObj } from "../../logic/types/vocab.types";
 interface conversation {
   conversations: Conversation[];
   activeConv: string;
+  newMsg: boolean;
 }
 
 const initialState: conversation = {
   conversations: [],
   activeConv: "",
+  newMsg: false,
 };
 
 export const ConversationSlice = createSlice({
@@ -34,10 +36,17 @@ export const ConversationSlice = createSlice({
     switchActiveConv: (state, action: PayloadAction<string>) => {
       state.activeConv = action.payload;
     },
+    newMsgReceived: (state, action) => {
+      state.newMsg = !state.newMsg;
+    },
   },
 });
 
-export const { addConversation, setConversations, switchActiveConv } =
-  ConversationSlice.actions;
+export const {
+  addConversation,
+  setConversations,
+  switchActiveConv,
+  newMsgReceived,
+} = ConversationSlice.actions;
 
 export default ConversationSlice.reducer;

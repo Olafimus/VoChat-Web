@@ -9,7 +9,7 @@ import { nanoid } from "@reduxjs/toolkit";
 import { sendNewMessage } from "../../utils/firebase";
 
 const ChatScreen = () => {
-  const { conversations, activeConv } = useAppSelector(
+  const { conversations, activeConv, newMsg } = useAppSelector(
     (state) => state.conversations
   );
 
@@ -19,6 +19,7 @@ const ChatScreen = () => {
   const { currentUser } = useAppSelector((state) => state.user);
 
   useEffect(() => {
+    console.log("new msg?", newMsg);
     const conv = conversations.find((conv, i) => {
       if (conv.id === activeConv) {
         setConvIndex(i);
@@ -28,7 +29,7 @@ const ChatScreen = () => {
 
     if (!conv) return;
     setMessages(conv.messages);
-  }, [activeConv]);
+  }, [activeConv, newMsg]);
 
   const handleSubmit = () => {
     console.log(msgTxt);

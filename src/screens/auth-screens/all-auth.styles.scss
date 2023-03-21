@@ -7,3 +7,10 @@
   align-items: center;
   align-self: center;
 }
+
+@media (width < 800px) {
+  .auth-container {
+    flex-direction: column !important;
+    // background-color: red;
+  }
+}
