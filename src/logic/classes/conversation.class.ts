@@ -34,15 +34,17 @@ export type Conversation = {
   messages: Message[];
   corrections: Correction[];
   vocabs: ConVoc[];
+  unreadMsgs: number;
 };
 
-export const newConversation = {
+export const newConversation: Conversation = {
   id: nanoid(),
   users: [],
   languages: [],
   messages: [],
   corrections: [],
   vocabs: [],
+  unreadMsgs: 0,
 };
 
 //  export class Contact {

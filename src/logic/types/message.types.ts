@@ -5,12 +5,14 @@ export type Message = {
   time: number;
   language: string;
   sender: string;
+  read: boolean;
   messageHis: MessageHisItem[];
 };
 
 export type MessageHisItem = {
   time: number;
   editor: string;
+  read: boolean;
   message: string;
 };
 

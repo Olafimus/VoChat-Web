@@ -1,6 +1,5 @@
 import {
   Avatar,
-  Box,
   Divider,
   ListItem,
   ListItemAvatar,
@@ -8,36 +7,36 @@ import {
   Typography,
 } from "@mui/material";
 import React, { useEffect, useState } from "react";
-import { useNavigate, useNavigation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { PropTypes } from "../../logic/types/proptypes";
 import { useDocument } from "react-firebase-hooks/firestore";
 import { doc } from "firebase/firestore";
 import { addConvToFriend, db, setConvDoc } from "../../utils/firebase";
-import { Contact } from "../../logic/types/user.types";
 import {
   Conversation,
   newConversation,
 } from "../../logic/classes/conversation.class";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import {
-  addConversation,
+  switchActiveContact,
   switchActiveConv,
 } from "../../app/slices/conversation-slice";
-import { addConvRef, addConvToFriendUser } from "../../app/slices/user-slice";
+import {
+  addConvRef,
+  addConvToFriendUser,
+  changeFriendName,
+} from "../../app/slices/user-slice";
 import { switchScreen } from "../../app/slices/settings-slice";
+import { getFormatedDate } from "../../utils/getFormDate";
 
 const ContactItem: React.FC<PropTypes> = ({ friend }) => {
   const navigate = useNavigate();
   const user = useAppSelector((state) => state.user);
   const dispatch = useAppDispatch();
-  const [loadedContact, setLoadedContact] = useState<{
-    name: string;
-    lastMessage: string;
-  }>({ name: "", lastMessage: "" });
 
-  const [value, loading, error] = useDocument(doc(db, "users", friend.id), {
-    snapshotListenOptions: { includeMetadataChanges: true },
-  });
+  const { activeContact } = useAppSelector((state) => state.conversations);
+
+  const time = getFormatedDate(friend.lastInteraction);
 
   const clickHandler = () => {
     if (!user) return;
@@ -54,18 +53,10 @@ const ContactItem: React.FC<PropTypes> = ({ friend }) => {
     } else {
       dispatch(switchActiveConv(friend.conversation));
     }
+    dispatch(switchActiveContact(friend.id));
     dispatch(switchScreen("chat"));
-    navigate("/chat");
+    navigate("/chat", { replace: false });
   };
-
-  useEffect(() => {
-    if (!value) return;
-    const data = {
-      name: value.data()?.displayName ?? "",
-      lastMessage: loadedContact.lastMessage,
-    };
-    setLoadedContact(data);
-  }, [value]);
 
   function stringToColor(string: string) {
     let hash = 0;
@@ -100,14 +91,18 @@ const ContactItem: React.FC<PropTypes> = ({ friend }) => {
     <>
       <ListItem
         alignItems="flex-start"
-        sx={{ cursor: "pointer" }}
+        sx={
+          activeContact === friend.id
+            ? { cursor: "pointer", backgroundColor: "rgb(30, 30, 30)" }
+            : { cursor: "pointer" }
+        }
         onClick={clickHandler}
       >
         <ListItemAvatar>
-          <Avatar alt="Remy Sharp" {...stringAvatar(loadedContact.name)} />
+          <Avatar alt="Remy Sharp" {...stringAvatar(friend.name ?? "")} />
         </ListItemAvatar>
         <ListItemText
-          primary={loadedContact.name}
+          primary={friend.name}
           secondary={
             <React.Fragment>
               <Typography
@@ -116,9 +111,9 @@ const ContactItem: React.FC<PropTypes> = ({ friend }) => {
                 variant="body2"
                 color="text.primary"
               >
-                {loadedContact.lastMessage}
+                {friend.lastMessage}
               </Typography>
-              {/* {`${loadedContact.lastMessage}`} */}
+              {/* {`${friend.lastMessage}`} */}
             </React.Fragment>
           }
         />
@@ -132,9 +127,7 @@ const ContactItem: React.FC<PropTypes> = ({ friend }) => {
           // disableTypography
           color="red"
         >
-          <p style={{ color: "grey", fontSize: "14px" }}>
-            {friend.lastInteraction}
-          </p>
+          <p style={{ color: "grey", fontSize: "14px" }}>{time}</p>
         </ListItemText>
       </ListItem>
       <Divider variant="inset" component="li" />

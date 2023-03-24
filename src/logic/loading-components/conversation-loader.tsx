@@ -6,7 +6,7 @@ import {
   addConversation,
   newMsgReceived,
 } from "../../app/slices/conversation-slice";
-import { addFriend } from "../../app/slices/user-slice";
+import { addFriend, changeFrLastMsg } from "../../app/slices/user-slice";
 import { db } from "../../utils/firebase";
 import { Conversation } from "../classes/conversation.class";
 import { Friend } from "../types/user.types";
@@ -40,6 +40,7 @@ const ConversationLoader: React.FC<Prop> = ({ conversation }) => {
       messages: value.data()?.messages,
       corrections: value.data()?.corrections,
       vocabs: value.data()?.vocabs,
+      unreadMsgs: value.data()?.unreadMsgs,
     };
     const frIdArr: string[] = [];
     friends.forEach((fr) => frIdArr.push(fr.id));
@@ -54,12 +55,23 @@ const ConversationLoader: React.FC<Prop> = ({ conversation }) => {
           id: usr,
           lastInteraction: Date.now(),
           conversation,
+          name: "",
+          lastMessage: "",
         };
         dispatch(addFriend(newFriend));
       });
 
+    let unreadMsgs: number = 0;
+    let lastMsg = conv.messages.at(-1)?.messageHis.at(-1)?.message;
+    conv.messages.forEach((msg) => {
+      if (msg.sender !== id && msg.read === false) unreadMsgs++;
+    });
+    conv.unreadMsgs = unreadMsgs;
+
     dispatch(addConversation(conv));
-    dispatch(newMsgReceived());
+    const frId = conv.users.filter((fr) => fr !== id)[0];
+    if (lastMsg) dispatch(changeFrLastMsg({ frId, lastMsg }));
+    if (unreadMsgs > 0) dispatch(newMsgReceived());
   }, [value]);
 
   return <div style={{ display: "none" }}>ConversationLoader</div>;

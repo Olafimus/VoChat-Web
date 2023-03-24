@@ -17,7 +17,7 @@ export default function ContactsList() {
   useEffect(() => {
     const conts = [...contacts];
     const sortCont = conts.sort(
-      (a, b) => a.lastInteraction - b.lastInteraction
+      (a, b) => b.lastInteraction - a.lastInteraction
     );
     setSortedContacts(sortCont);
   }, [contacts]);
@@ -35,7 +35,7 @@ export default function ContactsList() {
       }}
     >
       {sortedContacts.map((contact) => (
-        <ContactItem friend={contact} />
+        <ContactItem key={contact.id} friend={contact} />
       ))}
     </List>
   );

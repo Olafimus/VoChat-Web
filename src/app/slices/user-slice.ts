@@ -1,10 +1,10 @@
 import { createSlice, nanoid, PayloadAction } from "@reduxjs/toolkit";
 import { User } from "firebase/auth";
-import { AppUser, Friend } from "../../logic/types/user.types";
+import { AppUser, CurrentUser, Friend } from "../../logic/types/user.types";
 import { addFriendToDb, updateFriendsData } from "../../utils/firebase";
 
 interface UserState {
-  currentUser: User | null;
+  currentUser: CurrentUser | null;
   name: string;
   email: string;
   id: string;
@@ -52,6 +52,20 @@ export const UserSlice = createSlice({
       state.teachLanguages = action.payload.teachLanguages;
       state.learnLanguages = action.payload.learnLanguages;
     },
+    changeFriendName: (
+      state,
+      action: PayloadAction<{ frId: string; name: string }>
+    ) => {
+      const i = state.friends.findIndex((fr) => fr.id === action.payload.frId);
+      state.friends[i].name = action.payload.name;
+    },
+    changeFrLastMsg: (
+      state,
+      action: PayloadAction<{ frId: string; lastMsg: string }>
+    ) => {
+      const i = state.friends.findIndex((fr) => fr.id === action.payload.frId);
+      state.friends[i].lastMessage = action.payload.lastMsg;
+    },
     addFriend: (state, action: PayloadAction<Friend>) => {
       if (!state.currentUser) return;
       if (
@@ -64,6 +78,28 @@ export const UserSlice = createSlice({
       if (frIdArr.includes(action.payload.id)) return;
       state.friends.push(action.payload);
       addFriendToDb(state.currentUser.uid, action.payload);
+    },
+    updateFriendLastMsg: (
+      state,
+      action: PayloadAction<{ frId: string; msg: string }>
+    ) => {
+      const friendIndex = state.friends.findIndex(
+        (fr) => fr.id === action.payload.frId
+      );
+      if (state.friends[friendIndex].lastMessage === action.payload.msg) return;
+      state.friends[friendIndex].lastMessage = action.payload.msg;
+    },
+    updateFriendInteraction: (
+      state,
+      action: PayloadAction<{ ids: string[]; stamp: number }>
+    ) => {
+      action.payload.ids.forEach((id) => {
+        const friendIndex = state.friends.findIndex((fr) => fr.id === id);
+        state.friends[friendIndex] = {
+          ...state.friends[friendIndex],
+          lastInteraction: action.payload.stamp,
+        };
+      });
     },
     addConvRef: (state, action: PayloadAction<string>) => {
       state.conversations.push(action.payload);
@@ -90,7 +126,11 @@ export const {
   setCurrentUser,
   setFriends,
   setUserData,
+  changeFriendName,
+  changeFrLastMsg,
   addFriend,
+  updateFriendLastMsg,
+  updateFriendInteraction,
   removeFriend,
   addConvRef,
   addConvToFriendUser,

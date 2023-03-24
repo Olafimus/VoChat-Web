@@ -6,12 +6,16 @@ interface conversation {
   conversations: Conversation[];
   activeConv: string;
   newMsg: boolean;
+  activeContact: string;
+  unreadMsgs: number;
 }
 
 const initialState: conversation = {
   conversations: [],
   activeConv: "",
+  activeContact: "",
   newMsg: false,
+  unreadMsgs: 0,
 };
 
 export const ConversationSlice = createSlice({
@@ -29,12 +33,18 @@ export const ConversationSlice = createSlice({
 
       if (conv && index >= 0) state.conversations[index] = action.payload;
       else state.conversations.push(action.payload);
+
+      state.unreadMsgs = 0;
+      state.conversations.forEach((conv) => state.unreadMsgs + conv.unreadMsgs);
     },
     setConversations: (state, action: PayloadAction<Conversation[]>) => {
       state.conversations = action.payload;
     },
     switchActiveConv: (state, action: PayloadAction<string>) => {
       state.activeConv = action.payload;
+    },
+    switchActiveContact: (state, action: PayloadAction<string>) => {
+      state.activeContact = action.payload;
     },
     newMsgReceived: (state) => {
       state.newMsg = !state.newMsg;
@@ -46,6 +56,7 @@ export const {
   addConversation,
   setConversations,
   switchActiveConv,
+  switchActiveContact,
   newMsgReceived,
 } = ConversationSlice.actions;
 

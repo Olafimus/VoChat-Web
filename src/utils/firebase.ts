@@ -66,8 +66,8 @@ export const createUserDocumentFromAuth = async (
 
   if (!userSnapshot.exists()) {
     const { displayName, email, uid } = userAuth;
-    const lastActive = new Date();
-    const createdAt = new Date();
+    const lastActive = Date.now();
+    const createdAt = Date.now();
     const conversations: string[] = [];
     const teachLanguages: string[] = [];
     const learnLanguages: string[] = [];
@@ -204,3 +204,5 @@ export const getUserData = async (uid: string) => {
   const data = await getDoc(userDocRef);
   return data;
 };
+
+export const checkConvInDb = () => {};
