@@ -15,6 +15,7 @@ import {
   updateFriendInteraction,
 } from "../../app/slices/user-slice";
 import { db } from "../../utils/firebase";
+import { notifyUser } from "../../utils/notification";
 import { Conversation } from "../classes/conversation.class";
 import { Friend } from "../types/user.types";
 
@@ -41,6 +42,8 @@ const ConversationLoader: React.FC<Prop> = ({ conversation }) => {
 
   useEffect(() => {
     if (!value?.data()) return;
+    const oldConv = conversations.find((conv) => conv.id === conversation);
+    if (!oldConv) return;
 
     const conv: Conversation = {
       id: value.data()?.id ?? "",
@@ -51,6 +54,9 @@ const ConversationLoader: React.FC<Prop> = ({ conversation }) => {
       vocabs: value.data()?.vocabs,
       unreadMsgs: value.data()?.unreadMsgs,
     };
+    if (conv.messages.length === oldConv.messages.length) return;
+    console.log("conv loader");
+
     const frIdArr: string[] = [];
     friends.forEach((fr) => frIdArr.push(fr.id));
 
@@ -79,22 +85,24 @@ const ConversationLoader: React.FC<Prop> = ({ conversation }) => {
     if (friend)
       conv.messages.forEach((msg) => {
         if (
-          msg.sender !== id &&
-          msg.time > friend.lastInteraction &&
-          activeConv !== conversation &&
+          (msg.sender !== id &&
+            msg.time > friend.lastInteraction &&
+            activeConv !== conversation) ||
           document.hidden
         )
           unreadMsgs++;
       });
     // conv.unreadMsgs = unreadMsgs;
     if (lastMsg) dispatch(changeFrLastMsg({ frId, lastMsg }));
+
     if (unreadMsgs > 0) {
-      const stamp = Date.now();
       dispatch(setUnreadMsgConv({ id: conversation, count: unreadMsgs }));
       dispatch(newMsgReceived());
       dispatch(countUnreadMsgs());
-      dispatch(updateFriendInteraction({ ids: [frId], stamp }));
+      notifyUser("user", lastMsg);
     }
+    const stamp = Date.now();
+    dispatch(updateFriendInteraction({ ids: [frId], stamp }));
   }, [value]);
 
   return <div style={{ display: "none" }}>ConversationLoader</div>;

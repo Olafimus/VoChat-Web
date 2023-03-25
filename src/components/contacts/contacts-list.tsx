@@ -26,8 +26,8 @@ export default function ContactsList() {
     <List
       sx={{
         width: "100%",
-        maxWidth: 660,
-        maxHeight: "75vh",
+        maxWidth: "23rem",
+        height: "100%",
         overflow: "auto",
         scrollbarColor: "background.paper",
         bgcolor: "background.paper",

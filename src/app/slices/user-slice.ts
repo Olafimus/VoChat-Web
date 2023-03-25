@@ -99,6 +99,7 @@ export const UserSlice = createSlice({
           ...state.friends[friendIndex],
           lastInteraction: action.payload.stamp,
         };
+        updateFriendsData(state.id, state.friends);
       });
     },
     addConvRef: (state, action: PayloadAction<string>) => {

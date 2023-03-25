@@ -1,14 +1,12 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useLayoutEffect } from "react";
 import "./chat.styles.scss";
 import { Typography, TextField, IconButton } from "@mui/material";
-import Button from "@mui/material/Button";
 import SendIcon from "@mui/icons-material/Send";
 import { Message } from "../../logic/types/message.types";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { $CombinedState, nanoid } from "@reduxjs/toolkit";
 import { sendNewMessage } from "../../utils/firebase";
 import { updateFriendInteraction } from "../../app/slices/user-slice";
-import { newMsgReceived } from "../../app/slices/conversation-slice";
 
 const ChatScreen = () => {
   const dispatch = useAppDispatch();
@@ -18,31 +16,42 @@ const ChatScreen = () => {
   const { friends } = useAppSelector((state) => state.user);
   const { theme } = useAppSelector((state) => state.settings);
 
-  const [convIndex, setConvIndex] = useState<number>(-1);
-  const [messages, setMessages] = useState<Message[]>([]);
+  // const [convIndex, setConvIndex] = useState<number>(-1);
+  // const [messages, setMessages] = useState<Message[]>([]);
   const [msgTxt, setMsgTxt] = useState("");
   const [contactIds, setContactIds] = useState<string[]>([]);
-  const [contacts, setContacts] = useState<string[]>([]);
+  // const [contacts, setContacts] = useState<string[]>([]);
   const { currentUser, id } = useAppSelector((state) => state.user);
 
-  useEffect(() => {
-    const conv = conversations.find((conv, i) => {
-      if (conv.id === activeConv) {
-        setConvIndex(i);
-        return true;
-      }
-    });
+  const conv = conversations.find((conv) => conv.id === activeConv);
+  if (!conv) return <></>;
+  const messages2 = conv.messages;
+  console.log("fire");
+  const cIds = conv.users.filter((usr) => usr !== id);
+  const contactNames: string[] = [];
+  friends.forEach((fr) => {
+    if (cIds.includes(fr.id) && fr.name) contactNames.push(fr.name);
+  });
 
-    if (!conv) return;
-    const cIds = conv.users.filter((usr) => usr !== id);
-    const contactNames: string[] = [];
-    friends.forEach((fr) => {
-      if (cIds.includes(fr.id) && fr.name) contactNames.push(fr.name);
-    });
-    setMessages(conv.messages);
-    setContactIds(cIds);
-    setContacts(contactNames);
-  }, [activeConv, newMsg]);
+  // useLayoutEffect(() => {
+  //   const conv = conversations.find((conv, i) => {
+  //     if (conv.id === activeConv) {
+  //       setConvIndex(i);
+  //       return true;
+  //     }
+  //   });
+
+  //   if (!conv) return;
+  //   const cIds = conv.users.filter((usr) => usr !== id);
+  //   const contactNames: string[] = [];
+  //   friends.forEach((fr) => {
+  //     if (cIds.includes(fr.id) && fr.name) contactNames.push(fr.name);
+  //   });
+  //   setMessages(conv.messages);
+  //   setContactIds(cIds);
+  //   setContacts(contactNames);
+  //   console.log(contactNames, "new fired");
+  // }, []);
 
   const handleSubmit = () => {
     if (id === "") return;
@@ -62,20 +71,21 @@ const ChatScreen = () => {
       ],
     };
     const now = Date.now();
-    dispatch(updateFriendInteraction({ ids: contactIds, stamp: now }));
+    dispatch(updateFriendInteraction({ ids: cIds, stamp: now }));
     sendNewMessage(activeConv, msg);
     setMsgTxt("");
+    console.log(now);
   };
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const scrollBox = document.getElementById("chat--container");
     if (!scrollBox) return;
     scrollBox.scrollTop = scrollBox?.scrollHeight;
-  }, [messages]);
+  }, []);
 
   return (
     <section className="chat-screen-section">
-      <h3 className="chat-title">{contacts.join(", ")}</h3>
+      <h3 className="chat-title">{contactNames.join(", ")}</h3>
       <div
         style={
           theme === "light"
@@ -85,30 +95,32 @@ const ChatScreen = () => {
         className="chat-container"
         id="chat--container"
       >
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className="chat-text-box-wrapper"
-            style={
-              msg.sender !== id
-                ? { justifyContent: "flex-end" }
-                : { justifyContent: "flex-start" }
-            }
-          >
+        <div>
+          {messages2.map((msg) => (
             <div
-              className="chat-text-box"
+              key={msg.id}
+              className="chat-text-box-wrapper"
               style={
                 msg.sender !== id
-                  ? { backgroundColor: "#31206a" }
-                  : { backgroundColor: "#2c8a3c" }
+                  ? { justifyContent: "flex-end" }
+                  : { justifyContent: "flex-start" }
               }
             >
-              <Typography variant="body1" style={{ fontSize: "16px" }}>
-                {msg.messageHis[msg.messageHis.length - 1].message}
-              </Typography>
+              <div
+                className="chat-text-box"
+                style={
+                  msg.sender !== id
+                    ? { backgroundColor: "#31206a" }
+                    : { backgroundColor: "#2c8a3c" }
+                }
+              >
+                <Typography variant="body1" style={{ fontSize: "16px" }}>
+                  {msg.messageHis[msg.messageHis.length - 1].message}
+                </Typography>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
       <div className="chat-text-input-container">
         <TextField

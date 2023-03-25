@@ -25,12 +25,14 @@ const ContactScreen = () => {
         style={{
           display: "grid",
           marginTop: "2rem",
-          height: "100%",
+          height: "80vh",
           gridTemplateRows: "20% 70% 10%",
         }}
       >
         <Typography variant="h6">Contacts</Typography>
-        <ContactsList />
+        <div>
+          <ContactsList />
+        </div>
         <div className="flex-container">
           <Fab
             color="primary"

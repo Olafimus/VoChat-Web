@@ -92,7 +92,10 @@ const ContactItem: React.FC<PropTypes> = ({ friend }) => {
         alignItems="flex-start"
         sx={
           activeContact === friend.id
-            ? { cursor: "pointer", backgroundColor: "rgb(30, 30, 30)" }
+            ? {
+                cursor: "pointer",
+                backgroundColor: "rgb(30, 30, 30)",
+              }
             : { cursor: "pointer" }
         }
         onClick={clickHandler}
