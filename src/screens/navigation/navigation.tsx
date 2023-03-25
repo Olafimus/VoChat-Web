@@ -26,8 +26,9 @@ import Brightness3Icon from "@mui/icons-material/Brightness3";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { setTheme, switchScreen } from "../../app/slices/settings-slice";
-import { setCurrentUser } from "../../app/slices/user-slice";
+import { resetUserState, setCurrentUser } from "../../app/slices/user-slice";
 import { Container } from "@mui/system";
+import { resetConversations } from "../../app/slices/conversation-slice";
 
 const drawerWidth = 240;
 
@@ -137,7 +138,13 @@ const Navigation = () => {
               VoChat
             </Typography>
             {currentUser ? (
-              <Link to="/login" onClick={() => dispatch(setCurrentUser(null))}>
+              <Link
+                to="/login"
+                onClick={() => {
+                  dispatch(resetUserState());
+                  dispatch(resetConversations());
+                }}
+              >
                 Log Out
               </Link>
             ) : (

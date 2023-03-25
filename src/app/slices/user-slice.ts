@@ -120,6 +120,9 @@ export const UserSlice = createSlice({
         (friend) => friend.id !== action.payload
       );
     },
+    resetUserState: (state) => {
+      return initialState;
+    },
   },
 });
 
@@ -136,6 +139,7 @@ export const {
   addConvRef,
   addConvToFriendUser,
   setUserId,
+  resetUserState,
 } = UserSlice.actions;
 
 export default UserSlice.reducer;

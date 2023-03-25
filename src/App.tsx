@@ -126,13 +126,15 @@ function App() {
           </Route>
         </Routes>
       </ThemeProvider>
-      {conversations.map((conv) => (
-        <ConversationLoader key={conv} conversation={conv} />
-      ))}
+      {currentUser &&
+        conversations.map((conv) => (
+          <ConversationLoader key={conv} conversation={conv} />
+        ))}
       {id !== "" && <UserDataLoader id={id} />}
-      {friends.map((friend) => (
-        <FriendLoader key={friend.id} friend={friend} />
-      ))}
+      {currentUser &&
+        friends.map((friend) => (
+          <FriendLoader key={friend.id} friend={friend} />
+        ))}
     </>
   );
 }

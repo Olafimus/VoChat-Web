@@ -42,8 +42,8 @@ const ConversationLoader: React.FC<Prop> = ({ conversation }) => {
 
   useEffect(() => {
     if (!value?.data()) return;
-    const oldConv = conversations.find((conv) => conv.id === conversation);
-    if (!oldConv) return;
+    // const oldConv = conversations.find((conv) => conv.id === conversation);
+    // if (!oldConv) return;
 
     const conv: Conversation = {
       id: value.data()?.id ?? "",
@@ -54,7 +54,7 @@ const ConversationLoader: React.FC<Prop> = ({ conversation }) => {
       vocabs: value.data()?.vocabs,
       unreadMsgs: value.data()?.unreadMsgs,
     };
-    if (conv.messages.length === oldConv.messages.length) return;
+    // if (conv.messages.length === oldConv.messages.length) return;
     console.log("conv loader");
 
     const frIdArr: string[] = [];

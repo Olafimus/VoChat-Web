@@ -64,6 +64,9 @@ export const ConversationSlice = createSlice({
     newMsgReceived: (state) => {
       state.newMsg = !state.newMsg;
     },
+    resetConversations: (state) => {
+      return initialState;
+    },
   },
 });
 
@@ -73,7 +76,7 @@ export const {
   switchActiveConv,
   switchActiveContact,
   newMsgReceived,
-  // setMsgsRead,
+  resetConversations,
   setUnreadMsgConv,
   countUnreadMsgs,
 } = ConversationSlice.actions;
