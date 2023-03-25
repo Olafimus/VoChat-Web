@@ -3,6 +3,9 @@ import React from "react";
 import { notifyUser } from "../../utils/notification";
 
 const SettingsScreen = () => {
+  const handleClick = async () => {
+    await notifyUser();
+  };
   return (
     <div>
       SettingsScreen
@@ -10,7 +13,7 @@ const SettingsScreen = () => {
       <p>teest</p>
       <p>teest</p>
       <p>teest</p>
-      <button onClick={() => notifyUser()}>push</button>
+      <button onClick={handleClick}>push</button>
     </div>
   );
 };

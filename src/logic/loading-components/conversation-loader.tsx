@@ -95,7 +95,6 @@ const ConversationLoader: React.FC<Prop> = ({ conversation }) => {
       dispatch(countUnreadMsgs());
       dispatch(updateFriendInteraction({ ids: [frId], stamp }));
     }
-    Push.create("New Message!");
   }, [value]);
 
   return <div style={{ display: "none" }}>ConversationLoader</div>;
