@@ -17,7 +17,6 @@ import {
 } from "../../logic/classes/conversation.class";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import {
-  countUnreadMsgs,
   switchActiveContact,
   switchActiveConv,
 } from "../../app/slices/conversation-slice";

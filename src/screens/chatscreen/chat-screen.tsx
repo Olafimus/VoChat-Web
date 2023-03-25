@@ -8,6 +8,7 @@ import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { $CombinedState, nanoid } from "@reduxjs/toolkit";
 import { sendNewMessage } from "../../utils/firebase";
 import { updateFriendInteraction } from "../../app/slices/user-slice";
+import { newMsgReceived } from "../../app/slices/conversation-slice";
 
 const ChatScreen = () => {
   const dispatch = useAppDispatch();
@@ -63,7 +64,6 @@ const ChatScreen = () => {
     const now = Date.now();
     dispatch(updateFriendInteraction({ ids: contactIds, stamp: now }));
     sendNewMessage(activeConv, msg);
-    setMessages((currentMessages) => [...currentMessages, msg]);
     setMsgTxt("");
   };
 

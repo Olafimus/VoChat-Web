@@ -39,17 +39,18 @@ export const ConversationSlice = createSlice({
       state.conversations.forEach(
         (conv) => (allUnread = allUnread + conv.unreadMsgs)
       );
+      if (!allUnread) allUnread = 0;
       state.unreadMsgs = allUnread;
     },
     setUnreadMsgConv: (
       state,
       action: PayloadAction<{ id: string; count: number }>
     ) => {
-      // const conv = state.conversations.find(
-      //   (conv) => (conv.id = action.payload.id)
-      // );
-      // if (!conv) return;
-      // conv.unreadMsgs = action.payload.count;
+      const conv = state.conversations.find(
+        (conv) => (conv.id = action.payload.id)
+      );
+      if (!conv) return;
+      conv.unreadMsgs = action.payload.count;
     },
     setConversations: (state, action: PayloadAction<Conversation[]>) => {
       state.conversations = action.payload;

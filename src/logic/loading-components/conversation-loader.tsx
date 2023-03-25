@@ -1,4 +1,5 @@
 import { doc } from "firebase/firestore";
+import Push from "push.js";
 import React, { useEffect } from "react";
 import { useDocument } from "react-firebase-hooks/firestore";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
@@ -68,33 +69,33 @@ const ConversationLoader: React.FC<Prop> = ({ conversation }) => {
         };
         dispatch(addFriend(newFriend));
       });
-
     dispatch(addConversation(conv));
     const frId = conv.users.filter((fr) => fr !== id)[0];
     const friend = friends.find((fr) => fr.id === frId);
     const now = Date.now();
 
-    let unreadMsgs: number = 0;
+    let unreadMsgs = 0;
     let lastMsg = conv.messages.at(-1)?.messageHis.at(-1)?.message;
     if (friend)
       conv.messages.forEach((msg) => {
         if (
           msg.sender !== id &&
-          friend.lastInteraction < now &&
+          msg.time > friend.lastInteraction &&
           activeConv !== conversation &&
-          !document.hidden
+          document.hidden
         )
           unreadMsgs++;
       });
     // conv.unreadMsgs = unreadMsgs;
-    dispatch(setUnreadMsgConv({ id: conversation, count: unreadMsgs }));
     if (lastMsg) dispatch(changeFrLastMsg({ frId, lastMsg }));
     if (unreadMsgs > 0) {
       const stamp = Date.now();
+      dispatch(setUnreadMsgConv({ id: conversation, count: unreadMsgs }));
       dispatch(newMsgReceived());
       dispatch(countUnreadMsgs());
       dispatch(updateFriendInteraction({ ids: [frId], stamp }));
     }
+    Push.create("New Message!");
   }, [value]);
 
   return <div style={{ display: "none" }}>ConversationLoader</div>;

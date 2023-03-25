@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useLayoutEffect, useEffect } from "react";
 import List from "@mui/material/List";
 import ContactItem from "./contact-item";
 import { useAppSelector } from "../../app/hooks";
@@ -10,11 +10,11 @@ export default function ContactsList() {
   const { friends } = useAppSelector((state) => state.user);
   const { conversations } = useAppSelector((state) => state.conversations);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setContacts(friends);
   }, [friends]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const conts = [...contacts];
     const sortCont = conts.sort(
       (a, b) => b.lastInteraction - a.lastInteraction
