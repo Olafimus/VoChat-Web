@@ -9,23 +9,19 @@ import {
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PropTypes } from "../../logic/types/proptypes";
-import { useDocument } from "react-firebase-hooks/firestore";
-import { doc } from "firebase/firestore";
-import { addConvToFriend, db, setConvDoc } from "../../utils/firebase";
+
+import { addConvToFriend, setConvDoc } from "../../utils/firebase";
 import {
   Conversation,
   newConversation,
 } from "../../logic/classes/conversation.class";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import {
+  countUnreadMsgs,
   switchActiveContact,
   switchActiveConv,
 } from "../../app/slices/conversation-slice";
-import {
-  addConvRef,
-  addConvToFriendUser,
-  changeFriendName,
-} from "../../app/slices/user-slice";
+import { addConvRef, addConvToFriendUser } from "../../app/slices/user-slice";
 import { switchScreen } from "../../app/slices/settings-slice";
 import { getFormatedDate } from "../../utils/getFormDate";
 
@@ -34,7 +30,9 @@ const ContactItem: React.FC<PropTypes> = ({ friend }) => {
   const user = useAppSelector((state) => state.user);
   const dispatch = useAppDispatch();
 
-  const { activeContact } = useAppSelector((state) => state.conversations);
+  const { activeContact, conversations } = useAppSelector(
+    (state) => state.conversations
+  );
 
   const time = getFormatedDate(friend.lastInteraction);
 
@@ -55,6 +53,8 @@ const ContactItem: React.FC<PropTypes> = ({ friend }) => {
     }
     dispatch(switchActiveContact(friend.id));
     dispatch(switchScreen("chat"));
+
+    // dispatch(countUnreadMsgs());
     navigate("/chat", { replace: false });
   };
 

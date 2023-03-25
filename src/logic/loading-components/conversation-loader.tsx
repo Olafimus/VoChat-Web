@@ -4,9 +4,15 @@ import { useDocument } from "react-firebase-hooks/firestore";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import {
   addConversation,
+  countUnreadMsgs,
   newMsgReceived,
+  setUnreadMsgConv,
 } from "../../app/slices/conversation-slice";
-import { addFriend, changeFrLastMsg } from "../../app/slices/user-slice";
+import {
+  addFriend,
+  changeFrLastMsg,
+  updateFriendInteraction,
+} from "../../app/slices/user-slice";
 import { db } from "../../utils/firebase";
 import { Conversation } from "../classes/conversation.class";
 import { Friend } from "../types/user.types";
@@ -16,7 +22,9 @@ type Prop = {
 };
 
 const ConversationLoader: React.FC<Prop> = ({ conversation }) => {
-  const { conversations } = useAppSelector((state) => state.conversations);
+  const { conversations, activeContact, activeConv } = useAppSelector(
+    (state) => state.conversations
+  );
   const { friends, id } = useAppSelector((state) => state.user);
   const dispatch = useAppDispatch();
 
@@ -61,17 +69,32 @@ const ConversationLoader: React.FC<Prop> = ({ conversation }) => {
         dispatch(addFriend(newFriend));
       });
 
-    let unreadMsgs: number = 0;
-    let lastMsg = conv.messages.at(-1)?.messageHis.at(-1)?.message;
-    conv.messages.forEach((msg) => {
-      if (msg.sender !== id && msg.read === false) unreadMsgs++;
-    });
-    conv.unreadMsgs = unreadMsgs;
-
     dispatch(addConversation(conv));
     const frId = conv.users.filter((fr) => fr !== id)[0];
+    const friend = friends.find((fr) => fr.id === frId);
+    const now = Date.now();
+
+    let unreadMsgs: number = 0;
+    let lastMsg = conv.messages.at(-1)?.messageHis.at(-1)?.message;
+    if (friend)
+      conv.messages.forEach((msg) => {
+        if (
+          msg.sender !== id &&
+          friend.lastInteraction < now &&
+          activeConv !== conversation &&
+          !document.hidden
+        )
+          unreadMsgs++;
+      });
+    // conv.unreadMsgs = unreadMsgs;
+    dispatch(setUnreadMsgConv({ id: conversation, count: unreadMsgs }));
     if (lastMsg) dispatch(changeFrLastMsg({ frId, lastMsg }));
-    if (unreadMsgs > 0) dispatch(newMsgReceived());
+    if (unreadMsgs > 0) {
+      const stamp = Date.now();
+      dispatch(newMsgReceived());
+      dispatch(countUnreadMsgs());
+      dispatch(updateFriendInteraction({ ids: [frId], stamp }));
+    }
   }, [value]);
 
   return <div style={{ display: "none" }}>ConversationLoader</div>;

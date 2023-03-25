@@ -49,7 +49,8 @@ function App() {
   });
 
   useEffect(() => {
-    if (unreadMsgs > 0) document.title = `(${unreadMsgs} VoChat)`;
+    if (unreadMsgs > 0) document.title = `(${unreadMsgs}) VoChat`;
+    else document.title = "VoChat";
   }, [unreadMsgs]);
 
   useEffect(() => {
@@ -130,7 +131,7 @@ function App() {
       ))}
       {id !== "" && <UserDataLoader id={id} />}
       {friends.map((friend) => (
-        <FriendLoader friend={friend} />
+        <FriendLoader key={friend.id} friend={friend} />
       ))}
     </>
   );

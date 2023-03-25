@@ -23,19 +23,33 @@ export const ConversationSlice = createSlice({
   initialState,
   reducers: {
     addConversation: (state, action: PayloadAction<Conversation>) => {
-      let index: number = -1;
-      const conv = state.conversations.find((conv, i) => {
-        if (conv.id === action.payload.id) {
-          index = i;
-          return true;
-        }
-      });
+      const i = state.conversations.findIndex(
+        (conv) => conv.id === action.payload.id
+      );
+      const conv = state.conversations.find(
+        (conv) => conv.id === action.payload.id
+      );
 
-      if (conv && index >= 0) state.conversations[index] = action.payload;
-      else state.conversations.push(action.payload);
-
-      state.unreadMsgs = 0;
-      state.conversations.forEach((conv) => state.unreadMsgs + conv.unreadMsgs);
+      if (!conv) state.conversations.push(action.payload);
+      else state.conversations[i] = action.payload;
+      state.conversations = [...new Set(state.conversations)];
+    },
+    countUnreadMsgs: (state) => {
+      let allUnread = 0;
+      state.conversations.forEach(
+        (conv) => (allUnread = allUnread + conv.unreadMsgs)
+      );
+      state.unreadMsgs = allUnread;
+    },
+    setUnreadMsgConv: (
+      state,
+      action: PayloadAction<{ id: string; count: number }>
+    ) => {
+      // const conv = state.conversations.find(
+      //   (conv) => (conv.id = action.payload.id)
+      // );
+      // if (!conv) return;
+      // conv.unreadMsgs = action.payload.count;
     },
     setConversations: (state, action: PayloadAction<Conversation[]>) => {
       state.conversations = action.payload;
@@ -58,6 +72,9 @@ export const {
   switchActiveConv,
   switchActiveContact,
   newMsgReceived,
+  // setMsgsRead,
+  setUnreadMsgConv,
+  countUnreadMsgs,
 } = ConversationSlice.actions;
 
 export default ConversationSlice.reducer;
