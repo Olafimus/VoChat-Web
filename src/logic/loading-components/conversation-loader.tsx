@@ -105,7 +105,7 @@ const ConversationLoader: React.FC<Prop> = ({ conversation }) => {
     }
   }, [value]);
 
-  return <div>{conversation}</div>;
+  return <></>;
 };
 
 export default ConversationLoader;
