@@ -23,6 +23,7 @@ import {
 import { addConvRef, addConvToFriendUser } from "../../app/slices/user-slice";
 import { switchScreen } from "../../app/slices/settings-slice";
 import { getFormatedDate } from "../../utils/getFormDate";
+import { nanoid } from "@reduxjs/toolkit";
 
 const ContactItem: React.FC<PropTypes> = ({ friend }) => {
   const navigate = useNavigate();
@@ -37,11 +38,13 @@ const ContactItem: React.FC<PropTypes> = ({ friend }) => {
 
   const clickHandler = () => {
     if (!user) return;
+    const id = nanoid();
     console.log("contact click", friend);
     if (friend.conversation === "") {
       const conv: Conversation = {
         ...newConversation,
         users: [user.id, friend.id],
+        id,
       };
       setConvDoc(conv);
       addConvToFriend(friend.id, user.id, conv.id);

@@ -86,7 +86,7 @@ const ConversationLoader: React.FC<Prop> = ({ conversation }) => {
       conv.messages.forEach((msg) => {
         if (msg.sender !== id && msg.time > friend.lastInteraction) {
           newInteraction = true;
-          if (activeConv !== id || document.hidden) unreadMsgs++;
+          if (activeConv !== conv.id || document.hidden) unreadMsgs++;
         }
       });
     console.log(unreadMsgs);

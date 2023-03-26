@@ -16,7 +16,7 @@ import conversationReducer from "./slices/conversation-slice";
 const persistConfig = {
   key: "root",
   storage,
-  blacklist: ["user"],
+  blacklist: ["user", "conversations"],
 };
 
 // const userConfig = {

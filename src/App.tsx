@@ -33,13 +33,13 @@ import { useDocument } from "react-firebase-hooks/firestore";
 import { doc } from "firebase/firestore";
 import UserDataLoader from "./logic/loading-components/userdata-loader";
 import FriendLoader from "./logic/loading-components/friend-loader";
+import DeleteFriend from "./components/contacts/delete-friend";
 
 function App() {
   const { theme } = useAppSelector((state) => state.settings);
-  const { currentUser, id, friends, friendsSet } = useAppSelector(
+  const { currentUser, conversations, friends, friendsSet } = useAppSelector(
     (state) => state.user
   );
-  const { conversations } = useAppSelector((state) => state.user);
   const { unreadMsgs } = useAppSelector((state) => state.conversations);
   const [loading, setLoading] = useState(true);
   const [friendLoads, setFriendLoads] = useState<Friend[]>([]);
@@ -119,18 +119,13 @@ function App() {
   }, [currentUser]);
 
   useEffect(() => {
-    setConversationLoads(conversations);
-    setFriendLoads(friends);
-  }, []);
-
-  useEffect(() => {
     setLoading(true);
     console.log(loading);
-    if (friends.length > 0 && conversations.length > 0) setLoading(false);
+    if (friends.length > -1 && conversations.length > 0) setLoading(false);
     if (conversations.length !== conversationLoads.length)
-      setConversationLoads(conversations);
+      setConversationLoads([...conversations]);
     if (friends.length !== friendLoads.length) {
-      setFriendLoads(friends);
+      setFriendLoads([...friends]);
       console.log("length changed");
     }
   }, [friends, conversations]);
@@ -145,6 +140,7 @@ function App() {
             <Route path="chat" element={<ContacChatScreen />} />
             <Route path="settings" element={<SettingsScreen />} />
             <Route path="login" element={<AllAuthScreens />} />
+            <Route path="delete" element={<DeleteFriend />} />
           </Route>
         </Routes>
       </ThemeProvider>

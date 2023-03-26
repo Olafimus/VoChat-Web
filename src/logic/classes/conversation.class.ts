@@ -38,7 +38,7 @@ export type Conversation = {
 };
 
 export const newConversation: Conversation = {
-  id: nanoid(),
+  id: "",
   users: [],
   languages: [],
   messages: [],
