@@ -13,25 +13,37 @@ const ChatScreen = () => {
   const { conversations, activeConv, newMsg } = useAppSelector(
     (state) => state.conversations
   );
+  const user = useAppSelector((state) => state.user);
   const { friends } = useAppSelector((state) => state.user);
   const { theme } = useAppSelector((state) => state.settings);
 
   // const [convIndex, setConvIndex] = useState<number>(-1);
-  // const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [msgTxt, setMsgTxt] = useState("");
   const [contactIds, setContactIds] = useState<string[]>([]);
-  // const [contacts, setContacts] = useState<string[]>([]);
+  const [contacts, setContacts] = useState<string[]>([]);
   const { currentUser, id } = useAppSelector((state) => state.user);
 
-  const conv = conversations.find((conv) => conv.id === activeConv);
-  if (!conv) return <></>;
-  const messages2 = conv.messages;
-  console.log("fire");
-  const cIds = conv.users.filter((usr) => usr !== id);
-  const contactNames: string[] = [];
-  friends.forEach((fr) => {
-    if (cIds.includes(fr.id) && fr.name) contactNames.push(fr.name);
-  });
+  useLayoutEffect(() => {
+    const conv = conversations.find((conv) => conv.id === activeConv);
+    console.log("oha", activeConv, conversations);
+    if (!conv) return;
+    // console.log(friends);
+    // console.log(user.conversations);
+    // console.log(conversations);
+
+    console.log(conv);
+    const messages2 = conv.messages;
+    console.log("fire");
+    const cIds = conv.users.filter((usr) => usr !== id);
+    const contactNames: string[] = [];
+    friends.forEach((fr) => {
+      if (cIds.includes(fr.id) && fr.name) contactNames.push(fr.name);
+    });
+    setContacts(contactNames);
+    setMessages(messages2);
+    setContactIds(cIds);
+  }, [activeConv, messages]);
 
   // useLayoutEffect(() => {
   //   const conv = conversations.find((conv, i) => {
@@ -71,7 +83,8 @@ const ChatScreen = () => {
       ],
     };
     const now = Date.now();
-    dispatch(updateFriendInteraction({ ids: cIds, stamp: now }));
+
+    dispatch(updateFriendInteraction({ ids: contactIds, stamp: now }));
     sendNewMessage(activeConv, msg);
     setMsgTxt("");
     console.log(now);
@@ -81,11 +94,13 @@ const ChatScreen = () => {
     const scrollBox = document.getElementById("chat--container");
     if (!scrollBox) return;
     scrollBox.scrollTop = scrollBox?.scrollHeight;
-  }, []);
+    console.log("oha 2");
+  }, [messages]);
+  console.log("reload", activeConv);
 
   return (
     <section className="chat-screen-section">
-      <h3 className="chat-title">{contactNames.join(", ")}</h3>
+      <h3 className="chat-title">{contacts.join(", ")}</h3>
       <div
         style={
           theme === "light"
@@ -96,7 +111,7 @@ const ChatScreen = () => {
         id="chat--container"
       >
         <div>
-          {messages2.map((msg) => (
+          {messages.map((msg) => (
             <div
               key={msg.id}
               className="chat-text-box-wrapper"

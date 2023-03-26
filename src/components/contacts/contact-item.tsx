@@ -39,7 +39,7 @@ const ContactItem: React.FC<PropTypes> = ({ friend }) => {
   const clickHandler = () => {
     if (!user) return;
     const id = nanoid();
-    console.log("contact click", friend);
+
     if (friend.conversation === "") {
       const conv: Conversation = {
         ...newConversation,
@@ -58,6 +58,8 @@ const ContactItem: React.FC<PropTypes> = ({ friend }) => {
     dispatch(switchScreen("chat"));
 
     // dispatch(countUnreadMsgs());
+    console.log("contact click", friend);
+    // console.log("contact click", friend);
     navigate("/chat", { replace: false });
   };
 

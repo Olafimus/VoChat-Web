@@ -47,7 +47,7 @@ export const ConversationSlice = createSlice({
       action: PayloadAction<{ id: string; count: number }>
     ) => {
       const conv = state.conversations.find(
-        (conv) => (conv.id = action.payload.id)
+        (conv) => conv.id === action.payload.id
       );
       if (!conv) return;
       conv.unreadMsgs = action.payload.count;
