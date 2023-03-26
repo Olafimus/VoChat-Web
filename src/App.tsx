@@ -27,7 +27,7 @@ import {
 } from "./app/slices/user-slice";
 import AllAuthScreens from "./screens/auth-screens/all-auth.screen";
 import ConversationLoader from "./logic/loading-components/conversation-loader";
-import { AppUser, CurrentUser } from "./logic/types/user.types";
+import { AppUser, CurrentUser, Friend } from "./logic/types/user.types";
 import ContacChatScreen from "./screens/main-display-hanlder/contact-chat-handler";
 import { useDocument } from "react-firebase-hooks/firestore";
 import { doc } from "firebase/firestore";
@@ -36,11 +36,16 @@ import FriendLoader from "./logic/loading-components/friend-loader";
 
 function App() {
   const { theme } = useAppSelector((state) => state.settings);
-  const { currentUser, id, friends } = useAppSelector((state) => state.user);
+  const { currentUser, id, friends, friendsSet } = useAppSelector(
+    (state) => state.user
+  );
   const { conversations } = useAppSelector((state) => state.user);
   const { unreadMsgs } = useAppSelector((state) => state.conversations);
+  const [loading, setLoading] = useState(true);
+  const [friendLoads, setFriendLoads] = useState<Friend[]>([]);
+  const [conversationLoads, setConversationLoads] = useState<string[]>([]);
   const dispatch = useAppDispatch();
-  // const theme = "dark";
+  console.log(loading);
 
   const chosenTheme = createTheme({
     palette: {
@@ -113,6 +118,23 @@ function App() {
     getFriends();
   }, [currentUser]);
 
+  useEffect(() => {
+    setConversationLoads(conversations);
+    setFriendLoads(friends);
+  }, []);
+
+  useEffect(() => {
+    setLoading(true);
+    console.log(loading);
+    if (friends.length > 0 && conversations.length > 0) setLoading(false);
+    if (conversations.length !== conversationLoads.length)
+      setConversationLoads(conversations);
+    if (friends.length !== friendLoads.length) {
+      setFriendLoads(friends);
+      console.log("length changed");
+    }
+  }, [friends, conversations]);
+
   return (
     <>
       <ThemeProvider theme={chosenTheme}>
@@ -126,15 +148,17 @@ function App() {
           </Route>
         </Routes>
       </ThemeProvider>
-      {currentUser &&
-        conversations.map((conv) => (
-          <ConversationLoader key={conv} conversation={conv} />
-        ))}
-      {id !== "" && <UserDataLoader id={id} />}
-      {currentUser &&
-        friends.map((friend) => (
+      {!loading &&
+        friendsSet &&
+        friendLoads.map((friend) => (
           <FriendLoader key={friend.id} friend={friend} />
         ))}
+      {!loading &&
+        friendsSet &&
+        conversationLoads.map((conv) => (
+          <ConversationLoader key={conv} conversation={conv} />
+        ))}
+      {/* {id !== "" && <UserDataLoader id={id} />} */}
     </>
   );
 }

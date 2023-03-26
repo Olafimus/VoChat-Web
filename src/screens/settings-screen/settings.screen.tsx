@@ -1,10 +1,11 @@
 import React from "react";
+import Push from "push.js";
 
 import { notifyUser } from "../../utils/notification";
 
 const SettingsScreen = () => {
   const handleClick = async () => {
-    await notifyUser();
+    Push.create("a push");
   };
   return (
     <div>

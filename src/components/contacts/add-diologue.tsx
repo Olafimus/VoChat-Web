@@ -73,16 +73,17 @@ function AddDialog(props: SimpleDialogProps) {
     setFilteredUsers(filUsr);
   }, [searchField]);
 
-  const handleListItemClick = (value: string) => {
+  const handleListItemClick = (user: OnlineUser) => {
     const newFriend: Friend = {
-      id: value,
+      id: user.id,
       lastInteraction: Date.now(),
       lastMessage: "",
       conversation: "",
+      name: user.name,
     };
 
     dispatch(addFriend(newFriend));
-    onClose(value);
+    onClose(user.id);
   };
 
   return (
@@ -98,7 +99,7 @@ function AddDialog(props: SimpleDialogProps) {
         {filteredUsers.map((user) => (
           <ListItem key={user.id} disableGutters={false}>
             <ListItemButton
-              onClick={() => handleListItemClick(user.id)}
+              onClick={() => handleListItemClick(user)}
               key={user.id}
             >
               <ListItemAvatar>

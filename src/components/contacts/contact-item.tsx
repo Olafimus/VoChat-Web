@@ -37,6 +37,7 @@ const ContactItem: React.FC<PropTypes> = ({ friend }) => {
 
   const clickHandler = () => {
     if (!user) return;
+    console.log("contact click", friend);
     if (friend.conversation === "") {
       const conv: Conversation = {
         ...newConversation,

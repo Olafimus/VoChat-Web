@@ -5,22 +5,17 @@ import { useAppSelector } from "../../app/hooks";
 import { Friend } from "../../logic/types/user.types";
 
 export default function ContactsList() {
-  const [contacts, setContacts] = useState<Friend[]>([]);
   const [sortedContacts, setSortedContacts] = useState<Friend[]>([]);
   const { friends } = useAppSelector((state) => state.user);
   const { conversations } = useAppSelector((state) => state.conversations);
 
   useLayoutEffect(() => {
-    setContacts(friends);
-  }, [friends]);
-
-  useLayoutEffect(() => {
-    const conts = [...contacts];
+    const conts = [...friends];
     const sortCont = conts.sort(
       (a, b) => b.lastInteraction - a.lastInteraction
     );
     setSortedContacts(sortCont);
-  }, [contacts]);
+  }, [friends]);
 
   return (
     <List

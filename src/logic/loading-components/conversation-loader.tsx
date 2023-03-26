@@ -79,20 +79,18 @@ const ConversationLoader: React.FC<Prop> = ({ conversation }) => {
     const frId = conv.users.filter((fr) => fr !== id)[0];
     const friend = friends.find((fr) => fr.id === frId);
     const now = Date.now();
-
+    let newInteraction = false;
     let unreadMsgs = 0;
     let lastMsg = conv.messages.at(-1)?.messageHis.at(-1)?.message;
     if (friend)
       conv.messages.forEach((msg) => {
-        if (
-          (msg.sender !== id &&
-            msg.time > friend.lastInteraction &&
-            activeConv !== conversation) ||
-          document.hidden
-        )
-          unreadMsgs++;
+        if (msg.sender !== id && msg.time > friend.lastInteraction) {
+          newInteraction = true;
+          if (activeConv !== id || document.hidden) unreadMsgs++;
+        }
       });
-    // conv.unreadMsgs = unreadMsgs;
+    console.log(unreadMsgs);
+
     if (lastMsg) dispatch(changeFrLastMsg({ frId, lastMsg }));
 
     if (unreadMsgs > 0) {
@@ -101,8 +99,10 @@ const ConversationLoader: React.FC<Prop> = ({ conversation }) => {
       dispatch(countUnreadMsgs());
       notifyUser("user", lastMsg);
     }
-    const stamp = Date.now();
-    dispatch(updateFriendInteraction({ ids: [frId], stamp }));
+    if (newInteraction) {
+      const stamp = Date.now();
+      dispatch(updateFriendInteraction({ ids: [frId], stamp }));
+    }
   }, [value]);
 
   return <div style={{ display: "none" }}>ConversationLoader</div>;

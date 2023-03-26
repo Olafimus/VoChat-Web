@@ -14,6 +14,7 @@ interface UserState {
   teachLanguages: string[];
   learnLanguages: string[];
   friends: Friend[];
+  friendsSet: boolean;
 }
 
 const initialState: UserState = {
@@ -27,6 +28,7 @@ const initialState: UserState = {
   teachLanguages: [],
   learnLanguages: [],
   friends: [],
+  friendsSet: false,
 };
 
 export const UserSlice = createSlice({
@@ -38,6 +40,7 @@ export const UserSlice = createSlice({
     },
     setFriends: (state, action: PayloadAction<Friend[]>) => {
       state.friends = action.payload;
+      state.friendsSet = true;
     },
     setUserId: (state, action: PayloadAction<string>) => {
       state.id = action.payload;
