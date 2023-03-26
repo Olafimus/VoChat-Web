@@ -97,7 +97,7 @@ const ConversationLoader: React.FC<Prop> = ({ conversation }) => {
       dispatch(setUnreadMsgConv({ id: conversation, count: unreadMsgs }));
       dispatch(newMsgReceived());
       dispatch(countUnreadMsgs());
-      notifyUser("user", lastMsg);
+      notifyUser(friend?.name, lastMsg);
     }
     if (newInteraction) {
       const stamp = Date.now();

@@ -1,12 +1,16 @@
-import { useState, useEffect, useLayoutEffect } from "react";
+import { useState, useLayoutEffect } from "react";
 import "./chat.styles.scss";
 import { Typography, TextField, IconButton } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
 import { Message } from "../../logic/types/message.types";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
-import { $CombinedState, nanoid } from "@reduxjs/toolkit";
+import { nanoid } from "@reduxjs/toolkit";
 import { sendNewMessage } from "../../utils/firebase";
 import { updateFriendInteraction } from "../../app/slices/user-slice";
+import { getFormatedDate } from "../../utils/getFormDate";
+import EmojiEmotionsIcon from "@mui/icons-material/EmojiEmotions";
+import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
+import BasicModal from "../../components/general/basic-modal";
 
 const ChatScreen = () => {
   const dispatch = useAppDispatch();
@@ -17,22 +21,17 @@ const ChatScreen = () => {
   const { friends } = useAppSelector((state) => state.user);
   const { theme } = useAppSelector((state) => state.settings);
 
-  // const [convIndex, setConvIndex] = useState<number>(-1);
   const [messages, setMessages] = useState<Message[]>([]);
   const [msgTxt, setMsgTxt] = useState("");
   const [contactIds, setContactIds] = useState<string[]>([]);
   const [contacts, setContacts] = useState<string[]>([]);
-  const { currentUser, id } = useAppSelector((state) => state.user);
+  const { id } = useAppSelector((state) => state.user);
+  const [open, setOpen] = useState(false);
 
   useLayoutEffect(() => {
     const conv = conversations.find((conv) => conv.id === activeConv);
     console.log("oha", activeConv, conversations);
     if (!conv) return;
-    // console.log(friends);
-    // console.log(user.conversations);
-    // console.log(conversations);
-
-    console.log(conv);
     const messages2 = conv.messages;
     console.log("fire");
     const cIds = conv.users.filter((usr) => usr !== id);
@@ -90,6 +89,12 @@ const ChatScreen = () => {
     console.log(now);
   };
 
+  const emojiHandler = (e: EmojiClickData) => {
+    setOpen(false);
+    console.log(e.emoji);
+    setMsgTxt((curMsg) => curMsg + e.emoji);
+  };
+
   useLayoutEffect(() => {
     const scrollBox = document.getElementById("chat--container");
     if (!scrollBox) return;
@@ -129,9 +134,20 @@ const ChatScreen = () => {
                     : { backgroundColor: "#2c8a3c" }
                 }
               >
-                <Typography variant="body1" style={{ fontSize: "16px" }}>
-                  {msg.messageHis[msg.messageHis.length - 1].message}
-                </Typography>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "auto auto",
+                    gap: "1rem",
+                  }}
+                >
+                  <Typography variant="body1" style={{ fontSize: "16px" }}>
+                    {msg.messageHis[msg.messageHis.length - 1].message}
+                  </Typography>
+                  <Typography variant="caption">
+                    {getFormatedDate(msg.time)}
+                  </Typography>
+                </div>
               </div>
             </div>
           ))}
@@ -148,6 +164,9 @@ const ChatScreen = () => {
           }}
           value={msgTxt}
         />
+        <IconButton onClick={() => setOpen(true)}>
+          <EmojiEmotionsIcon />
+        </IconButton>
 
         <IconButton
           className="chat-send-icon"
@@ -157,6 +176,14 @@ const ChatScreen = () => {
           <SendIcon />
         </IconButton>
       </div>
+      <BasicModal
+        open={open}
+        setOpen={setOpen}
+        button={false}
+        buttonText="Emoji"
+      >
+        <EmojiPicker onEmojiClick={emojiHandler} />
+      </BasicModal>
     </section>
   );
 };

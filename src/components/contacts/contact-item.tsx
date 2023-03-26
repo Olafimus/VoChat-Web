@@ -29,6 +29,7 @@ const ContactItem: React.FC<PropTypes> = ({ friend }) => {
   const navigate = useNavigate();
   const user = useAppSelector((state) => state.user);
   const dispatch = useAppDispatch();
+  const { theme } = useAppSelector((state) => state.settings);
 
   const { activeContact, conversations } = useAppSelector(
     (state) => state.conversations
@@ -91,19 +92,18 @@ const ContactItem: React.FC<PropTypes> = ({ friend }) => {
       children: `${name[0]}`,
     };
   }
+  let activeStyle = {
+    backgroundColor: "rgb(30, 30, 30)",
+    pointer: "cursor",
+  };
+  if (theme === "light")
+    activeStyle = { backgroundColor: "rgb(200, 200, 200)", pointer: "cursor" };
 
   return (
     <>
       <ListItem
         alignItems="flex-start"
-        sx={
-          activeContact === friend.id
-            ? {
-                cursor: "pointer",
-                backgroundColor: "rgb(30, 30, 30)",
-              }
-            : { cursor: "pointer" }
-        }
+        sx={activeContact === friend.id ? activeStyle : { pointer: "cursor" }}
         onClick={clickHandler}
       >
         <ListItemAvatar>
