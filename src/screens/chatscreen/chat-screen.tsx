@@ -17,7 +17,6 @@ const ChatScreen = () => {
   const { conversations, activeConv, newMsg } = useAppSelector(
     (state) => state.conversations
   );
-  const user = useAppSelector((state) => state.user);
   const { friends } = useAppSelector((state) => state.user);
   const { theme } = useAppSelector((state) => state.settings);
 
@@ -43,26 +42,6 @@ const ChatScreen = () => {
     setMessages(messages2);
     setContactIds(cIds);
   }, [activeConv, messages]);
-
-  // useLayoutEffect(() => {
-  //   const conv = conversations.find((conv, i) => {
-  //     if (conv.id === activeConv) {
-  //       setConvIndex(i);
-  //       return true;
-  //     }
-  //   });
-
-  //   if (!conv) return;
-  //   const cIds = conv.users.filter((usr) => usr !== id);
-  //   const contactNames: string[] = [];
-  //   friends.forEach((fr) => {
-  //     if (cIds.includes(fr.id) && fr.name) contactNames.push(fr.name);
-  //   });
-  //   setMessages(conv.messages);
-  //   setContactIds(cIds);
-  //   setContacts(contactNames);
-  //   console.log(contactNames, "new fired");
-  // }, []);
 
   const handleSubmit = () => {
     if (id === "") return;

@@ -5,8 +5,9 @@ import {
   ListItemAvatar,
   ListItemText,
   Typography,
+  useMediaQuery,
 } from "@mui/material";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import { PropTypes } from "../../logic/types/proptypes";
 
@@ -30,6 +31,7 @@ const ContactItem: React.FC<PropTypes> = ({ friend }) => {
   const user = useAppSelector((state) => state.user);
   const dispatch = useAppDispatch();
   const { theme } = useAppSelector((state) => state.settings);
+  const shortened = useMediaQuery("(1000px > width > 801px)");
 
   const { activeContact, conversations } = useAppSelector(
     (state) => state.conversations
@@ -95,48 +97,74 @@ const ContactItem: React.FC<PropTypes> = ({ friend }) => {
   let activeStyle = {
     backgroundColor: "rgb(30, 30, 30)",
     pointer: "cursor",
+    justifyContent: "center",
   };
   if (theme === "light")
-    activeStyle = { backgroundColor: "rgb(200, 200, 200)", pointer: "cursor" };
+    activeStyle = {
+      backgroundColor: "rgb(200, 200, 200)",
+      pointer: "cursor",
+      justifyContent: "center",
+    };
+
+  const StandardCard = () => (
+    <>
+      <ListItemAvatar>
+        <Avatar alt="Remy Sharp" {...stringAvatar(friend.name ?? "")} />
+      </ListItemAvatar>
+      <ListItemText
+        primary={friend.name}
+        secondary={
+          <React.Fragment>
+            <Typography
+              sx={{ display: "inline" }}
+              component="span"
+              variant="body2"
+              color="text.primary"
+            >
+              {friend.lastMessage}
+            </Typography>
+            {/* {`${friend.lastMessage}`} */}
+          </React.Fragment>
+        }
+      />
+      <ListItemText
+        sx={{
+          display: "flex",
+          alignSelf: "center",
+          justifyContent: "flex-end",
+          paddingLeft: "1rem",
+        }}
+        // disableTypography
+        color="red"
+      >
+        <p style={{ color: "grey", fontSize: "14px" }}>{time}</p>
+      </ListItemText>
+    </>
+  );
+
+  const ShortCard = () => (
+    <>
+      <ListItemAvatar sx={{ alignSelf: "center" }}>
+        <Avatar alt="Remy Sharp" {...stringAvatar(friend.name ?? "")} />
+      </ListItemAvatar>
+    </>
+  );
 
   return (
     <>
       <ListItem
         alignItems="flex-start"
-        sx={activeContact === friend.id ? activeStyle : { pointer: "cursor" }}
+        sx={
+          activeContact === friend.id
+            ? activeStyle
+            : {
+                pointer: "cursor",
+                justifyContent: "center",
+              }
+        }
         onClick={clickHandler}
       >
-        <ListItemAvatar>
-          <Avatar alt="Remy Sharp" {...stringAvatar(friend.name ?? "")} />
-        </ListItemAvatar>
-        <ListItemText
-          primary={friend.name}
-          secondary={
-            <React.Fragment>
-              <Typography
-                sx={{ display: "inline" }}
-                component="span"
-                variant="body2"
-                color="text.primary"
-              >
-                {friend.lastMessage}
-              </Typography>
-              {/* {`${friend.lastMessage}`} */}
-            </React.Fragment>
-          }
-        />
-        <ListItemText
-          sx={{
-            display: "flex",
-            alignSelf: "center",
-            justifyContent: "flex-end",
-            paddingLeft: "1rem",
-          }}
-          // disableTypography
-          color="red"
-        >
-          <p style={{ color: "grey", fontSize: "14px" }}>{time}</p>
-        </ListItemText>
+        {shortened ? <ShortCard /> : <StandardCard />}
       </ListItem>
       <Divider variant="inset" component="li" />
     </>

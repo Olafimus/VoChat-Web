@@ -17,7 +17,7 @@ export default function ContactsList() {
     setSortedContacts(sortCont);
   }, [friends]);
 
-  return (
+  const LongList = () => (
     <List
       sx={{
         width: "100%",
@@ -33,5 +33,26 @@ export default function ContactsList() {
         <ContactItem key={contact.id} friend={contact} />
       ))}
     </List>
+  );
+
+  return (
+    <>
+      {/* <List
+        sx={{
+          width: "100%",
+          maxWidth: "23rem",
+          height: "100%",
+          overflow: "auto",
+          scrollbarColor: "background.paper",
+          bgcolor: "background.paper",
+          marginBottom: "0.5rem",
+        }}
+      >
+        {sortedContacts.map((contact) => (
+          <ContactItem key={contact.id} friend={contact} />
+        ))}
+      </List> */}
+      <LongList />
+    </>
   );
 }

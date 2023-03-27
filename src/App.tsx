@@ -1,18 +1,12 @@
 import { useState, useEffect } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
-import CssBaseline from "@mui/material/CssBaseline";
 import "./App.css";
 import { Routes } from "react-router-dom";
 import { Route } from "react-router";
 import Navigation from "./screens/navigation/navigation";
 import HomeScreen from "./screens/home/home-screen";
-import ContactScreen from "./screens/contacts/contacs-screen";
-import ChatScreen from "./screens/chatscreen/chat-screen";
 import SettingsScreen from "./screens/settings-screen/settings.screen";
 import { useAppDispatch, useAppSelector } from "./app/hooks";
-import { onAuthStateChanged, User } from "firebase/auth";
 import {
   createUserDocumentFromAuth,
   db,
@@ -29,9 +23,6 @@ import AllAuthScreens from "./screens/auth-screens/all-auth.screen";
 import ConversationLoader from "./logic/loading-components/conversation-loader";
 import { AppUser, CurrentUser, Friend } from "./logic/types/user.types";
 import ContacChatScreen from "./screens/main-display-hanlder/contact-chat-handler";
-import { useDocument } from "react-firebase-hooks/firestore";
-import { doc } from "firebase/firestore";
-import UserDataLoader from "./logic/loading-components/userdata-loader";
 import FriendLoader from "./logic/loading-components/friend-loader";
 import DeleteFriend from "./components/contacts/delete-friend";
 
@@ -64,7 +55,6 @@ function App() {
         createUserDocumentFromAuth(user);
       }
 
-      // dispatch(setCurrentUser(user));
       if (!user) return;
       const currentUser: CurrentUser = {
         uid: user.uid,

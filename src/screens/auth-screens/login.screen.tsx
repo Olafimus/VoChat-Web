@@ -7,6 +7,7 @@ import { signInAuthUserWithEmailAndPassword } from "../../utils/firebase";
 import { useAppDispatch } from "../../app/hooks";
 import { setCurrentUser, setUserId } from "../../app/slices/user-slice";
 import { CurrentUser } from "../../logic/types/user.types";
+import { AuthErrorCodes, ErrorFn } from "firebase/auth";
 
 const LogInScreen = () => {
   const dispatch = useAppDispatch();
@@ -46,8 +47,10 @@ const LogInScreen = () => {
 
       dispatch(setCurrentUser(currentUser));
       dispatch(setUserId(userCred.user.uid));
-    } catch (error) {
+    } catch (error: any) {
       console.log(error);
+      if (error.code === "auth/wrong-password") setPasswordCheck(false);
+      if (error.code === "auth/user-not-found") setMailCheck(false);
     }
   };
 
@@ -68,7 +71,7 @@ const LogInScreen = () => {
             id="outlined-error-helper-text"
             label="E-Mail"
             type="text"
-            helperText={mailCheck ? "" : "This is no E-Mail!"}
+            helperText={mailCheck ? "" : "E-Mail not found"}
             onChange={(e) => setMail(e.currentTarget.value)}
             value={mail}
             onClick={() => setMailCheck(true)}
@@ -78,7 +81,7 @@ const LogInScreen = () => {
             id="outlined-error-helper-text"
             type="password"
             label="password"
-            helperText={passwordCheck ? "" : "Password too short!"}
+            helperText={passwordCheck ? "" : "Password is wrong!"}
             onChange={(e) => setPassword(e.currentTarget.value)}
             value={password}
             onClick={() => setPasswordCheck(true)}
