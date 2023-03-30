@@ -18,7 +18,7 @@ const ChatTextBox = () => {
     start: number;
     end: number;
     range: number;
-  }>({ start: 0, end: 0, range: 25 });
+  }>({ start: 0, end: 0, range: 50 });
   const [contacts, setContacts] = useState<string[]>([]);
   const { id } = useAppSelector((state) => state.user);
 
@@ -33,7 +33,7 @@ const ChatTextBox = () => {
     });
     const end = messages2.length;
     const start = end - range.range;
-    setRange({ start, end, range: 25 });
+    setRange({ start, end, range: 50 });
     setContacts(contactNames);
     setMessages(messages2);
   }, [activeConv, conversations, newMsg]);
