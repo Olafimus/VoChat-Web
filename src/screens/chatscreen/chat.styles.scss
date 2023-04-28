@@ -42,10 +42,11 @@
 
       .chat-text-box {
         display: inline-block;
-        max-width: 80%;
+        max-width: min(80%, 800px);
         margin: 0.3rem;
         margin-top: 0.2rem;
         width: fit-content;
+        overflow: hidden;
 
         background-color: #31206a;
         border-radius: 0.5rem;
@@ -57,6 +58,14 @@
   .chat-text-input-container {
     display: flex;
     flex-direction: row;
+    #edit--div--input {
+      width: 100%;
+      font-size: 16px;
+      padding: 0.5rem;
+      text-align: left;
+      max-height: 60px;
+      overflow: auto;
+    }
     .chat-send-icon {
       width: 3rem;
     }
@@ -73,4 +82,8 @@
     width: 80vw;
     height: 100vh !important;
   }
+}
+
+.text-emoji {
+  font-size: 20px;
 }

@@ -1,4 +1,4 @@
-import { useState, useLayoutEffect } from "react";
+import { useState, useLayoutEffect, useEffect } from "react";
 import "./chat.styles.scss";
 import { Typography, TextField, IconButton } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
@@ -12,21 +12,24 @@ import EmojiEmotionsIcon from "@mui/icons-material/EmojiEmotions";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 import BasicModal from "../../components/general/basic-modal";
 import ChatTextBox from "../../components/chat/text-box";
+import {
+  addEmojis,
+  addURL,
+  emojiShortCuts,
+  setEndFocus,
+  textHighlightMarker,
+} from "../../utils/chatscripts";
 
 const ChatScreen = () => {
   const dispatch = useAppDispatch();
   const { conversations, activeConv, newMsg } = useAppSelector(
     (state) => state.conversations
   );
-  // const { friends } = useAppSelector((state) => state.user);
-  // const { theme } = useAppSelector((state) => state.settings);
   const [msgTxt, setMsgTxt] = useState("");
-  // const [messages, setMessages] = useState<Message[]>([]);
-
-  // const [contactIds, setContactIds] = useState<string[]>([]);
-  // const [contacts, setContacts] = useState<string[]>([]);
+  const [innerHtml, setInnerHtml] = useState("");
   const { id } = useAppSelector((state) => state.user);
   const [open, setOpen] = useState(false);
+  const divId = "edit--div--input";
 
   const handleSubmit = () => {
     if (msgTxt === "") return;
@@ -46,6 +49,7 @@ const ChatScreen = () => {
         },
       ],
     };
+
     const now = Date.now();
     const conv = conversations.find((conv) => conv.id === activeConv);
     if (!conv) return;
@@ -54,12 +58,89 @@ const ChatScreen = () => {
     dispatch(updateFriendInteraction({ ids: contactIds, stamp: now }));
     sendNewMessage(activeConv, msg);
     setMsgTxt("");
+    setInnerHtml("");
+    const textfeld = document.getElementById(divId);
+    if (!textfeld) return;
+    textfeld.focus();
   };
 
-  const emojiHandler = (e: EmojiClickData) => {
-    setOpen(false);
-    setMsgTxt(msgTxt + e.emoji);
+  const handleInput = (
+    e: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>
+  ) => {
+    const input = document.getElementById("text-input-field");
+    if (!input) return;
+    const newMsg = e.currentTarget.value
+      .replace(":)", "😊")
+      .replace(":D", "😂")
+      .replace(":(", "☹️")
+      .replace("(thu)", "👍");
+    setMsgTxt(newMsg);
+    input.focus();
   };
+  console.log("render");
+
+  const emojiHandler = (e: EmojiClickData) => {
+    const textfeld = document.getElementById(divId);
+    setOpen(false);
+    if (!textfeld) return;
+    textfeld.innerHTML = msgTxt + e.emoji;
+    setMsgTxt(msgTxt + e.emoji);
+    console.log(textfeld);
+    textfeld.focus();
+    setEndFocus(divId);
+  };
+
+  if (activeConv === "") return <></>;
+
+  const formatInnerHTML = (
+    params = textHighlightMarker,
+    urls: string[] = []
+  ) => {
+    const textfeld = document.getElementById(divId);
+    if (!textfeld) return;
+    // const txt = textfeld.textContent;
+    let newTxt = addEmojis(msgTxt, emojiShortCuts);
+    let render = false;
+    params.forEach((para) => {
+      const check = () => {
+        const firstIndex = newTxt.indexOf(para[0]);
+        const lastIndex = newTxt.lastIndexOf(para[0]);
+        if (lastIndex > firstIndex + 1) {
+          newTxt = newTxt
+            .replace(para[0], para[1])
+            .replace(para[0], `${para[2]}&nbsp`);
+          render = true;
+          if (newTxt.includes(para[0])) check();
+        }
+      };
+
+      if (newTxt.includes(para[0])) check();
+    });
+    if (urls.length) {
+      urls.forEach((url) => {
+        newTxt = newTxt.replace(
+          url,
+          `<a href="${url}" target='_blank'>${url}</a>&nbsp`
+        );
+      });
+      // render = true;
+    }
+    if (render) {
+      setInnerHtml(newTxt);
+      setMsgTxt(newTxt);
+      textfeld.innerHTML = newTxt;
+      textfeld.focus();
+      setEndFocus(divId);
+    }
+  };
+
+  function editFormating(e: React.FormEvent<HTMLDivElement>) {
+    setMsgTxt(e.currentTarget.innerHTML || "");
+    // useState innerHTML, marker ersetzen
+    // addEmojis();
+
+    formatInnerHTML(textHighlightMarker, addURL(divId));
+  }
 
   return (
     <section className="chat-screen-section">
@@ -67,21 +148,25 @@ const ChatScreen = () => {
         <ChatTextBox />
       </div>
       <div className="chat-text-input-container">
-        <TextField
+        {/* <TextField
           fullWidth
           id="text-input-field"
-          onChange={(e) => {
-            const input = document.getElementById("text-input-field");
-            if (!input) return;
-            setMsgTxt(e.currentTarget.value);
-            input.focus();
-          }}
+          onChange={handleInput}
           onKeyDown={(e) => {
             if (e.key !== "Enter") return;
             handleSubmit();
           }}
           value={msgTxt}
-        />
+        /> */}
+        <div
+          id="edit--div--input"
+          onInput={editFormating}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter") return;
+            handleSubmit();
+          }}
+          contentEditable={true}
+        ></div>
         <IconButton onClick={() => setOpen(true)}>
           <EmojiEmotionsIcon />
         </IconButton>

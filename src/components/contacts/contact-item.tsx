@@ -33,6 +33,19 @@ const ContactItem: React.FC<PropTypes> = ({ friend }) => {
   const { theme } = useAppSelector((state) => state.settings);
   const shortened = useMediaQuery("(1000px > width > 801px)");
 
+  let lastMsg = friend.lastMessage
+    .replace("<span class='text-emoji'>", "")
+    .replace('<span class="text-emoji">', "")
+    .replace("</span>", "")
+    .replace("&nbsp", "")
+    .replace("</span>&nbsp", "");
+
+  if (lastMsg.length > 60) {
+    lastMsg = lastMsg.slice(0, 60) + "...";
+  }
+
+  console.log(friend.name, lastMsg.length, lastMsg);
+
   const { activeContact, conversations } = useAppSelector(
     (state) => state.conversations
   );
@@ -120,10 +133,10 @@ const ContactItem: React.FC<PropTypes> = ({ friend }) => {
               component="span"
               variant="body2"
               color="text.primary"
+              id={`previewText--${friend.id}`}
             >
-              {friend.lastMessage}
+              {lastMsg}
             </Typography>
-            {/* {`${friend.lastMessage}`} */}
           </React.Fragment>
         }
       />
@@ -141,7 +154,6 @@ const ContactItem: React.FC<PropTypes> = ({ friend }) => {
       </ListItemText>
     </>
   );
-
   const ShortCard = () => (
     <>
       <ListItemAvatar sx={{ alignSelf: "center" }}>
