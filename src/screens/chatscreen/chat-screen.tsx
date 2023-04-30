@@ -77,7 +77,6 @@ const ChatScreen = () => {
     setMsgTxt(newMsg);
     input.focus();
   };
-  console.log("render");
 
   const emojiHandler = (e: EmojiClickData) => {
     const textfeld = document.getElementById(divId);
@@ -85,7 +84,6 @@ const ChatScreen = () => {
     if (!textfeld) return;
     textfeld.innerHTML = msgTxt + e.emoji;
     setMsgTxt(msgTxt + e.emoji);
-    console.log(textfeld);
     textfeld.focus();
     setEndFocus(divId);
   };
@@ -138,7 +136,9 @@ const ChatScreen = () => {
     setMsgTxt(e.currentTarget.innerHTML || "");
     // useState innerHTML, marker ersetzen
     // addEmojis();
-
+    let text = e.currentTarget.textContent;
+    if (text) text = text.replaceAll("<3", "heart");
+    console.log(text);
     formatInnerHTML(textHighlightMarker, addURL(divId));
   }
 

@@ -25,7 +25,6 @@ const LoadingContainer = () => {
   const [friendLoads, setFriendLoads] = useState<Friend[]>([]);
   const [conversationLoads, setConversationLoads] = useState<string[]>([]);
   const dispatch = useAppDispatch();
-  console.log(loading);
 
   useEffect(() => {
     if (unreadMsgs > 0) document.title = `(${unreadMsgs}) VoChat`;

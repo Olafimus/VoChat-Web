@@ -26,6 +26,7 @@ import { Conversation } from "../logic/classes/conversation.class";
 import { Message } from "../logic/types/message.types";
 import { Contact, Friend } from "../logic/types/user.types";
 import { VocObj } from "../logic/types/vocab.types";
+import { Response } from "../components/chat/message-box";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDJ4oBGl3SRrN0uAV6mVjk7Ka7ICE7xW7g",
@@ -203,6 +204,23 @@ export const getUserData = async (uid: string) => {
   const userDocRef = doc(db, "users", uid);
   const data = await getDoc(userDocRef);
   return data;
+};
+
+export const sendResponse = async (
+  convId: string,
+  msgId: string,
+  response: Response
+) => {
+  const convRef = doc(db, "conversations", convId);
+  const data = await getDoc(convRef);
+  const messages = data.data()?.messages;
+  if (!messages) return;
+  const msg = messages.find((el: Message) => el.id === msgId);
+  msg.response = response;
+  await updateDoc(convRef, {
+    messages,
+    lastInteraction: Date.now(),
+  });
 };
 
 export const checkConvInDb = () => {};

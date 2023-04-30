@@ -55,7 +55,6 @@ const ConversationLoader: React.FC<Prop> = ({ conversation }) => {
       unreadMsgs: value.data()?.unreadMsgs,
     };
     // if (conv.messages.length === oldConv.messages.length) return;
-    console.log("conv loader");
 
     const frIdArr: string[] = [];
     friends.forEach((fr) => frIdArr.push(fr.id));
@@ -89,7 +88,6 @@ const ConversationLoader: React.FC<Prop> = ({ conversation }) => {
           if (activeConv !== conv.id || document.hidden) unreadMsgs++;
         }
       });
-    console.log(unreadMsgs);
 
     if (lastMsg) dispatch(changeFrLastMsg({ frId, lastMsg }));
 

@@ -1,3 +1,4 @@
+import { Response } from "../../components/chat/message-box";
 import { VocObj } from "./vocab.types";
 
 export type Message = {
@@ -6,6 +7,7 @@ export type Message = {
   language: string;
   sender: string;
   read: boolean;
+  response?: Response;
   messageHis: MessageHisItem[];
 };
 

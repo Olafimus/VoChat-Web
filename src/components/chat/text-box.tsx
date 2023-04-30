@@ -7,6 +7,7 @@ import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { getFormatedDate } from "../../utils/getFormDate";
 import InnerTextBox from "./text-box-formater";
 import { urlRegex } from "../../utils/chatscripts";
+import MessageBox from "./message-box";
 
 const ChatTextBox = () => {
   const dispatch = useAppDispatch();
@@ -61,60 +62,65 @@ const ChatTextBox = () => {
         id="chat--container"
       >
         <div>
-          {messages.slice(range.start, range.end).map((msg) => {
-            const text = msg.messageHis.at(-1)?.message || "";
-            const wordArr = text.split(" ");
-            wordArr.forEach((word, i) => {
-              if (word.match(urlRegex)) {
-                const url = word;
-                let txt = word;
-                if (word.length > 100) txt = txt.slice(0, 100) + "...";
-                if (word.startsWith("www"))
-                  wordArr[
-                    i
-                  ] = `<a href="https://${url}" target='_blank' >${txt}</a>`;
-                else
-                  wordArr[i] = `<a href="${url}" target='_blank' >${txt}</a>`;
-              }
-            });
-            return (
-              <div
-                key={msg.id}
-                className="chat-text-box-wrapper"
-                style={
-                  msg.sender !== id
-                    ? { justifyContent: "flex-end" }
-                    : { justifyContent: "flex-start" }
-                }
-              >
-                <div
-                  className="chat-text-box"
-                  style={
-                    msg.sender !== id
-                      ? { backgroundColor: "#31206a" }
-                      : { backgroundColor: "#2c8a3c" }
-                  }
-                >
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "auto auto",
-                      gap: "1rem",
-                    }}
-                  >
-                    <Typography
-                      dangerouslySetInnerHTML={{ __html: wordArr.join(" ") }}
-                      variant="body1"
-                      style={{ fontSize: "16px" }}
-                    ></Typography>
-                    <Typography variant="caption">
-                      {getFormatedDate(msg.time)}
-                    </Typography>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+          {messages.slice(range.start, range.end).map(
+            (msg) => (
+              <MessageBox msg={msg} />
+            )
+            // {
+            //   const text = msg.messageHis.at(-1)?.message || "";
+            //   const wordArr = text.split(" ");
+            //   wordArr.forEach((word, i) => {
+            //     if (word.match(urlRegex)) {
+            //       const url = word;
+            //       let txt = word;
+            //       if (word.length > 100) txt = txt.slice(0, 100) + "...";
+            //       if (word.startsWith("www"))
+            //         wordArr[
+            //           i
+            //         ] = `<a href="https://${url}" target='_blank' >${txt}</a>`;
+            //       else
+            //         wordArr[i] = `<a href="${url}" target='_blank' >${txt}</a>`;
+            //     }
+            //   });
+            //   return (
+            //     <div
+            //       key={msg.id}
+            //       className="chat-text-box-wrapper"
+            //       style={
+            //         msg.sender !== id
+            //           ? { justifyContent: "flex-end" }
+            //           : { justifyContent: "flex-start" }
+            //       }
+            //     >
+            //       <div
+            //         className="chat-text-box"
+            //         style={
+            //           msg.sender !== id
+            //             ? { backgroundColor: "#31206a" }
+            //             : { backgroundColor: "#2c8a3c" }
+            //         }
+            //       >
+            //         <div
+            //           style={{
+            //             display: "grid",
+            //             gridTemplateColumns: "auto auto",
+            //             gap: "1rem",
+            //           }}
+            //         >
+            //           <Typography
+            //             dangerouslySetInnerHTML={{ __html: wordArr.join(" ") }}
+            //             variant="body1"
+            //             style={{ fontSize: "16px" }}
+            //           ></Typography>
+            //           <Typography variant="caption">
+            //             {getFormatedDate(msg.time)}
+            //           </Typography>
+            //         </div>
+            //       </div>
+            //     </div>
+            //   );
+            // }
+          )}
         </div>
       </div>
     </>

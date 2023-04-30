@@ -11,7 +11,6 @@ const ContacChatScreen = () => {
   const { currentUser } = useAppSelector((state) => state.user);
 
   const matches = useMediaQuery("(min-width:800px)");
-  console.log("handler");
 
   const Content = () => {
     if (matches)
