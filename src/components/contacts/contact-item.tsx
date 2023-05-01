@@ -37,14 +37,12 @@ const ContactItem: React.FC<PropTypes> = ({ friend }) => {
     .replace("<span class='text-emoji'>", "")
     .replace('<span class="text-emoji">', "")
     .replace("</span>", "")
-    .replace("&nbsp", "")
+    .replace("&nbsp;", " ")
     .replace("</span>&nbsp", "");
 
   if (lastMsg.length > 60) {
     lastMsg = lastMsg.slice(0, 60) + "...";
   }
-
-  console.log(friend.name, lastMsg.length, lastMsg);
 
   const { activeContact, conversations } = useAppSelector(
     (state) => state.conversations
@@ -74,8 +72,6 @@ const ContactItem: React.FC<PropTypes> = ({ friend }) => {
     dispatch(switchScreen("chat"));
 
     // dispatch(countUnreadMsgs());
-    console.log("contact click", friend);
-    // console.log("contact click", friend);
     navigate("/chat", { replace: false });
   };
 
@@ -134,8 +130,9 @@ const ContactItem: React.FC<PropTypes> = ({ friend }) => {
               variant="body2"
               color="text.primary"
               id={`previewText--${friend.id}`}
+              dangerouslySetInnerHTML={{ __html: lastMsg }}
             >
-              {lastMsg}
+              {/* {lastMsg} */}
             </Typography>
           </React.Fragment>
         }

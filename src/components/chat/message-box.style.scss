@@ -48,8 +48,14 @@
       gap: 0.1rem;
       border-radius: 0.4rem;
       padding: 0.15rem;
+
       .response-emoji-btn {
         padding: 0.1rem;
+      }
+
+      .response-divider {
+        border: solid rgb(72, 62, 62) 0.1rem;
+        margin: 0 0.18rem;
       }
     }
     .responded {

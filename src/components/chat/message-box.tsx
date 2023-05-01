@@ -40,17 +40,21 @@ const MessageBox: React.FC<MsgProp> = ({ msg }) => {
     if (word.length > 40) wordArr[i] = word.slice(0, 23) + "...";
   });
 
-  const responseHandler = (
+  const resetToolTip = async (
     e: React.MouseEvent<HTMLButtonElement, MouseEvent>
   ) => {
     const toolTip = e.currentTarget.closest("span");
     if (!toolTip || !e.currentTarget.textContent) return;
     toolTip.style.display = "none";
-    const reset = async () => {
-      await new Promise((resolve) =>
-        setTimeout(() => (toolTip.style.display = "flex"), 1)
-      );
-    };
+    await new Promise((resolve) =>
+      setTimeout(() => (toolTip.style.display = "flex"), 1)
+    );
+  };
+
+  const responseHandler = (
+    e: React.MouseEvent<HTMLButtonElement, MouseEvent>
+  ) => {
+    if (!e.currentTarget.textContent) return;
     const resMsg = e.currentTarget.textContent;
     // const newResponses =
     let newResponses: { senderId: string; response: string }[] = [];
@@ -75,14 +79,16 @@ const MessageBox: React.FC<MsgProp> = ({ msg }) => {
     } else response.responses = [{ senderId: id, response: resMsg }];
     // response.responses = [{ senderId: id, response: resMsg }];
     if (response.responses.length < 1) response.responded = false;
-    console.log(response, newResponses);
     sendResponse(activeConv, msg.id, response);
-    reset();
+    resetToolTip(e);
+  };
+
+  const editHandler = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+    resetToolTip(e);
   };
 
   if (msg.response?.responded) response = msg.response;
-  // const responses: string[] = [];
-  // console.log(responses, msg.response?.responses);
+
   useEffect(() => {
     const newResponses: string[] = [];
     response.responses.forEach((res) => newResponses.push(res.response));
@@ -152,6 +158,13 @@ const MessageBox: React.FC<MsgProp> = ({ msg }) => {
           </button>
           <button onClick={responseHandler} className="response-emoji-btn">
             😮
+          </button>
+          <div className="response-divider"></div>
+          <button onClick={editHandler} className="response-emoji-btn">
+            🖊️
+          </button>
+          <button onClick={editHandler} className="response-emoji-btn">
+            ↩️
           </button>
         </span>
         <span
