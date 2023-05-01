@@ -40,17 +40,6 @@
   .chat-text-input-container {
     display: flex;
     flex-direction: row;
-    #edit--div--input {
-      width: 100%;
-      font-size: 16px;
-      padding: 0.5rem;
-      text-align: left;
-      max-height: 60px;
-      overflow: auto;
-    }
-    .chat-send-icon {
-      width: 3rem;
-    }
   }
 }
 
@@ -68,4 +57,32 @@
 
 .text-emoji {
   font-size: 20px;
+}
+
+.edit--div--input {
+  width: 100%;
+  font-size: 16px;
+  padding: 0.5rem;
+  text-align: left;
+  max-height: 60px;
+  overflow: auto;
+}
+.chat-send-icon {
+  width: 3rem;
+}
+
+.answer-edit-wrapper {
+  background-color: antiquewhite;
+  min-width: 300px;
+}
+
+.msg-sender {
+  position: absolute;
+  padding-left: 0.3rem;
+  padding-right: 0.3rem;
+
+  top: 20px;
+  left: 50px;
+  background-color: rgb(15, 15, 15);
+  color: #2756ef;
 }

@@ -56,7 +56,11 @@ const ChatTextBox = () => {
       >
         <div>
           {messages.slice(range.start, range.end).map((msg) => (
-            <MessageBox key={msg.id} msg={msg} />
+            <MessageBox
+              key={msg.time}
+              msg={msg}
+              contactName={contacts.join(", ")}
+            />
           ))}
         </div>
       </div>
