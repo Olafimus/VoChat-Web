@@ -45,9 +45,10 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
   const [open, setOpen] = React.useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
-  const [msgType, setMsgType] = useState<MsgHisTypes>("standard");
+  // const [msgType, setMsgType] = useState<MsgHisTypes>("standard");
 
   const triggerSubmit = () => {
+    handleClose();
     setTrigger(!trigger);
   };
 
@@ -55,12 +56,9 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
     responded: false,
     responses: [],
   };
-
-  // checking Message type
-  useEffect(() => {
-    if (msg.messageHis.at(-1)?.type === "answer") setMsgType("answer");
-    if (msg.messageHis.at(-1)?.type === "edit") setMsgType("edit");
-  }, []);
+  let msgType = "standard";
+  if (msg.messageHis.at(-1)?.type === "answer") msgType = "answer";
+  if (msg.messageHis.at(-1)?.type === "edit") msgType = "edit";
 
   // formating URLs and too long words
   const text = msg.messageHis.at(-1)?.message || "";

@@ -1,10 +1,11 @@
 .screen-handler-container {
-  display: flex;
+  display: grid;
 }
 
 @media (width > 800px) {
   .screen-handler-container {
     display: grid !important;
     grid-template-columns: 30% 70%;
+    // max-width: 95vw;
   }
 }

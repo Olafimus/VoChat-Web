@@ -103,20 +103,28 @@ const InputDiv: React.FC<InputProps> = ({
   const handleSubmit = () => {
     if (msgTxt === "") return;
     if (id === "") return;
+    if (!ref.current) return;
     switch (type) {
       case "newMsg":
         sendNewMsgHandler();
+        setMsgTxt("");
+        ref.current.innerHTML = "";
         break;
       case "answer":
         console.log(oldMsg);
         if (!oldMsg) return;
         sendAnswerHandler(oldMsg, msgTxt);
+        setMsgTxt("");
+        ref.current.innerHTML = "";
         break;
       case "edit":
         sendEditHandler();
+        setMsgTxt("");
+        ref.current.innerHTML = "";
         break;
       default:
         return;
+        setMsgTxt("");
     }
     // sendNewMsgHandler();
   };
@@ -169,6 +177,7 @@ const InputDiv: React.FC<InputProps> = ({
   }, [trigger]);
 
   const editFormating = (e: React.FormEvent<HTMLDivElement>) => {
+    console.log(e.currentTarget.innerHTML);
     setMsgTxt(e.currentTarget.innerHTML || "");
     // useState innerHTML, marker ersetzen
     // addEmojis();
@@ -183,11 +192,14 @@ const InputDiv: React.FC<InputProps> = ({
       className="edit--div--input"
       id={divId}
       style={{ paddingLeft: "0.5rem" }}
-      onInput={editFormating}
       onKeyDown={(e) => {
-        if (e.key !== "Enter") return;
-        handleSubmit();
+        // e.preventDefault();
+        if (e.key === "Enter") {
+          e.preventDefault();
+          handleSubmit();
+        }
       }}
+      onInput={editFormating}
       contentEditable={true}
     ></div>
   );

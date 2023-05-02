@@ -2,8 +2,9 @@ import { useState, useLayoutEffect } from "react";
 import { Message } from "../../logic/types/message.types";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import MessageBox from "./message-box";
+import { IconButton } from "@mui/material";
 
-const ChatTextBox = () => {
+const ChatTextBox = ({ matches }: { matches: boolean }) => {
   const { conversations, activeConv, newMsg } = useAppSelector(
     (state) => state.conversations
   );
@@ -41,10 +42,14 @@ const ChatTextBox = () => {
     scrollBox.scrollTop = scrollBox?.scrollHeight;
   }, [messages]);
 
+  const backToContacts = () => {};
+  console.log("matches: ", matches);
   return (
     <>
-      {" "}
-      <h3 className="chat-title">{contacts.join(", ")}</h3>
+      <div className="chat-box-title-section">
+        {/* {!matches && <IconButton onClick={backToContacts}>Back</IconButton>} */}
+        <h3 className="chat-title">{contacts.join(", ")}</h3>
+      </div>
       <div
         style={
           theme === "light"

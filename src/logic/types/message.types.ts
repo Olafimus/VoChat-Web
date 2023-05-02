@@ -28,6 +28,7 @@ export type MessageHisItem = {
   read: boolean;
   message: string;
   type: MsgHisTypes;
+  response?: Response;
 };
 
 export type MsgHisTypes = "answer" | "standard" | "edit" | null;

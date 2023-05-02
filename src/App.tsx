@@ -21,6 +21,7 @@ function App() {
       mode: theme,
     },
   });
+  console.log("App rendered");
 
   return (
     <>
