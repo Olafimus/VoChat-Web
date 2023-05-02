@@ -47,9 +47,10 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
   const handleClose = () => setOpen(false);
   // const [msgType, setMsgType] = useState<MsgHisTypes>("standard");
 
-  const triggerSubmit = () => {
-    handleClose();
+  const triggerSubmit = async () => {
     setTrigger(!trigger);
+    await new Promise((resolve) => setTimeout(() => handleClose(), 1));
+    handleClose();
   };
 
   let response: Response = {
@@ -173,7 +174,7 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
     const oldText = msg.messageHis.at(-2)?.message || "";
     const oldMsgtxt = formatMsg(oldText);
     let senderName = contactName;
-    if (msg.messageHis.at(-2)?.editor === id) senderName = "username";
+    if (msg.messageHis.at(-2)?.editor === id) senderName = "you";
     const oldTime = msg.messageHis.at(-2)?.time || msg.time;
 
     const captionStyles = {

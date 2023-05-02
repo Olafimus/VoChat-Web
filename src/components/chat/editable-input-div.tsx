@@ -11,6 +11,10 @@ import {
 } from "../../utils/chatscripts";
 import { updateFriendInteraction } from "../../app/slices/user-slice";
 import { sendNewMessage } from "../../utils/firebase";
+import { IconButton } from "@mui/material";
+import EmojiEmotionsIcon from "@mui/icons-material/EmojiEmotions";
+import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
+import BasicModal from "../general/basic-modal";
 
 type InputProps = {
   type: "newMsg" | "answer" | "edit";
@@ -36,6 +40,7 @@ const InputDiv: React.FC<InputProps> = ({
   const dispatch = useAppDispatch();
   const divId = nanoid();
   const userId = id;
+  const [open, setOpen] = useState(false);
 
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -46,6 +51,17 @@ const InputDiv: React.FC<InputProps> = ({
       // setEndFocus(divId);
     }
   }, [ref]);
+
+  const emojiHandler = (e: EmojiClickData) => {
+    const textfeld = document.getElementById(divId);
+    setOpen(false);
+    console.log(textfeld);
+    if (!textfeld) return;
+    textfeld.innerHTML = msgTxt + e.emoji;
+    setMsgTxt(msgTxt + e.emoji);
+    textfeld.focus();
+    setEndFocus(divId);
+  };
 
   const createMsgObj = (sender = userId, id = nanoid()) => {
     const msgObj: Message = {
@@ -187,21 +203,35 @@ const InputDiv: React.FC<InputProps> = ({
   };
 
   return (
-    <div
-      ref={ref}
-      className="edit--div--input"
-      id={divId}
-      style={{ paddingLeft: "0.5rem" }}
-      onKeyDown={(e) => {
-        // e.preventDefault();
-        if (e.key === "Enter") {
-          e.preventDefault();
-          handleSubmit();
-        }
-      }}
-      onInput={editFormating}
-      contentEditable={true}
-    ></div>
+    <>
+      <div
+        ref={ref}
+        className="edit--div--input"
+        id={divId}
+        style={{ paddingLeft: "0.5rem" }}
+        onKeyDown={(e) => {
+          // e.preventDefault();
+          if (e.key === "Enter") {
+            e.preventDefault();
+            handleSubmit();
+          }
+        }}
+        onInput={editFormating}
+        contentEditable={true}
+      ></div>
+
+      <IconButton onClick={() => setOpen(true)}>
+        <EmojiEmotionsIcon />
+      </IconButton>
+      <BasicModal
+        open={open}
+        setOpen={setOpen}
+        button={false}
+        buttonText="Emoji"
+      >
+        <EmojiPicker onEmojiClick={emojiHandler} />
+      </BasicModal>
+    </>
   );
 };
 

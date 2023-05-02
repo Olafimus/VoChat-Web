@@ -14,9 +14,8 @@ import ContactScreen from "../contacts/contacs-screen";
 const ChatScreen = ({ matches }: { matches: boolean }) => {
   const { activeConv } = useAppSelector((state) => state.conversations);
   const [trigger, setTrigger] = useState(false);
-  const [msgTxt, setMsgTxt] = useState("");
   const [open, setOpen] = useState(false);
-  const divId = "edit--div--input";
+  const divId = "main--edit--div--input";
   const { activeScreen } = useAppSelector((state) => state.settings);
 
   const triggerSubmit = () => {
@@ -27,8 +26,8 @@ const ChatScreen = ({ matches }: { matches: boolean }) => {
     const textfeld = document.getElementById(divId);
     setOpen(false);
     if (!textfeld) return;
-    textfeld.innerHTML = msgTxt + e.emoji;
-    setMsgTxt(msgTxt + e.emoji);
+    // textfeld.innerHTML = msgTxt + e.emoji;
+    // setMsgTxt(msgTxt + e.emoji);
     textfeld.focus();
     setEndFocus(divId);
   };
@@ -48,9 +47,9 @@ const ChatScreen = ({ matches }: { matches: boolean }) => {
       </div>
       <div className="chat-text-input-container">
         <InputDiv trigger={trigger} type="newMsg" />
-        <IconButton onClick={() => setOpen(true)}>
+        {/* <IconButton onClick={() => setOpen(true)}>
           <EmojiEmotionsIcon />
-        </IconButton>
+        </IconButton> */}
 
         <IconButton
           className="chat-send-icon"
@@ -60,14 +59,14 @@ const ChatScreen = ({ matches }: { matches: boolean }) => {
           <SendIcon />
         </IconButton>
       </div>
-      <BasicModal
+      {/* <BasicModal
         open={open}
         setOpen={setOpen}
         button={false}
         buttonText="Emoji"
       >
         <EmojiPicker onEmojiClick={emojiHandler} />
-      </BasicModal>
+      </BasicModal> */}
     </section>
   );
 };
