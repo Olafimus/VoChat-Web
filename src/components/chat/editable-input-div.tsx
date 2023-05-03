@@ -52,15 +52,23 @@ const InputDiv: React.FC<InputProps> = ({
     }
   }, [ref]);
 
-  const emojiHandler = (e: EmojiClickData) => {
+  const emojiHandler = async (e: EmojiClickData) => {
     const textfeld = document.getElementById(divId);
     setOpen(false);
     console.log(textfeld);
     if (!textfeld) return;
     textfeld.innerHTML = msgTxt + e.emoji;
     setMsgTxt(msgTxt + e.emoji);
-    textfeld.focus();
-    setEndFocus(divId);
+    await new Promise((resolve) =>
+      setTimeout(() => {
+        textfeld.focus();
+      }, 1)
+    );
+    await new Promise((resolve) =>
+      setTimeout(() => {
+        setEndFocus(divId);
+      }, 5)
+    );
   };
 
   const createMsgObj = (sender = userId, id = nanoid()) => {
