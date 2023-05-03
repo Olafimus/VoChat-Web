@@ -113,7 +113,7 @@ const InputDiv: React.FC<InputProps> = ({
   };
 
   const sendAnswerHandler = (oldMsg: Message, answer: string) => {
-    const newMsg = createMsgObj(userId, oldMsg.id);
+    const newMsg = createMsgObj(userId);
     oldMsg.messageHis.forEach((msg) => newMsg.messageHis.push({ ...msg }));
     addMsgHis(newMsg, answer, "answer");
     newMsg.time = Date.now();
