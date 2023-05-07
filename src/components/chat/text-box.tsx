@@ -43,7 +43,6 @@ const ChatTextBox = ({ matches }: { matches: boolean }) => {
   }, [messages]);
 
   const backToContacts = () => {};
-  console.log("matches: ", matches);
   return (
     <>
       <div className="chat-box-title-section">

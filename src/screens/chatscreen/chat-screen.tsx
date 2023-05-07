@@ -7,9 +7,9 @@ import EmojiEmotionsIcon from "@mui/icons-material/EmojiEmotions";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 import BasicModal from "../../components/general/basic-modal";
 import ChatTextBox from "../../components/chat/text-box";
-import { setEndFocus } from "../../utils/chatscripts";
 import InputDiv from "../../components/chat/editable-input-div";
 import ContactScreen from "../contacts/contacs-screen";
+import { setEndFocus } from "../../utils/text-scripts/set-focus-end";
 
 const ChatScreen = ({ matches }: { matches: boolean }) => {
   const { activeConv } = useAppSelector((state) => state.conversations);

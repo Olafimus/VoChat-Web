@@ -68,7 +68,8 @@
       height: 25px;
       min-width: 25px;
       right: 20px;
-      top: 75%;
+      top: 100%;
+      transform: translateY(-50%);
       border-radius: 12.5px;
       background-color: rgb(28, 60, 83);
     }

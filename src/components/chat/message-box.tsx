@@ -4,13 +4,13 @@ import Modal from "@mui/material/Modal";
 import React, { useEffect, useState, useRef } from "react";
 import { Message, MsgHisTypes } from "../../logic/types/message.types";
 import { useAppSelector } from "../../app/hooks";
-import { urlRegex } from "../../utils/chatscripts";
 import { getFormatedDate } from "../../utils/getFormDate";
 import "./message-box.style.scss";
 import { sendResponse } from "../../utils/firebase";
 import InputDiv from "./editable-input-div";
 import { IconButton } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
+import { urlRegex } from "../../utils/text-scripts/add-url";
 
 type MsgProp = {
   msg: Message;
