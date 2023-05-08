@@ -11,8 +11,9 @@ export const formatInnerHTML = (
   params = textHighlightMarker
 ) => {
   console.log(urls);
+  let render = false;
   let newTxt = addEmojis(txt, emojiShortCuts);
-  let render = true;
+  if (newTxt !== txt) render = true;
   params.forEach((para) => {
     const check = () => {
       const firstIndex = newTxt.indexOf(para[0]);
@@ -38,6 +39,7 @@ export const formatInnerHTML = (
     console.log(newTxt);
     render = true;
   }
+  console.log(render);
   if (render) {
     return newTxt;
   }
