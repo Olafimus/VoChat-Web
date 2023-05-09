@@ -11,6 +11,7 @@ import InputDiv from "./editable-input-div";
 import { IconButton } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
 import { urlRegex } from "../../utils/text-scripts/add-url";
+import { formatInnerHTML } from "../../utils/text-scripts/html-formating";
 
 type MsgProp = {
   msg: Message;
@@ -80,6 +81,7 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
   };
 
   const msgText = formatMsg(text);
+  const msgHTML = formatInnerHTML(msgText) || msgText;
 
   const resetToolTip = async (
     e: React.MouseEvent<HTMLButtonElement, MouseEvent>
@@ -161,7 +163,7 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
         }}
       >
         <Typography
-          dangerouslySetInnerHTML={{ __html: msgText }}
+          dangerouslySetInnerHTML={{ __html: msgHTML }}
           variant="body1"
           style={{ fontSize: "16px" }}
         ></Typography>
@@ -234,7 +236,7 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
           }}
         >
           <Typography
-            dangerouslySetInnerHTML={{ __html: msgText }}
+            dangerouslySetInnerHTML={{ __html: msgHTML }}
             variant="body1"
             style={{ fontSize: "16px" }}
           ></Typography>

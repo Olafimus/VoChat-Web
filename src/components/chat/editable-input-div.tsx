@@ -161,13 +161,19 @@ const InputDiv: React.FC<InputProps> = ({
   const editFormating = (e: React.FormEvent<HTMLDivElement>) => {
     const editDiv = document.getElementById(divId);
     if (!editDiv) return;
+    const curHTML = e.currentTarget.innerHTML;
+    const curTxt = e.currentTarget.textContent;
+    if (!curHTML || !curTxt) return;
     setActive(true);
-    const newInnerHTML = formatInnerHTML(divId, e.currentTarget.innerHTML);
+    const newInnerHTML = formatInnerHTML(curHTML);
     let newMsgTxt: string | undefined;
     if (newInnerHTML) newMsgTxt = reformatHTMLtoTxt(newInnerHTML);
-    console.log(e.currentTarget.innerHTML, "w");
+    console.log(curHTML, "w");
     console.log("new: ", newInnerHTML);
-    if (newMsgTxt) setMsgTxt(newMsgTxt); // <- diesen Schritt erst am Ende
+
+    if (newMsgTxt) {
+      setMsgTxt(newMsgTxt);
+    } else setMsgTxt(reformatHTMLtoTxt(curHTML)); // <- diesen Schritt erst am Ende
     if (newInnerHTML) {
       editDiv.innerHTML = "";
       editDiv.focus();

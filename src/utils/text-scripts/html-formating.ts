@@ -5,7 +5,6 @@ import {
 } from "./emoji-and-chat-highlighter";
 
 export const formatInnerHTML = (
-  divId: string,
   txt: string,
   urls: string[] = [],
   params = textHighlightMarker
@@ -50,7 +49,7 @@ export const reformatHTMLtoTxt = (
   params = textHighlightMarker
 ) => {
   let newStr = str;
-  if (!newStr) return;
+  if (!newStr) return str;
   params.forEach((para) => {
     newStr = newStr.replaceAll(para[1], para[0]).replaceAll(para[2], para[0]);
   });
