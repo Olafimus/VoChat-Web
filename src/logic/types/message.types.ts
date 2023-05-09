@@ -31,7 +31,7 @@ export type MessageHisItem = {
   response?: Response;
 };
 
-export type MsgHisTypes = "answer" | "standard" | "edit" | null;
+export type MsgHisTypes = "answer" | "standard" | "edit" | "vocab" | null;
 
 export type ConVoc = {
   time: number;

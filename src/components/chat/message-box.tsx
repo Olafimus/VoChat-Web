@@ -206,7 +206,7 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
           <Typography
             dangerouslySetInnerHTML={{ __html: oldText }}
             variant="body1"
-            style={{ fontSize: "16px" }}
+            style={{ fontSize: "16px", paddingLeft: "0.3rem" }}
           ></Typography>
           <Typography variant="caption" sx={{ paddingTop: "0.2rem" }}>
             {getFormatedDate(oldTime)}
