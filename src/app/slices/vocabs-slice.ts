@@ -1,12 +1,13 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { PayloadAction, createSlice } from "@reduxjs/toolkit";
 import { VocObj } from "../../logic/types/vocab.types";
+import { AllVocabsClass, Vocab } from "../../logic/classes/vocab.class";
 
 interface VocabState {
-  allvocabs: VocObj[];
+  allvocabs: AllVocabsClass;
 }
 
 const initialState: VocabState = {
-  allvocabs: [],
+  allvocabs: new AllVocabsClass([]),
 };
 
 export const VocabSlice = createSlice({
@@ -16,8 +17,8 @@ export const VocabSlice = createSlice({
     setVocabs: (state, { payload }) => {
       state.allvocabs = payload;
     },
-    addVocab: (state, { payload }) => {
-      state.allvocabs.push(payload);
+    addVocab: (state, actions: PayloadAction<Vocab>) => {
+      state.allvocabs.addVocab(actions.payload);
     },
   },
 });

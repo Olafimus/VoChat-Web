@@ -248,33 +248,33 @@ const Navigation = () => {
         </ListItem>
 
         <List>
-          {["All mail", "Trash", "Spam"].map((text, index) => (
-            <ListItem
-              onClick={() => navigation("/chat")}
-              key={text}
-              disablePadding
-              sx={{ display: "block" }}
+          <ListItem
+            onClick={() => navigation("/vocab")}
+            disablePadding
+            sx={{ display: "block" }}
+          >
+            <ListItemButton
+              sx={{
+                minHeight: 48,
+                justifyContent: open ? "initial" : "center",
+                px: 2.5,
+              }}
             >
-              <ListItemButton
+              <ListItemIcon
                 sx={{
-                  minHeight: 48,
-                  justifyContent: open ? "initial" : "center",
-                  px: 2.5,
+                  minWidth: 0,
+                  mr: open ? 3 : "auto",
+                  justifyContent: "center",
                 }}
               >
-                <ListItemIcon
-                  sx={{
-                    minWidth: 0,
-                    mr: open ? 3 : "auto",
-                    justifyContent: "center",
-                  }}
-                >
-                  {index % 2 === 0 ? <InboxIcon /> : <MailIcon />}
-                </ListItemIcon>
-                <ListItemText primary={text} sx={{ opacity: open ? 1 : 0 }} />
-              </ListItemButton>
-            </ListItem>
-          ))}
+                <MailIcon />
+              </ListItemIcon>
+              <ListItemText
+                primary="All Vocabs"
+                sx={{ opacity: open ? 1 : 0 }}
+              />
+            </ListItemButton>
+          </ListItem>
         </List>
       </Drawer>
       <DrawerHeader />
@@ -284,7 +284,7 @@ const Navigation = () => {
           flexGrow: 1,
           p: 3,
           height: "90vh",
-          marginTop: "0.5rem",
+          marginTop: "2.0rem",
           alignSelf: "center",
           padding: "0.2rem",
         }}

@@ -13,6 +13,7 @@ import ContacChatScreen from "./screens/main-display-hanlder/contact-chat-handle
 
 import DeleteFriend from "./components/contacts/delete-friend";
 import LoadingContainer from "./logic/loading-components/LoadingContainer";
+import AllVocabs from "./screens/vocba-screens/all-vocabs-screen";
 
 function App() {
   const { theme } = useAppSelector((state) => state.settings);
@@ -34,6 +35,7 @@ function App() {
             <Route path="settings" element={<SettingsScreen />} />
             <Route path="login" element={<AllAuthScreens />} />
             <Route path="delete" element={<DeleteFriend />} />
+            <Route path="vocab" element={<AllVocabs />}></Route>
           </Route>
         </Routes>
       </ThemeProvider>
