@@ -134,7 +134,12 @@ const Navigation = () => {
             <MenuIcon />
           </IconButton>
           <span className="nav-toolbar-components">
-            <Typography variant="h6" noWrap component="div">
+            <Typography
+              variant="h6"
+              noWrap
+              component="div"
+              onClick={() => navigation("/")}
+            >
               VoChat
             </Typography>
             {currentUser ? (
@@ -275,6 +280,33 @@ const Navigation = () => {
               />
             </ListItemButton>
           </ListItem>
+          <ListItem
+            onClick={() => navigation("/vocab/workbooks")}
+            disablePadding
+            sx={{ display: "block" }}
+          >
+            <ListItemButton
+              sx={{
+                minHeight: 48,
+                justifyContent: open ? "initial" : "center",
+                px: 2.5,
+              }}
+            >
+              <ListItemIcon
+                sx={{
+                  minWidth: 0,
+                  mr: open ? 3 : "auto",
+                  justifyContent: "center",
+                }}
+              >
+                <MailIcon />
+              </ListItemIcon>
+              <ListItemText
+                primary="Workbooks"
+                sx={{ opacity: open ? 1 : 0 }}
+              />
+            </ListItemButton>
+          </ListItem>
         </List>
       </Drawer>
       <DrawerHeader />
@@ -283,7 +315,7 @@ const Navigation = () => {
         sx={{
           flexGrow: 1,
           p: 3,
-          height: "90vh",
+
           marginTop: "2.0rem",
           alignSelf: "center",
           padding: "0.2rem",

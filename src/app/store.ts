@@ -12,11 +12,12 @@ import SettingsReducer from "./slices/settings-slice";
 import UserReducer from "./slices/user-slice";
 import vocabsReducer from "./slices/vocabs-slice";
 import conversationReducer from "./slices/conversation-slice";
+import AllVocabsReducer from "./slices/vocabs-class-slice";
 
 const persistConfig = {
   key: "root",
   storage,
-  blacklist: ["user", "conversations"],
+  blacklist: ["user", "conversations", "allVocabs"],
 };
 
 // const userConfig = {
@@ -29,6 +30,7 @@ const appReducer = combineReducers({
   settings: SettingsReducer,
   user: UserReducer,
   vocabs: vocabsReducer,
+  allVocabs: AllVocabsReducer,
   conversations: conversationReducer,
 });
 

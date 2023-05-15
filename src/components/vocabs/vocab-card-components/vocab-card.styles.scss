@@ -1,0 +1,17 @@
+.vocab-card-information-item {
+  display: grid;
+  grid-template-columns: 135px 10px auto;
+}
+
+.vocab-card-column-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  width: 100% !important;
+}
+
+.vocab-card-list-container {
+  display: flex;
+  justify-content: space-around;
+  gap: 0.4rem;
+}

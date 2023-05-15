@@ -1,8 +1,9 @@
 import * as React from "react";
 import "./general-components.styles.scss";
 import Select from "react-select";
-import { useAppSelector } from "../../app/hooks";
+import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { nanoid } from "@reduxjs/toolkit";
+import { addCategory, addWorkbook } from "../../app/slices/vocabs-slice";
 
 export type MySelectOptionType = {
   label: string;
@@ -17,6 +18,7 @@ type SelectProps = {
   placeholder?: string;
   selection: MySelectOptionType[];
   setFunc: (val: MySelectOptionType[]) => void;
+  type: "categories" | "workbooks";
 };
 
 const MultiSelect = ({
@@ -24,51 +26,42 @@ const MultiSelect = ({
   placeholder,
   setFunc,
   selection,
+  type,
 }: SelectProps) => {
   const [input, setInput] = React.useState("");
   const [selOptions, setSelOptions] = React.useState([...options]);
-  const selectBar = document.getElementById("react-select-415-input");
-  const { theme } = useAppSelector((state) => state.settings);
+  // const selectBar = document.getElementById("react-select-415-input");
+  // const { theme } = useAppSelector((state) => state.settings);
+  // const { workbooks, categories } = useAppSelector((state) => state.vocabs);
+  const dispatch = useAppDispatch();
 
   const inputHandler = (input: string) => {
     let check = false;
     options.forEach((opt) => {
       if (opt.label.toLowerCase().includes(input.toLowerCase())) check = true;
     });
-    const newBtn = document.getElementById("new-option-button");
-    // if (!newBtn) return;
     if (!check) {
-      // newBtn.style.display = "block";
       setInput(input);
-    } else {
-      // setTimeout(() => (newBtn.style.display = "none"), 200);
     }
   };
 
-  const newSelOption = (e: React.MouseEvent<HTMLSpanElement, MouseEvent>) => {
-    const newBtn = document.getElementById("new-option-button");
-    if (!newBtn) return;
-    const newOption = {
-      label: input,
-      value: nanoid(),
-    };
-    console.log("option: ", newOption);
-    setSelOptions((curOpt) => [...curOpt, newOption]);
-    setFunc([...selection, newOption]);
-    newBtn.style.display = "none";
-    console.log(selectBar);
-    //setTimeout(() => selectBar.focus(), 1000)
-  };
+  // const newSelOption = (e: React.MouseEvent<HTMLSpanElement, MouseEvent>) => {
+  //   const newBtn = document.getElementById("new-option-button");
+  //   if (!newBtn) return;
+  //   const newOption = {
+  //     label: input,
+  //     value: nanoid(),
+  //   };
+  //   console.log("option: ", newOption);
+  //   setSelOptions((curOpt) => [...curOpt, newOption]);
+  //   setFunc([...selection, newOption]);
+  //   newBtn.style.display = "none";
+  //   console.log(selectBar);
+  //   //setTimeout(() => selectBar.focus(), 1000)
+  // };
 
   return (
     <div>
-      {/* <span
-        id="new-option-button"
-        onClick={newSelOption}
-        style={{ display: "none", width: "100%" }}
-      >
-        Add: {input}
-      </span> */}
       <Select
         isMulti
         onKeyDown={(e) => {
@@ -78,8 +71,13 @@ const MultiSelect = ({
             value: nanoid(),
           };
           const check = selOptions.filter((opt) => opt.label === input);
-          console.log(input);
           if (check.length > 0 || input === "") return;
+          if (type === "workbooks")
+            dispatch(
+              addWorkbook({ name: newOption.label, id: newOption.value })
+            );
+          if (type === "categories")
+            dispatch(addCategory({ label: newOption.label }));
           setSelOptions((curOpt) => [...curOpt, newOption]);
           setFunc([...selection, newOption]);
         }}

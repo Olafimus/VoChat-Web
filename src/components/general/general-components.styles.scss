@@ -23,7 +23,12 @@
 }
 
 .select__multi-value__label {
-  color: var(--text-primary);
+  color: var(--text-primary) !important;
+  background-color: var(--bg-third);
+}
+
+.select__multi-value__remove {
+  background-color: var(--bg-third);
 }
 
 .select__menu {

@@ -1,285 +1,370 @@
 import * as React from "react";
-import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
-import Typography from "@mui/material/Typography";
-import Modal from "@mui/material/Modal";
-import TextField from "@mui/material/TextField";
-import Slider from "@mui/material/Slider";
+import {
+  Box,
+  Divider,
+  Button,
+  IconButton,
+  TextField,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+} from "@mui/material";
 import MultiSelect, { MySelectOptionType } from "../general/multi-select";
-import { VocObj } from "../../logic/types/vocab.types";
+import { VocObj, workbookType } from "../../logic/types/vocab.types";
 import { nanoid } from "@reduxjs/toolkit";
 import { AllVocabsClass, Vocab } from "../../logic/classes/vocab.class";
-import { useAppDispatch } from "../../app/hooks";
-import { addVocab } from "../../app/slices/vocabs-slice";
-
-const style = {
-  position: "absolute" as "absolute",
-  top: "50%",
-  left: "50%",
-  transform: "translate(-50%, -50%)",
-  width: "80vw",
-  bgcolor: "background.paper",
-  border: "2px solid #000",
-  height: "90vh",
-  overflow: "auto",
-  boxShadow: 24,
-  p: 4,
-};
+import { useAppDispatch, useAppSelector } from "../../app/hooks";
+import { addVocab, updateVocabLS } from "../../app/slices/vocabs-slice";
+import { createArrFromString } from "../../utils/vocab-scripts/conver-string-to-array";
+import ConfirmDialog from "../general/confirm-dialog";
+import Dialog, { DialogProps } from "@mui/material/Dialog";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import SwitchMenu from "../general/switchmenu";
+import ImportanceSlider from "./Importance-slider";
 
 const textFieldStyle = {
   width: "100%",
   padding: "0.4rem",
 };
 
-const AddVocab = () => {
-  const [open, setOpen] = React.useState(false);
+export type EditProps = {
+  type?: "add" | "edit";
+  open: boolean;
+  setOpen: (val: boolean) => void;
+  render?: boolean;
+  setRender?: (val: boolean) => void;
+  voc?: string;
+  tra?: string;
+  wbs?: MySelectOptionType[];
+  cats?: MySelectOptionType[];
+  pronunc?: string;
+  hints?: string;
+  imp?: number;
+  vocId?: string;
+  vocab?: Vocab;
+};
+
+const propObj = {};
+
+const AddVocab = ({
+  type = "add",
+  open = false,
+  setOpen,
+  render,
+  setRender,
+  voc = "",
+  tra = "",
+  wbs = [],
+  cats = [],
+  pronunc = "",
+  hints = "",
+  imp = 8,
+  vocId,
+  vocab,
+}: EditProps) => {
+  const [scroll, setScroll] = React.useState<DialogProps["scroll"]>("paper");
   const dispatch = useAppDispatch();
-  const [importance, setImportance] = React.useState(8); // nachher als prop
-  const handleOpen = () => setOpen(true);
+  const [importance, setImportance] = React.useState(imp); // nachher als prop
+  const [openConfirm, setOpenConfirm] = React.useState(false);
+  // const [openSet, setOpenSet] = React.useState(false);
+  const [confirmed, setConfirmed] = React.useState(false);
   const handleClose = () => setOpen(false);
-  const [selection, setSelection] = React.useState<MySelectOptionType[]>([]);
+  const [wbOptions, setWbOptions] = React.useState<MySelectOptionType[]>([]);
+  const [catOptions, setCatOptions] = React.useState<MySelectOptionType[]>([]);
+  const [wbSelection, setWbSelection] =
+    React.useState<MySelectOptionType[]>(wbs);
+  const [catSelection, setCatSelection] =
+    React.useState<MySelectOptionType[]>(cats);
   const [vocabErr, setVocabErr] = React.useState(false);
   const [translErr, setTranslErr] = React.useState(false);
-  // const [pronounceErr, setPronounceErr] = React.useState(false);
-  const [vocabTxt, setVocabTxt] = React.useState("");
-  const [translTxt, setTranslTxt] = React.useState("");
-  const [pronounceTxt, setPronounceTxt] = React.useState("");
-  const [hintsTxt, setHintsTxt] = React.useState("");
+  const [vocabTxt, setVocabTxt] = React.useState(voc);
+  const [translTxt, setTranslTxt] = React.useState(tra);
+  const [pronounceTxt, setPronounceTxt] = React.useState(pronunc);
+  const [hintsTxt, setHintsTxt] = React.useState(hints);
   const [vocs, setVocs] = React.useState<AllVocabsClass>(
     new AllVocabsClass([])
   );
+  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+  const openSet = Boolean(anchorEl);
+  const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+  const { currentLang, workbooks, categories } = useAppSelector(
+    (state) => state.vocabs
+  );
+  const { id: uid } = useAppSelector((state) => state.user);
+  const { allVocabs } = useAppSelector((state) => state.allVocabs);
+  const { vocabSubSettings } = useAppSelector((state) => state.settings);
+
   let disable = true;
   if (vocabTxt !== "" && translTxt !== "") disable = false;
-  const dummyOptions = [
-    { label: "Colors", value: "d#a24" },
-    { label: "Animals", value: "s3a#4" },
-    { label: "Animass", value: "s3was4" },
-    { label: "Animdfa", value: "s3was4" },
-    { label: "Aniasds", value: "s3was4" },
-    { label: "Aniasd", value: "s3was4" },
-    { label: "Anass", value: "s3was4" },
-    { label: "Animfa", value: "s3was4" },
-    { label: "rdswas", value: "s3was4" },
-  ];
-  // const dummyVocabs = new AllVocabsClass([]);
+  // const dummyOptions = [
+  //   { label: "Colors", value: "d#a24" },
+  //   { label: "Animals", value: "s3a#4" },
+  // ];
 
-  const colors = ["green", "lightgreen", "yellow", "orange", "red"];
-  let color = colors[0];
+  React.useEffect(() => {
+    const newWbOptions: MySelectOptionType[] = [];
+    const newCatOptions: MySelectOptionType[] = [];
+    workbooks.forEach((wb) =>
+      newWbOptions.push({ label: wb.name, value: wb.id })
+    );
+    categories.forEach((cat) => newCatOptions.push({ label: cat, value: cat }));
+    setWbOptions(newWbOptions);
+    setCatOptions(newCatOptions);
+  }, []);
 
-  const setColor = () => {
-    if (importance > 8) color = colors[0];
-    if (importance > 6 && importance < 9) color = colors[1];
-    if (importance > 4 && importance < 7) color = colors[2];
-    if (importance > 2 && importance < 5) color = colors[3];
-    if (importance < 3) color = colors[4];
-  };
-  setColor();
+  const defaultVal = importance;
 
-  const handleSubmit = () => {
+  const validationCheck = () => {
     if (vocabTxt === "") setVocabErr(true);
     if (translTxt === "") setTranslErr(true);
     if (vocabTxt === "" || translTxt === "") return;
-    console.log("passed");
-    const workbooks: { name: string; id: string }[] = [];
-    selection.forEach((sel) =>
-      workbooks.push({ name: sel.label, id: sel.label })
-    );
-    const vocArr = vocabTxt.split(", ");
+  };
+
+  const handleSubmit = () => {
+    validationCheck();
+    const workbooks: workbookType[] = [];
+    wbSelection.forEach((sel) => {
+      const timeStamp = Date.now();
+      const newWb: workbookType = {
+        name: sel.label,
+        id: sel.value,
+        language: currentLang,
+        score: 0,
+        createdAt: timeStamp,
+        createdBy: uid,
+        lastLearned: 0,
+        lastUpdated: timeStamp,
+      };
+      workbooks.push(newWb);
+    });
+    let id = nanoid();
+    if (vocId) id = vocId;
     const newVocObj: VocObj = {
-      id: nanoid(),
-      language: "farsi",
-      vocab: vocArr,
-      translation: [translTxt],
-      pronounciation: [pronounceTxt],
-      categorys: [],
+      id,
+      createdAt: new Date(),
+      language: currentLang,
+      vocab: createArrFromString(vocabTxt),
+      translation: createArrFromString(translTxt),
+      pronounciation: createArrFromString(pronounceTxt),
+      categories: [],
+      hints: createArrFromString(hintsTxt),
       workbooks,
       setImportance: importance,
-      calcImp: null,
+      calcImportance: null,
       learnHistory: [],
       score: 0,
     };
-
-    const newVoc = new Vocab(newVocObj);
-    console.log();
-    vocs.addVocab(newVoc);
-    dispatch(addVocab(newVoc));
-    setVocs(vocs);
-    setVocabTxt("");
-    setTranslTxt("");
-    setPronounceTxt("");
-    setHintsTxt("");
+    if (type === "add") {
+      const newVoc = new Vocab(newVocObj);
+      allVocabs.addVocab(newVoc);
+      dispatch(addVocab(newVocObj));
+      setVocs(vocs);
+      setVocabTxt("");
+      setTranslTxt("");
+      setPronounceTxt("");
+      setHintsTxt("");
+      setWbSelection([]);
+      if (setRender) setRender(!render);
+      if (vocabSubSettings.closeAfterAdd) handleClose();
+    }
+    if (type === "edit" && vocab) {
+      vocab.updateVoc(newVocObj);
+      dispatch(updateVocabLS(vocab.getVocObj()));
+      if (vocabSubSettings.closeAfterEdit) handleClose();
+    }
   };
   // console.log(dummyVocabs);
-  const marks = [
-    {
-      value: 0,
-      label: "0",
-    },
-    {
-      value: 2,
-      label: "2",
-    },
-    {
-      value: 4,
-      label: "4",
-    },
-    {
-      value: 6,
-      label: "6",
-    },
-    {
-      value: 8,
-      label: "8",
-    },
-    {
-      value: 10,
-      label: "10",
-    },
-  ];
 
-  function valuetext(value: number) {
-    return `${value}`;
-  }
-  console.log(vocs.getAllLangVocs("farsi"));
+  React.useEffect(() => {
+    if (!confirmed) return;
+    handleSubmit();
+    setConfirmed(false);
+  }, [confirmed]);
+
+  const descriptionElementRef = React.useRef<HTMLElement>(null);
+  React.useEffect(() => {
+    if (open) {
+      const { current: descriptionElement } = descriptionElementRef;
+      if (descriptionElement !== null) {
+        descriptionElement.focus();
+      }
+    }
+  }, [open]);
+
   return (
     <div>
-      <Button onClick={handleOpen}>Add Vocab</Button>
-      <Modal
+      <Dialog
         open={open}
         onClose={handleClose}
-        aria-labelledby="modal-modal-title"
-        aria-describedby="modal-modal-description"
+        scroll={scroll}
+        maxWidth="md"
+        fullWidth={true}
+        // fullScreen={false}
+        aria-labelledby="scroll-dialog-title"
+        aria-describedby="scroll-dialog-description"
       >
-        <Box sx={style}>
-          <div
-            className="add-vocab-modal-header-wrapper"
-            style={{ display: "flex" }}
+        <DialogTitle
+          display="flex"
+          bgcolor="background.paper"
+          id="scroll-dialog-title"
+        >
+          <span style={{ flex: "1", textAlign: "center" }}>Add Vocab</span>
+          <IconButton
+            aria-controls={openSet ? "demo-customized-menu" : undefined}
+            aria-haspopup="true"
+            aria-expanded={openSet ? "true" : undefined}
+            onClick={handleMenuClick}
           >
-            <Typography
-              id="modal-modal-title"
-              variant="h6"
-              component="h2"
-              sx={{ textAlign: "center", flex: 1 }}
+            <MoreVertIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent
+          // bgcolor="background.paper"
+          dividers={scroll === "paper"}
+          sx={{ bgcolor: "background.paper" }}
+        >
+          {/* <DialogContentText
+            bgcolor={"background.paper"}
+            id="scroll-dialog-description"
+            ref={descriptionElementRef}
+            tabIndex={-1}
+          > */}
+          <Box sx={{ minWidth: "200px" }}>
+            <div
+              className="add-vocabs-content-wrapper"
+              style={{
+                display: "flex",
+                flexDirection: "column",
+
+                gap: "0.2rem",
+                justifyContent: "space-around",
+              }}
             >
-              Add a Vocab
-            </Typography>
-            <Button variant="outlined" onClick={handleClose}>
-              X
-            </Button>
-          </div>
-          <div
-            className="add-vocabs-content-wrapper"
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              height: "92%",
-              gap: "0.2rem",
-              justifyContent: "space-around",
-            }}
-          >
-            <TextField
-              label="Vocab"
-              variant="outlined"
-              required
-              error={vocabErr}
-              value={vocabTxt}
-              onChange={(e) => {
-                setVocabErr(false);
-                setVocabTxt(e.currentTarget.value);
-              }}
-              style={textFieldStyle}
-            />
-            <TextField
-              label="Translation"
-              variant="outlined"
-              required
-              error={translErr}
-              value={translTxt}
-              onChange={(e) => {
-                setTranslErr(false);
-                setTranslTxt(e.currentTarget.value);
-              }}
-              style={textFieldStyle}
-            />
-            <TextField
-              label="Pronounciation"
-              variant="outlined"
-              value={pronounceTxt}
-              onChange={(e) => {
-                // setPronounceErr(false);
-                setPronounceTxt(e.currentTarget.value);
-              }}
-              style={textFieldStyle}
-            />
-            <MultiSelect
-              options={dummyOptions}
-              selection={selection}
-              setFunc={setSelection}
-              placeholder="Select Workbooks"
-            />
-            <TextField
-              label="Hints"
-              variant="standard"
-              value={hintsTxt}
-              onChange={(e) => {
-                // setHintsErr(false);
-                setHintsTxt(e.currentTarget.value);
-              }}
-              style={textFieldStyle}
-            />
-            <span></span>
-            {/* <span
+              <TextField
+                label="Vocab"
+                variant="outlined"
+                required
+                error={vocabErr}
+                value={vocabTxt}
+                onChange={(e) => {
+                  setVocabErr(false);
+                  setVocabTxt(e.currentTarget.value);
+                }}
+                style={textFieldStyle}
+              />
+              <TextField
+                label="Translation"
+                variant="outlined"
+                required
+                error={translErr}
+                value={translTxt}
+                onChange={(e) => {
+                  setTranslErr(false);
+                  setTranslTxt(e.currentTarget.value);
+                }}
+                style={textFieldStyle}
+              />
+              {vocabSubSettings.showPronunc && (
+                <TextField
+                  label="Pronounciation"
+                  variant="outlined"
+                  value={pronounceTxt}
+                  onChange={(e) => {
+                    // setPronounceErr(false);
+                    setPronounceTxt(e.currentTarget.value);
+                  }}
+                  style={textFieldStyle}
+                />
+              )}
+              <Divider sx={{ margin: "5px" }} />
+              {vocabSubSettings.showWbs && (
+                <>
+                  <MultiSelect
+                    options={wbOptions}
+                    selection={wbSelection}
+                    setFunc={setWbSelection}
+                    placeholder="Select Workbooks"
+                    type="workbooks"
+                  />
+                  <Divider sx={{ margin: "5px" }} />
+                </>
+              )}
+              {vocabSubSettings.showCat && (
+                <>
+                  <MultiSelect
+                    options={catOptions}
+                    selection={catSelection}
+                    setFunc={setCatSelection}
+                    placeholder="Select Categories"
+                    type="categories"
+                  />
+                  <Divider sx={{ margin: "5px" }} />
+                </>
+              )}
+              {vocabSubSettings.showHints && (
+                <TextField
+                  label="Hints"
+                  variant="standard"
+                  value={hintsTxt}
+                  onChange={(e) => {
+                    // setHintsErr(false);
+                    setHintsTxt(e.currentTarget.value);
+                  }}
+                  style={textFieldStyle}
+                />
+              )}
+
+              {/* <span
             className="workbook-selection-wrapper"
             style={{ margin: "0.1rem" }}
           > */}
 
-            {/* </span> */}
+              {/* </span> */}
 
-            <Box sx={{ width: "100%" }}>
-              <span
-                className="importance-title wrapper"
-                style={{ display: "flex", justifyContent: "space-between" }}
-              >
-                <Typography>low</Typography>
-                <Typography> --- </Typography>
-                <Typography>Importance</Typography>
-                <Typography>--- </Typography>
-                <Typography>high</Typography>
-              </span>
-              <Slider
-                aria-label="Custom marks"
-                defaultValue={importance}
-                // value={importance}
-                onChange={(_, value) => {
-                  if (typeof value === "number") setImportance(value);
-                }}
-                getAriaValueText={valuetext}
-                step={1}
-                valueLabelDisplay="auto"
-                marks={marks}
-                max={10}
-                sx={{ color }}
-                // orientation="vertical"
-              />
-            </Box>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                marginTop: "0.2rem",
-              }}
-            >
-              <Button
-                variant="contained"
-                onClick={handleSubmit}
-                disabled={disable}
-              >
-                Submit
-              </Button>
-            </Box>
-          </div>
-        </Box>
-      </Modal>
+              {vocabSubSettings.showImp && (
+                <ImportanceSlider
+                  importance={importance}
+                  setImportance={setImportance}
+                />
+              )}
+            </div>
+          </Box>
+          {/* </DialogContentText> */}
+        </DialogContent>
+        <DialogActions
+          sx={{ bgcolor: "background.paper", justifyContent: "space-around" }}
+        >
+          <Button onClick={handleClose}>Cancel</Button>
+          <Button
+            variant="contained"
+            size="medium"
+            disabled={disable}
+            onClick={() => {
+              if (!vocabSubSettings.needConfirmation) {
+                handleSubmit();
+                return;
+              }
+              type === "edit" ? setOpenConfirm(true) : handleSubmit();
+            }}
+          >
+            Submit
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <SwitchMenu
+        open={openSet}
+        setAnchorEl={setAnchorEl}
+        anchorEl={anchorEl}
+      />
+      {type === "edit" && vocabSubSettings.needConfirmation && (
+        <ConfirmDialog
+          setConfirmed={setConfirmed}
+          open={openConfirm}
+          setOpen={setOpenConfirm}
+        />
+      )}
     </div>
   );
 };
