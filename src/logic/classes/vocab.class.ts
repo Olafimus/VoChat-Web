@@ -23,6 +23,8 @@ export class AllVocabsClass {
     return langVocs;
   };
 
+  getLearnVocs() {}
+
   getFilteredVoc(
     str: string,
     type: "all" | "vocab" | "translation" | "workbook" = "all"
@@ -61,10 +63,21 @@ export class AllVocabsClass {
   // removeWb(id: string) {
   //   this.vocs.forEach((voc) => voc.removeWb(id));
   // }
+
+  getDefaultVocs(num: number) {
+    return this.vocs
+      .sort((a, b) => b.getCalcImp() - a.getCalcImp())
+      .slice(0, num);
+  }
 }
 
 export class Vocab {
-  constructor(public voc: VocObj) {}
+  constructor(
+    protected voc: VocObj,
+    protected checked = false,
+    protected result = false,
+    protected lastAnswer = ""
+  ) {}
 
   getLang() {
     return this.voc.language;
@@ -173,12 +186,27 @@ export class Vocab {
   addWb(wb: workbookType) {
     this.voc = { ...this.voc, workbooks: [...this.voc.workbooks, wb] };
   }
+  setChecked(val: boolean) {
+    this.checked = val;
+  }
+  setResult(val: boolean) {
+    this.result = val;
+  }
+  getChecked() {
+    return this.checked;
+  }
+  setlastAnswer(val: string) {
+    this.lastAnswer = val;
+  }
+  getLastAnswer() {
+    return this.lastAnswer;
+  }
+  getResult() {
+    return this.result;
+  }
+  resetStatus() {
+    this.result = false;
+    this.checked = false;
+    this.lastAnswer = "";
+  }
 }
-
-//export const dummyVoc = new Vocab(dummyVocObj);
-
-//export const allVocDummy = new AllVocabsClass([]//);
-
-// for (let i = 0; i < 10; i++) {
-//   allVocDummy.addVocab(dummyVoc);
-// }

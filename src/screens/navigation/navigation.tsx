@@ -13,7 +13,7 @@ import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
 import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import ListAltRoundedIcon from "@mui/icons-material/ListAltRounded";
 import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
@@ -27,8 +27,9 @@ import LightModeIcon from "@mui/icons-material/LightMode";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { setTheme, switchScreen } from "../../app/slices/settings-slice";
 import { resetUserState, setCurrentUser } from "../../app/slices/user-slice";
-import { Container } from "@mui/system";
+import SchoolIcon from "@mui/icons-material/School";
 import { resetConversations } from "../../app/slices/conversation-slice";
+import AutoStoriesRoundedIcon from "@mui/icons-material/AutoStoriesRounded";
 
 const drawerWidth = 240;
 
@@ -254,6 +255,30 @@ const Navigation = () => {
 
         <List>
           <ListItem
+            onClick={() => navigation("/vocab/learning")}
+            disablePadding
+            sx={{ display: "block" }}
+          >
+            <ListItemButton
+              sx={{
+                minHeight: 48,
+                justifyContent: open ? "initial" : "center",
+                px: 2.5,
+              }}
+            >
+              <ListItemIcon
+                sx={{
+                  minWidth: 0,
+                  mr: open ? 3 : "auto",
+                  justifyContent: "center",
+                }}
+              >
+                <SchoolIcon />
+              </ListItemIcon>
+              <ListItemText primary="Learn" sx={{ opacity: open ? 1 : 0 }} />
+            </ListItemButton>
+          </ListItem>
+          <ListItem
             onClick={() => navigation("/vocab")}
             disablePadding
             sx={{ display: "block" }}
@@ -272,7 +297,7 @@ const Navigation = () => {
                   justifyContent: "center",
                 }}
               >
-                <MailIcon />
+                <ListAltRoundedIcon />
               </ListItemIcon>
               <ListItemText
                 primary="All Vocabs"
@@ -299,7 +324,7 @@ const Navigation = () => {
                   justifyContent: "center",
                 }}
               >
-                <MailIcon />
+                <AutoStoriesRoundedIcon />
               </ListItemIcon>
               <ListItemText
                 primary="Workbooks"

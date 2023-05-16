@@ -11,7 +11,7 @@ export type VocObj = {
   categories: string[];
   workbooks: workbookType[];
   setImportance: number;
-  calcImportance: number | null;
+  calcImportance: number;
   learnHistory: { timeStamp: number; result: boolean }[];
   score: number;
 };

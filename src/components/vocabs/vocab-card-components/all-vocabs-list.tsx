@@ -1,9 +1,5 @@
 import React, { memo } from "react";
-import {
-  AllVocabsClass,
-  Vocab,
-  allVocDummy,
-} from "../../../logic/classes/vocab.class";
+import { AllVocabsClass, Vocab } from "../../../logic/classes/vocab.class";
 import { useMediaQuery } from "@mui/material";
 import VocabColumnSection from "./vocab-column-section";
 

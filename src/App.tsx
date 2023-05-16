@@ -21,6 +21,8 @@ import { setVocabs } from "./app/slices/vocabs-slice";
 import WorkbooksScreen from "./screens/vocba-screens/workbooks-screen";
 import { VocObj } from "./logic/types/vocab.types";
 import { produce } from "immer";
+import LearningScreen from "./screens/vocba-screens/learning-screen";
+import LearningRoute from "./screens/vocba-screens/learning-route";
 
 function App() {
   const { theme } = useAppSelector((state) => state.settings);
@@ -53,6 +55,8 @@ function App() {
             <Route path="delete" element={<DeleteFriend />} />
             <Route path="vocab" element={<AllVocabs />}></Route>
             <Route path="vocab/workbooks" element={<WorkbooksScreen />} />
+            <Route path="vocab/learning" element={<LearningScreen />} />
+            <Route path="vocab/learning/:route" element={<LearningRoute />} />
           </Route>
         </Routes>
       </ThemeProvider>
