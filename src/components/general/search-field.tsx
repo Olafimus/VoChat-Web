@@ -9,8 +9,10 @@ const SearchParent = () => {
 
 const SearchField = ({
   setSearchTerm,
+  label = "Search Vocab",
 }: {
   setSearchTerm: (str: string) => void;
+  label?: string;
 }) => {
   const [typeTerm, setTypeTerm] = React.useState("");
   const [searchResults, setSearchResults] = React.useState([]);
@@ -33,7 +35,7 @@ const SearchField = ({
       <TextField
         type="text"
         variant="standard"
-        label="Search vocab"
+        label={label}
         value={typeTerm}
         onChange={handleInputChange}
       />

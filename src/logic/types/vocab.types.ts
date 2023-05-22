@@ -20,6 +20,7 @@ export type VocObj = {
 export type workbookType = {
   name: string;
   id: string;
+  vocCount?: number;
   vocLanguage: string;
   transLanguage: string;
   score: number;

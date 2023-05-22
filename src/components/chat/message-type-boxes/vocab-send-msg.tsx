@@ -7,13 +7,14 @@ import { VocObj } from "../../../logic/types/vocab.types";
 import { supLangObj } from "../../../utils/country-flags";
 
 type VocMsgProps = {
-  vocab: VocObj;
+  vocab?: VocObj;
   msgHTML: string;
 };
 
 const VocMsgBox = ({ vocab, msgHTML }: VocMsgProps) => {
   let vocFlag = undefined;
   let transFlag = undefined;
+  if (!vocab) return <></>;
   let vocLang =
     vocab.vocLanguage.charAt(0).toUpperCase() + vocab.vocLanguage.slice(1);
   let transLang =
@@ -24,21 +25,20 @@ const VocMsgBox = ({ vocab, msgHTML }: VocMsgProps) => {
   } catch {
     console.log("not supo");
   }
+
   return (
     <Box>
       <Box
         p={1}
         m={1}
-        mr={0}
-        pr={0}
         border="solid"
         borderRadius={2}
-        bgcolor={lightBlue[100]}
+        bgcolor={lightBlue[300]}
         borderColor={blue[600]}
         minWidth={250}
         sx={{
           ":hover": {
-            bgcolor: blue[400],
+            bgcolor: blue[500],
             color: "white",
             cursor: "pointer",
           },
@@ -47,12 +47,12 @@ const VocMsgBox = ({ vocab, msgHTML }: VocMsgProps) => {
         <Box display="flex" justifyContent="space-between" gap="0.2rem">
           <Box>
             <Typography>{vocab.vocab[0]}</Typography>
-            <Typography>{vocab.vocab.join(", ")}</Typography>
+            <Typography>{vocab.vocab.slice(1).join(", ")}</Typography>
           </Box>
           <Divider variant="middle" />
           <Box>
             <Typography>{vocab.translation[0]}</Typography>
-            <Typography>{vocab.translation.join(", ")}</Typography>
+            <Typography>{vocab.translation.slice(1).join(", ")}</Typography>
           </Box>
         </Box>
         <Divider orientation="vertical" />
@@ -76,7 +76,7 @@ const VocMsgBox = ({ vocab, msgHTML }: VocMsgProps) => {
                 sx={{ whiteSpace: "nowrap" }}
                 variant="caption"
               >
-                {vocFlag ? vocFlag : vocab.vocLanguage}
+                {vocFlag ? vocFlag : vocab.vocLanguage} -{" "}
                 {transFlag ? transFlag : vocab.transLanguage}
               </Typography>
             </Box>
@@ -85,7 +85,7 @@ const VocMsgBox = ({ vocab, msgHTML }: VocMsgProps) => {
             <Box display="flex" alignItems="center" gap="0.1rem">
               <CategoryRoundedIcon fontSize="small" color="secondary" />
               <Typography pl={1} variant="caption">
-                {vocab.categories.join(", ")} asdfa asd as asdf saf sa
+                {vocab.categories.join(", ")}
               </Typography>
             </Box>
           </Tooltip>

@@ -17,6 +17,10 @@ interface Settings {
     showHints: boolean;
     showPronunc: boolean;
   };
+  vocabLearnSettings: {
+    defaultVocCount: number;
+    checkingConditions: "strict" | "loose";
+  };
 }
 
 const initialState: Settings = {
@@ -33,6 +37,10 @@ const initialState: Settings = {
     showImp: true,
     showHints: true,
     showPronunc: true,
+  },
+  vocabLearnSettings: {
+    defaultVocCount: 20,
+    checkingConditions: "strict",
   },
 };
 
@@ -64,10 +72,17 @@ export const SettingsSlice = createSlice({
     ) => {
       state.vocabSubSettings[action.payload.name] = action.payload.value;
     },
+    changeDefaultVocCount: (state, action: PayloadAction<number>) => {
+      state.vocabLearnSettings.defaultVocCount = action.payload;
+    },
   },
 });
 
-export const { setTheme, switchScreen, changeVocBoolSetting } =
-  SettingsSlice.actions;
+export const {
+  setTheme,
+  switchScreen,
+  changeVocBoolSetting,
+  changeDefaultVocCount,
+} = SettingsSlice.actions;
 
 export default SettingsSlice.reducer;

@@ -29,6 +29,7 @@ export type MessageHisItem = {
   message: string;
   type: MsgHisTypes;
   response?: Response;
+  vocab?: VocObj;
 };
 
 export type MsgHisTypes = "answer" | "standard" | "edit" | "vocab" | null;

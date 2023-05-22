@@ -14,6 +14,7 @@ import { formatMsg } from "../../utils/text-scripts/fortmat-message";
 import AnsweredMsgBox from "./message-type-boxes/answer-message";
 import { StandardMsgBox } from "./message-type-boxes/standard-message";
 import EditedMsgBox from "./message-type-boxes/edit-message";
+import VocMsgBox from "./message-type-boxes/vocab-send-msg";
 
 type MsgProp = {
   msg: Message;
@@ -63,6 +64,7 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
   let msgType = "standard";
   if (msg.messageHis.at(-1)?.type === "answer") msgType = "answer";
   if (msg.messageHis.at(-1)?.type === "edit") msgType = "edit";
+  if (msg.messageHis.at(-1)?.type === "vocab") msgType = "vocab";
 
   // formating URLs and too long words
   const text = msg.messageHis.at(-1)?.message || "";
@@ -180,6 +182,9 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
               contactName={contactName}
               id={id}
             />
+          )}
+          {msgType === "vocab" && (
+            <VocMsgBox vocab={msg.messageHis.at(-1)?.vocab} msgHTML={msgHTML} />
           )}
           <span
             className={

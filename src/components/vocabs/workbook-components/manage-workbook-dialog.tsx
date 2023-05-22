@@ -27,7 +27,7 @@ export default function ManageWorkbook(props: ManageWbProps) {
   const [wbName, setWbName] = React.useState("");
   const { onClose, open, wb, ...other } = props;
   const { allVocabs } = useAppSelector((state) => state.allVocabs);
-  const { currentLang } = useAppSelector((state) => state.vocabs);
+  const { currentLang, nativeLang } = useAppSelector((state) => state.vocabs);
   const { id: uid } = useAppSelector((state) => state.user);
   let wbVocs: Vocab[] = [];
   if (wb) wbVocs = allVocabs.getWbVocs(wb.id);
@@ -55,7 +55,9 @@ export default function ManageWorkbook(props: ManageWbProps) {
     const newWb: workbookType = {
       name: wbName,
       id: nanoid(),
-      language: currentLang,
+      vocLanguage: currentLang,
+      transLanguage: nativeLang,
+      // vocCount: includedVocs.length,
       score: 0,
       createdAt: timeStamp,
       createdBy: uid,

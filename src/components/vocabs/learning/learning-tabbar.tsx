@@ -6,6 +6,7 @@ import { Vocab } from "../../../logic/classes/vocab.class";
 import TabPanel from "../../general/tab-bar/tab-panel";
 import LearnCard from "./learning-card";
 import { Link } from "react-router-dom";
+import { grey } from "@mui/material/colors";
 
 function a11yProps(index: number) {
   return {
@@ -48,6 +49,14 @@ export default function LearnTabs({ vocabs }: { vocabs: Vocab[] }) {
 
   useEffect(() => {
     if (!finished) return;
+    const newVocArr: Vocab[] = [];
+    vocabs.forEach((voc) => {
+      if (voc.getResult() === false) newVocArr.push(voc);
+    });
+    if (newVocArr.length === 0) {
+      vocabs.forEach((voc) => voc.resetStatus());
+      setCompleted(true);
+    }
   }, [finished]);
 
   return (
@@ -88,12 +97,21 @@ export default function LearnTabs({ vocabs }: { vocabs: Vocab[] }) {
           >
             {" "}
             {filteredVocabs.map((voc, i) => (
-              <Tab label={voc.getVocArr()[0]} {...a11yProps(0)} /> // je 1 style für korrekt und falsch
+              <Tab
+                key={voc.getId()}
+                label={voc.getVocArr()[0]}
+                {...a11yProps(0)}
+              /> // je 1 style für korrekt und falsch
             ))}
           </Tabs>
           <Box id="inner-box" flex={1}>
             {filteredVocabs.map((vocab, i) => (
-              <TabPanel goNext={goToNext} value={value} index={i}>
+              <TabPanel
+                key={vocab.getId()}
+                goNext={goToNext}
+                value={value}
+                index={i}
+              >
                 <LearnCard
                   vocab={vocab}
                   vocabs={filteredVocabs}
@@ -104,6 +122,22 @@ export default function LearnTabs({ vocabs }: { vocabs: Vocab[] }) {
                 />
               </TabPanel>
             ))}
+            {finished && (
+              <Box>
+                <Typography>You answered every Vocab!</Typography>
+
+                <Button sx={{ color: grey[500], m: 1 }}>
+                  Back to Route Selection
+                </Button>
+                <Button
+                  sx={{ m: 1 }}
+                  variant="contained"
+                  onClick={retryMistakes}
+                >
+                  Restart with Mistakes
+                </Button>
+              </Box>
+            )}
           </Box>
         </>
       )}

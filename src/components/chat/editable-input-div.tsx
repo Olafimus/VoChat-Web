@@ -1,6 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
-import { Message, MsgHisTypes } from "../../logic/types/message.types";
+import {
+  Message,
+  MessageHisItem,
+  MsgHisTypes,
+} from "../../logic/types/message.types";
 import { nanoid } from "@reduxjs/toolkit";
 
 import { updateFriendInteraction } from "../../app/slices/user-slice";
@@ -15,6 +19,7 @@ import {
   formatInnerHTML,
   reformatHTMLtoTxt,
 } from "../../utils/text-scripts/html-formating";
+import { VocObj } from "../../logic/types/vocab.types";
 
 type InputProps = {
   type: "newMsg" | "answer" | "edit";
@@ -22,6 +27,36 @@ type InputProps = {
   msgInput?: string;
   focus?: boolean;
   oldMsg?: Message;
+};
+
+export const createMsgObj = (sender: string) => {
+  const msgObj: Message = {
+    time: Date.now(),
+    sender,
+    id,
+    language: "farsi",
+    read: false,
+    messageHis: [],
+  };
+
+  return msgObj;
+};
+const id = nanoid();
+export const addMsgHis = (
+  msgObj: Message,
+  message: string,
+  type: MsgHisTypes,
+  vocab?: VocObj
+) => {
+  const HisItem: MessageHisItem = {
+    time: Date.now(),
+    editor: id,
+    message,
+    read: false,
+    type,
+  };
+  if (type === "vocab") HisItem.vocab = vocab;
+  msgObj.messageHis.push(HisItem);
 };
 
 const InputDiv: React.FC<InputProps> = ({
@@ -68,29 +103,6 @@ const InputDiv: React.FC<InputProps> = ({
         setEndFocus(divId);
       }, 5)
     );
-  };
-
-  const createMsgObj = (sender = userId, id = nanoid()) => {
-    const msgObj: Message = {
-      time: Date.now(),
-      sender,
-      id,
-      language: "farsi",
-      read: false,
-      messageHis: [],
-    };
-
-    return msgObj;
-  };
-
-  const addMsgHis = (msgObj: Message, message: string, type: MsgHisTypes) => {
-    msgObj.messageHis.push({
-      time: Date.now(),
-      editor: id,
-      message,
-      read: false,
-      type,
-    });
   };
 
   const sendNewMsgHandler = (newMsg = msgTxt) => {

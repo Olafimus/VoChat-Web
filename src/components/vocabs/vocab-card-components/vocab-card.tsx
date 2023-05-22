@@ -22,6 +22,10 @@ import { Vocab } from "../../../logic/classes/vocab.class";
 import { useAppDispatch, useAppSelector } from "../../../app/hooks";
 import { removeVocFromLS, setVocabs } from "../../../app/slices/vocabs-slice";
 import AddVocab from "../add-vocab";
+import { Menu, MenuItem } from "@mui/material";
+import { addMsgHis, createMsgObj } from "../../chat/editable-input-div";
+import { VocObj } from "../../../logic/types/vocab.types";
+import { sendNewMessage } from "../../../utils/firebase";
 
 interface ExpandMoreProps extends IconButtonProps {
   expand: boolean;
@@ -38,9 +42,61 @@ const ExpandMore = styled((props: ExpandMoreProps) => {
   }),
 }));
 
+const ShareMenu = ({
+  open,
+  anchorEl,
+  setOpen,
+  vocObj,
+}: {
+  open: boolean;
+  anchorEl: HTMLElement | null;
+  setOpen: (val: boolean) => void;
+  vocObj: VocObj;
+}) => {
+  const { id } = useAppSelector((state) => state.user);
+
+  const handleSubmit = (convId: string) => {
+    const msg = createMsgObj(id);
+    addMsgHis(msg, "", "vocab", vocObj);
+    console.log(msg);
+    sendNewMessage(convId, msg);
+    setOpen(false);
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+  };
+  const { friends } = useAppSelector((state) => state.user);
+
+  return (
+    <Menu
+      id="basic-menu"
+      anchorEl={anchorEl}
+      open={open}
+      onClose={handleClose}
+      MenuListProps={{
+        "aria-labelledby": "basic-button",
+      }}
+    >
+      {friends.map((friend) => (
+        <MenuItem
+          key={friend.id}
+          onClick={() => {
+            handleSubmit(friend.conversation);
+          }}
+        >
+          {friend.name}
+        </MenuItem>
+      ))}
+    </Menu>
+  );
+};
+
 const VocabCard = ({ vocab }: { vocab: Vocab }) => {
   const [expanded, setExpanded] = React.useState(false);
   const [openModal, setOpenModal] = React.useState(false);
+  const [openShareMenu, setOpenShareMenu] = React.useState(false);
+  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const { allVocabs } = useAppSelector((state) => state.allVocabs);
   const dispatch = useAppDispatch();
 
@@ -80,42 +136,52 @@ const VocabCard = ({ vocab }: { vocab: Vocab }) => {
         </span>
 
         <CardActions disableSpacing onClick={(e) => e.stopPropagation()}>
-          {/* <IconButton
-        size="small"
-          aria-label="add to favorites"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <FavoriteIcon sx={{ color: red[500] }} />
-        </IconButton> */}
-          <IconButton
-            size="small"
-            aria-label="share"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <ShareIcon />
-          </IconButton>
-          <IconButton
-            size="small"
-            aria-label="edit"
-            onClick={(e) => {
-              e.stopPropagation();
-              setOpenModal(true);
-            }}
-          >
-            <EditIcon sx={{ color: yellow[700] }} />
-          </IconButton>
-          <IconButton
-            size="small"
-            aria-label="delete"
-            onClick={(e) => {
-              e.stopPropagation();
-              allVocabs.removeVoc(vocab.getId());
-              dispatch(removeVocFromLS(vocab.getId()));
-            }}
-          >
-            <DeleteIcon />
-          </IconButton>
-          <Tooltip title="learn" arrow>
+          <Tooltip title="Share Vocab" arrow>
+            <IconButton
+              size="small"
+              aria-label="share"
+              // ref={anchorEl}
+              onClick={(e) => {
+                setAnchorEl(e.currentTarget);
+                e.stopPropagation();
+                setOpenShareMenu(true);
+              }}
+            >
+              <ShareIcon />
+            </IconButton>
+          </Tooltip>
+          <ShareMenu
+            open={openShareMenu}
+            setOpen={setOpenShareMenu}
+            anchorEl={anchorEl}
+            vocObj={vocab.getVocObj()}
+          />
+          <Tooltip title="Edit Vocab" arrow>
+            <IconButton
+              size="small"
+              aria-label="edit"
+              onClick={(e) => {
+                e.stopPropagation();
+                setOpenModal(true);
+              }}
+            >
+              <EditIcon sx={{ color: yellow[700] }} />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Delete Vocab" arrow>
+            <IconButton
+              size="small"
+              aria-label="delete"
+              onClick={(e) => {
+                e.stopPropagation();
+                allVocabs.removeVoc(vocab.getId());
+                dispatch(removeVocFromLS(vocab.getId()));
+              }}
+            >
+              <DeleteIcon sx={{ color: red[600] }} />
+            </IconButton>
+          </Tooltip>
+          {/* <Tooltip title="learn" arrow>
             <IconButton
               size="small"
               aria-label="delete"
@@ -123,14 +189,14 @@ const VocabCard = ({ vocab }: { vocab: Vocab }) => {
             >
               <SchoolRoundedIcon sx={{ color: green[600] }} />
             </IconButton>
-          </Tooltip>
-          <IconButton
+          </Tooltip> */}
+          {/* <IconButton
             size="small"
             aria-label="delete"
             onClick={(e) => e.stopPropagation()}
           >
             <StarBorderPurple500Icon sx={{ color: yellow[700] }} />
-          </IconButton>
+          </IconButton> */}
           <ExpandMore
             expand={expanded}
             onClick={handleExpandClick}
