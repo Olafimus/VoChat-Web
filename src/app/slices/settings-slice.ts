@@ -11,6 +11,7 @@ interface Settings {
     submitWithEnter: boolean;
     needConfirmation: boolean;
     showWbs: boolean;
+    keepWbs: boolean;
     showCat: boolean;
     showImp: boolean;
     showHints: boolean;
@@ -27,6 +28,7 @@ const initialState: Settings = {
     submitWithEnter: false,
     needConfirmation: false,
     showWbs: true,
+    keepWbs: false,
     showCat: true,
     showImp: true,
     showHints: true,
@@ -40,6 +42,7 @@ export type VocSetIdentifier =
   | "submitWithEnter"
   | "needConfirmation"
   | "showWbs"
+  | "keepWbs"
   | "showCat"
   | "showImp"
   | "showHints"

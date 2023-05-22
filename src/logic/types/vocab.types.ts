@@ -3,7 +3,8 @@ import { nanoid } from "@reduxjs/toolkit";
 export type VocObj = {
   id: string;
   createdAt: Date;
-  language: string;
+  vocLanguage: string;
+  transLanguage: string;
   vocab: string[];
   translation: string[];
   pronounciation: string[];
@@ -19,7 +20,8 @@ export type VocObj = {
 export type workbookType = {
   name: string;
   id: string;
-  language: string;
+  vocLanguage: string;
+  transLanguage: string;
   score: number;
   createdAt: number;
   createdBy: string;

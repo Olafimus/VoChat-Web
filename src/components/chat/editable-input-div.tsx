@@ -54,13 +54,13 @@ const InputDiv: React.FC<InputProps> = ({
   const emojiHandler = async (e: EmojiClickData) => {
     const textfeld = document.getElementById(divId);
     setOpen(false);
-    console.log(textfeld);
     if (!textfeld) return;
     textfeld.innerHTML = msgTxt + e.emoji;
     setMsgTxt(msgTxt + e.emoji);
     await new Promise((resolve) =>
       setTimeout(() => {
         textfeld.focus();
+        setEndFocus(divId);
       }, 1)
     );
     await new Promise((resolve) =>
@@ -168,8 +168,6 @@ const InputDiv: React.FC<InputProps> = ({
     const newInnerHTML = formatInnerHTML(curHTML);
     let newMsgTxt: string | undefined;
     if (newInnerHTML) newMsgTxt = reformatHTMLtoTxt(newInnerHTML);
-    console.log(curHTML, "w");
-    console.log("new: ", newInnerHTML);
 
     if (newMsgTxt) {
       setMsgTxt(newMsgTxt);
@@ -187,14 +185,12 @@ const InputDiv: React.FC<InputProps> = ({
     if (!editDiv?.textContent) return;
     if (e.key === "Backspace" && editDiv.textContent.length <= 1) {
       editDiv.innerHTML = "";
-      console.log(editDiv);
     }
 
     if (e.key === "Enter" && !e.ctrlKey) {
       e.preventDefault();
     }
     if (e.ctrlKey && e.key === "Enter") {
-      console.log(e.key);
       editDiv.innerHTML = editDiv.innerHTML + "<br>";
       setEndFocus(divId);
     }

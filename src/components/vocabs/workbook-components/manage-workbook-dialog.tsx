@@ -102,7 +102,6 @@ export default function ManageWorkbook(props: ManageWbProps) {
     // const included = allVocabs.getWbVocs(wb.id);
     setIncludedVocs(wbVocs);
     setNotIncludedVocs(notIncluded);
-    console.log(wb.id);
   }, [open]);
 
   return (

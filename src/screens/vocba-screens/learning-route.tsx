@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Box } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { useParams } from "react-router-dom";
 import { useAppSelector } from "../../app/hooks";
 import { Vocab } from "../../logic/classes/vocab.class";
@@ -13,11 +13,13 @@ const LearningRoute = () => {
   useEffect(() => {
     if (route === "default") setLearnVocs(allVocabs.getDefaultVocs(20));
   }, [route]);
-  console.log("learn rout vocs: ", learnVocs);
   return (
-    <Box display={"flex"} justifyContent="center">
-      <LearnTabs vocabs={learnVocs}></LearnTabs>
-    </Box>
+    <>
+      <Typography>2 / 4</Typography>
+      <Box display={"flex"} justifyContent="center">
+        <LearnTabs vocabs={learnVocs}></LearnTabs>
+      </Box>
+    </>
   );
 };
 

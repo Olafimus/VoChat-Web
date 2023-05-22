@@ -69,7 +69,7 @@ const SignUpScreen = () => {
           />
           <TextField
             error={!mailCheck}
-            id="outlined-error-helper-text"
+            id="mail--signup--input"
             label="E-Mail"
             type="text"
             helperText={mailCheck ? "" : "This is no E-Mail!"}
@@ -81,7 +81,7 @@ const SignUpScreen = () => {
         <div>
           <TextField
             error={!passwordCheck}
-            id="outlined-error-helper-text"
+            id="password--confirmation--input"
             type="password"
             label="password"
             helperText={passwordCheck ? "" : "Password too short!"}
@@ -91,7 +91,7 @@ const SignUpScreen = () => {
           />
           <TextField
             error={!passwordConfirmCheck}
-            id="outlined-error-helper-text"
+            id="password--confirm--input"
             type="password"
             label="confirm password"
             helperText={passwordConfirmCheck ? "" : "Not the same password!"}

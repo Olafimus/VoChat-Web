@@ -8,6 +8,12 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  SelectChangeEvent,
+  NativeSelect,
 } from "@mui/material";
 import MultiSelect, { MySelectOptionType } from "../general/multi-select";
 import { VocObj, workbookType } from "../../logic/types/vocab.types";
@@ -21,14 +27,19 @@ import Dialog, { DialogProps } from "@mui/material/Dialog";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import SwitchMenu from "../general/switchmenu";
 import ImportanceSlider from "./Importance-slider";
+import { supLangObj, supportedLanguages } from "../../utils/country-flags";
+
+let fullScreen = true;
 
 const textFieldStyle = {
   width: "100%",
   padding: "0.4rem",
+  maxHeigt: 50,
+  overflow: "auto",
 };
 
 export type EditProps = {
-  type?: "add" | "edit";
+  type?: "add" | "edit" | "wbAdd";
   open: boolean;
   setOpen: (val: boolean) => void;
   render?: boolean;
@@ -63,6 +74,7 @@ const AddVocab = ({
   vocab,
 }: EditProps) => {
   const [scroll, setScroll] = React.useState<DialogProps["scroll"]>("paper");
+  const vocFieldRef = React.useRef<HTMLDivElement>(null);
   const dispatch = useAppDispatch();
   const [importance, setImportance] = React.useState(imp); // nachher als prop
   const [openConfirm, setOpenConfirm] = React.useState(false);
@@ -89,12 +101,25 @@ const AddVocab = ({
   const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   };
-  const { currentLang, workbooks, categories } = useAppSelector(
+  const { currentLang, nativeLang, workbooks, categories } = useAppSelector(
     (state) => state.vocabs
   );
   const { id: uid } = useAppSelector((state) => state.user);
   const { allVocabs } = useAppSelector((state) => state.allVocabs);
   const { vocabSubSettings } = useAppSelector((state) => state.settings);
+  const [vocLang, setVocLang] = React.useState(currentLang);
+  const [transLang, setTransLang] = React.useState(nativeLang);
+
+  const handleVocLang = (event: SelectChangeEvent) => {
+    // setVocLang("FA");
+    setVocLang(event.target.value as string);
+  };
+
+  const handleTransLang = (event: SelectChangeEvent) => {
+    setTransLang(event.target.value as string);
+  };
+  let [transLangDisabler, setTransLangDisabler] = React.useState(true);
+  let [vocLangDisabler, setVocLangDisabler] = React.useState(true);
 
   let disable = true;
   if (vocabTxt !== "" && translTxt !== "") disable = false;
@@ -116,6 +141,10 @@ const AddVocab = ({
 
   const defaultVal = importance;
 
+  // React.useEffect(() => {
+  //   setVocLang(currentLang);
+  // }, []);
+
   const validationCheck = () => {
     if (vocabTxt === "") setVocabErr(true);
     if (translTxt === "") setTranslErr(true);
@@ -130,7 +159,8 @@ const AddVocab = ({
       const newWb: workbookType = {
         name: sel.label,
         id: sel.value,
-        language: currentLang,
+        vocLanguage: vocLang,
+        transLanguage: transLang,
         score: 0,
         createdAt: timeStamp,
         createdBy: uid,
@@ -144,7 +174,8 @@ const AddVocab = ({
     const newVocObj: VocObj = {
       id,
       createdAt: new Date(),
-      language: currentLang,
+      vocLanguage: vocLang,
+      transLanguage: nativeLang,
       vocab: createArrFromString(vocabTxt),
       translation: createArrFromString(translTxt),
       pronounciation: createArrFromString(pronounceTxt),
@@ -152,11 +183,11 @@ const AddVocab = ({
       hints: createArrFromString(hintsTxt),
       workbooks,
       setImportance: importance,
-      calcImportance: null,
+      calcImportance: 0,
       learnHistory: [],
       score: 0,
     };
-    if (type === "add") {
+    if (type === "add" || type === "wbAdd") {
       const newVoc = new Vocab(newVocObj);
       allVocabs.addVocab(newVoc);
       dispatch(addVocab(newVocObj));
@@ -165,9 +196,13 @@ const AddVocab = ({
       setTranslTxt("");
       setPronounceTxt("");
       setHintsTxt("");
-      setWbSelection([]);
+      if (type === "add" && !vocabSubSettings.keepWbs) setWbSelection([]);
+      setVocLangDisabler(true);
+      setTransLangDisabler(true);
       if (setRender) setRender(!render);
-      if (vocabSubSettings.closeAfterAdd) handleClose();
+      if (vocabSubSettings.closeAfterAdd) {
+        handleClose();
+      } else vocFieldRef.current?.focus();
     }
     if (type === "edit" && vocab) {
       vocab.updateVoc(newVocObj);
@@ -201,7 +236,7 @@ const AddVocab = ({
         scroll={scroll}
         maxWidth="md"
         fullWidth={true}
-        // fullScreen={false}
+        fullScreen={fullScreen}
         aria-labelledby="scroll-dialog-title"
         aria-describedby="scroll-dialog-description"
       >
@@ -225,12 +260,6 @@ const AddVocab = ({
           dividers={scroll === "paper"}
           sx={{ bgcolor: "background.paper" }}
         >
-          {/* <DialogContentText
-            bgcolor={"background.paper"}
-            id="scroll-dialog-description"
-            ref={descriptionElementRef}
-            tabIndex={-1}
-          > */}
           <Box sx={{ minWidth: "200px" }}>
             <div
               className="add-vocabs-content-wrapper"
@@ -242,34 +271,100 @@ const AddVocab = ({
                 justifyContent: "space-around",
               }}
             >
-              <TextField
-                label="Vocab"
-                variant="outlined"
-                required
-                error={vocabErr}
-                value={vocabTxt}
-                onChange={(e) => {
-                  setVocabErr(false);
-                  setVocabTxt(e.currentTarget.value);
-                }}
-                style={textFieldStyle}
-              />
-              <TextField
-                label="Translation"
-                variant="outlined"
-                required
-                error={translErr}
-                value={translTxt}
-                onChange={(e) => {
-                  setTranslErr(false);
-                  setTranslTxt(e.currentTarget.value);
-                }}
-                style={textFieldStyle}
-              />
+              <Box
+                display={"flex"}
+                alignItems={"center"}
+                bgcolor={"transparent"}
+              >
+                <TextField
+                  label={`Vocab in ${vocLang}`}
+                  multiline
+                  tabIndex={0}
+                  maxRows={3}
+                  autoFocus
+                  ref={vocFieldRef}
+                  variant="standard"
+                  required
+                  error={vocabErr}
+                  value={vocabTxt}
+                  onChange={(e) => {
+                    console.log(createArrFromString(e.currentTarget.value));
+                    setVocabErr(false);
+                    setVocabTxt(e.currentTarget.value);
+                  }}
+                  style={textFieldStyle}
+                />
+                <Box sx={{ maxWidth: 200 }}>
+                  <FormControl>
+                    <InputLabel id="demo-simple-select-label">Lang</InputLabel>
+                    <Select
+                      labelId="demo-simple-select-label"
+                      tabIndex={-1}
+                      disabled={vocLangDisabler}
+                      sx={{ minWidth: 60 }}
+                      variant="standard"
+                      id="voc-lang-selector"
+                      value={vocLang}
+                      label="Lang"
+                      onClick={() => setVocLangDisabler(false)}
+                      onChange={handleVocLang}
+                    >
+                      {supportedLanguages.map((lang) => (
+                        <MenuItem key={lang[1]} value={lang[0]}>
+                          {lang[1]}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Box>
+              </Box>
+              <Box display={"flex"} alignItems={"center"}>
+                <TextField
+                  label={`Translation in ${transLang}`}
+                  variant="standard"
+                  required
+                  tabIndex={1}
+                  multiline
+                  maxRows={3}
+                  error={translErr}
+                  value={translTxt}
+                  onChange={(e) => {
+                    setTranslErr(false);
+                    setTranslTxt(e.currentTarget.value);
+                  }}
+                  style={textFieldStyle}
+                />
+                <Box sx={{ maxWidth: 200 }}>
+                  <FormControl>
+                    <InputLabel id="demo-simple-select-label">Lang</InputLabel>
+                    <Select
+                      labelId="demo-simple-select-label"
+                      sx={{ minWidth: 60 }}
+                      disabled={transLangDisabler}
+                      onClick={() => setTransLangDisabler(false)}
+                      variant="standard"
+                      id="demo-simple-select"
+                      value={transLang}
+                      label="Translation language"
+                      onChange={handleTransLang}
+                      tabIndex={5}
+                      // disabled
+                    >
+                      {supportedLanguages.map((lang) => (
+                        <MenuItem key={lang[1]} value={lang[0]}>
+                          {lang[1]}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Box>
+              </Box>
               {vocabSubSettings.showPronunc && (
                 <TextField
                   label="Pronounciation"
-                  variant="outlined"
+                  variant="standard"
+                  multiline
+                  maxRows={3}
                   value={pronounceTxt}
                   onChange={(e) => {
                     // setPronounceErr(false);
@@ -307,6 +402,8 @@ const AddVocab = ({
                 <TextField
                   label="Hints"
                   variant="standard"
+                  multiline
+                  maxRows={3}
                   value={hintsTxt}
                   onChange={(e) => {
                     // setHintsErr(false);

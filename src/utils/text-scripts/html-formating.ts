@@ -9,7 +9,6 @@ export const formatInnerHTML = (
   urls: string[] = [],
   params = textHighlightMarker
 ) => {
-  console.log(urls);
   let render = false;
   let newTxt = addEmojis(txt, emojiShortCuts);
   if (newTxt !== txt) render = true;
@@ -35,10 +34,8 @@ export const formatInnerHTML = (
         `<a href="${url}" target='_blank'>${url}</a></>`
       );
     });
-    console.log(newTxt);
     render = true;
   }
-  console.log(render);
   if (render) {
     return newTxt;
   }

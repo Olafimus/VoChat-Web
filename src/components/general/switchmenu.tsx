@@ -206,6 +206,23 @@ const SwitchMenu = ({
         <Divider sx={{ my: 0.5 }} />
         <MenuItem disableRipple>
           <Switch
+            value="keepWbs"
+            onChange={(e) => {
+              dispatch(
+                changeVocBoolSetting({
+                  name: "keepWbs",
+                  value: e.currentTarget.checked,
+                })
+              );
+            }}
+            checked={vocabSubSettings.keepWbs}
+            name="Keep Workbooks"
+          />
+          Keep Workbooks
+        </MenuItem>
+        <Divider sx={{ my: 0.5 }} />
+        <MenuItem disableRipple>
+          <Switch
             value="showImp"
             onChange={(e) => {
               dispatch(

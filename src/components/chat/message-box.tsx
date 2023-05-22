@@ -1,17 +1,19 @@
 import { Typography } from "@mui/material";
 import Box from "@mui/material/Box";
 import Modal from "@mui/material/Modal";
-import React, { useEffect, useState, useRef } from "react";
-import { Message, MsgHisTypes } from "../../logic/types/message.types";
+import React, { useEffect, useState } from "react";
+import { Message } from "../../logic/types/message.types";
 import { useAppSelector } from "../../app/hooks";
-import { getFormatedDate } from "../../utils/getFormDate";
 import "./message-box.style.scss";
 import { sendResponse } from "../../utils/firebase";
 import InputDiv from "./editable-input-div";
 import { IconButton } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
-import { urlRegex } from "../../utils/text-scripts/add-url";
 import { formatInnerHTML } from "../../utils/text-scripts/html-formating";
+import { formatMsg } from "../../utils/text-scripts/fortmat-message";
+import AnsweredMsgBox from "./message-type-boxes/answer-message";
+import { StandardMsgBox } from "./message-type-boxes/standard-message";
+import EditedMsgBox from "./message-type-boxes/edit-message";
 
 type MsgProp = {
   msg: Message;
@@ -64,21 +66,6 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
 
   // formating URLs and too long words
   const text = msg.messageHis.at(-1)?.message || "";
-  const formatMsg = (txt: string) => {
-    const wordArr = txt.split(" ");
-    wordArr.forEach((word, i) => {
-      if (word.match(urlRegex)) {
-        const url = word;
-        let txt = word;
-        if (word.length > 30) txt = txt.slice(8, 27) + "..."; // TODO usemedia query
-        if (word.startsWith("www"))
-          wordArr[i] = `<a href="https://${url}" target='_blank' >${txt}</a>`;
-        else wordArr[i] = `<a href="${url}" target='_blank' >${txt}</a>`;
-      } else if (word.length > 30) wordArr[i] = word.slice(0, 27) + "...";
-      if (word.length > 40) wordArr[i] = word.slice(0, 23) + "...";
-    });
-    return wordArr.join(" ");
-  };
 
   const msgText = formatMsg(text);
   const msgHTML = formatInnerHTML(msgText) || msgText;
@@ -152,104 +139,6 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
     if (newResponses.length) setResponses(newResponses);
   }, [msg.response]);
 
-  const StandardMsgBox = () => {
-    return (
-      <div
-        className="chat-textbox-msg"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "auto auto",
-          gap: "1rem",
-        }}
-      >
-        <Typography
-          dangerouslySetInnerHTML={{ __html: msgHTML }}
-          variant="body1"
-          style={{ fontSize: "16px" }}
-        ></Typography>
-        <Typography variant="caption">{getFormatedDate(msg.time)}</Typography>
-      </div>
-    );
-  };
-
-  const AnsweredMsgBox = () => {
-    const oldText = msg.messageHis.at(-2)?.message || "";
-    const oldMsgtxt = formatMsg(oldText);
-    let senderName = contactName;
-    if (msg.messageHis.at(-2)?.editor === id) senderName = "you";
-    const oldTime = msg.messageHis.at(-2)?.time || msg.time;
-
-    const captionStyles = {
-      fontSize: "12px",
-      position: "absolute",
-      top: "-1px",
-      left: "20px",
-
-      paddingLeft: "2px",
-      paddingRight: "2px",
-    };
-    return (
-      <>
-        <div
-          className="chat-textbox-msg"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "auto 40px",
-            gap: "1rem",
-            marginBottom: "0.5rem",
-            borderStyle: "solid",
-            borderRadius: "0.2rem",
-            borderWidth: "2px",
-            paddingTop: "5px",
-          }}
-        >
-          <Typography
-            dangerouslySetInnerHTML={{ __html: oldText }}
-            variant="body1"
-            style={{ fontSize: "16px", paddingLeft: "0.3rem" }}
-          ></Typography>
-          <Typography variant="caption" sx={{ paddingTop: "0.2rem" }}>
-            {getFormatedDate(oldTime)}
-          </Typography>
-          <span
-            className="sender-name-caption"
-            style={{
-              fontSize: "12px",
-              position: "absolute",
-              top: "-1px",
-              left: "20px",
-              backgroundColor: "#2c8a3c",
-              paddingLeft: "2px",
-              paddingRight: "2px",
-            }}
-          >
-            {senderName}
-          </span>
-        </div>
-        <span className="message-box-divider"></span>
-        <div
-          className="chat-textbox-msg"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "auto 30px",
-            gap: "1rem",
-          }}
-        >
-          <Typography
-            dangerouslySetInnerHTML={{ __html: msgHTML }}
-            variant="body1"
-            style={{ fontSize: "16px" }}
-          ></Typography>
-          <Typography variant="caption">{getFormatedDate(msg.time)}</Typography>
-        </div>
-      </>
-    );
-  };
-
-  const EditedMsgBox = () => {
-    return <div>Edited</div>;
-  };
-
   return (
     <>
       <div
@@ -273,9 +162,25 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
               : { backgroundColor: "#2c8a3c" }
           }
         >
-          {msgType === "standard" && <StandardMsgBox />}
-          {msgType === "answer" && <AnsweredMsgBox />}
-          {msgType === "edit" && <EditedMsgBox />}
+          {msgType === "standard" && (
+            <StandardMsgBox msg={msg} msgHTML={msgHTML} />
+          )}
+          {msgType === "answer" && (
+            <AnsweredMsgBox
+              msg={msg}
+              msgHTML={msgHTML}
+              contactName={contactName}
+              id={id}
+            />
+          )}
+          {msgType === "edit" && (
+            <EditedMsgBox
+              msg={msg}
+              msgHTML={msgHTML}
+              contactName={contactName}
+              id={id}
+            />
+          )}
           <span
             className={
               msg.sender !== id

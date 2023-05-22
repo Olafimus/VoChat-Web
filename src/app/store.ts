@@ -39,7 +39,10 @@ const persistedReducer = persistReducer(persistConfig, appReducer);
 export const store = configureStore({
   reducer: persistedReducer,
   devTools: process.env.NODE_ENV !== "production",
-  middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(thunk),
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      serializableCheck: false,
+    }).concat(thunk),
 });
 
 export type AppDispatch = typeof store.dispatch;

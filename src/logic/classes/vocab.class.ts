@@ -18,7 +18,7 @@ export class AllVocabsClass {
   };
   getAllLangVocs = (lang: string) => {
     const langVocs: Vocab[] = this.vocs.filter((voc) => {
-      if (voc.getLang() === lang) return true;
+      if (voc.getVocLang() === lang) return true;
     });
     return langVocs;
   };
@@ -41,9 +41,7 @@ export class AllVocabsClass {
 
   removeVoc(id: string) {
     const newVocArr = this.vocs.filter((voc) => voc.getId() !== id);
-    console.log(newVocArr);
     this.vocs = newVocArr;
-    console.log(this.vocs);
   }
 
   getWbVocs(id: string) {
@@ -79,8 +77,11 @@ export class Vocab {
     protected lastAnswer = ""
   ) {}
 
-  getLang() {
-    return this.voc.language;
+  getVocLang() {
+    return this.voc.vocLanguage;
+  }
+  getTransLang() {
+    return this.voc.transLanguage;
   }
   getVocObj() {
     return this.voc;

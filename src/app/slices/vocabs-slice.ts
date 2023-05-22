@@ -7,6 +7,7 @@ interface VocabState {
   categories: string[];
   lastUpdate: number;
   currentLang: string;
+  nativeLang: string;
 }
 
 const initialState: VocabState = {
@@ -14,7 +15,8 @@ const initialState: VocabState = {
   workbooks: [],
   categories: [],
   lastUpdate: 0,
-  currentLang: "farsi",
+  currentLang: "Farsi",
+  nativeLang: "German",
 };
 
 export const VocabSlice = createSlice({

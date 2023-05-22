@@ -68,7 +68,7 @@ const LogInScreen = () => {
         <div>
           <TextField
             error={!mailCheck}
-            id="outlined-error-helper-text"
+            id="mail--input"
             label="E-Mail"
             type="text"
             helperText={mailCheck ? "" : "E-Mail not found"}
@@ -78,7 +78,7 @@ const LogInScreen = () => {
           />
           <TextField
             error={!passwordCheck}
-            id="outlined-error-helper-text"
+            id="password--input"
             type="password"
             label="password"
             helperText={passwordCheck ? "" : "Password is wrong!"}

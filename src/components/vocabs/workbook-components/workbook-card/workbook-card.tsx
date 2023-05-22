@@ -26,6 +26,7 @@ import {
 } from "../../../../app/slices/vocabs-slice";
 import { workbookType } from "../../../../logic/types/vocab.types";
 import ManageWorkbook from "../manage-workbook-dialog";
+import AddVocab from "../../add-vocab";
 
 interface ExpandMoreProps extends IconButtonProps {
   expand: boolean;
@@ -44,7 +45,8 @@ const ExpandMore = styled((props: ExpandMoreProps) => {
 
 const WorkbookCard = ({ wb }: { wb: workbookType }) => {
   const [expanded, setExpanded] = React.useState(false);
-  const [openModal, setOpenModal] = React.useState(false);
+  const [openWbModal, setOpenWbModal] = React.useState(false);
+  const [openVocModal, setOpenVocModal] = React.useState(false);
   const { allVocabs } = useAppSelector((state) => state.allVocabs);
   const dispatch = useAppDispatch();
 
@@ -92,7 +94,7 @@ const WorkbookCard = ({ wb }: { wb: workbookType }) => {
               aria-label="edit"
               onClick={(e) => {
                 e.stopPropagation();
-                setOpenModal(true);
+                setOpenWbModal(true);
               }}
             >
               <EditIcon sx={{ color: yellow[700] }} />
@@ -116,6 +118,7 @@ const WorkbookCard = ({ wb }: { wb: workbookType }) => {
               aria-label="add"
               onClick={(e) => {
                 e.stopPropagation();
+                setOpenVocModal(true);
               }}
             >
               <AddRoundedIcon />
@@ -161,8 +164,14 @@ const WorkbookCard = ({ wb }: { wb: workbookType }) => {
       <ManageWorkbook
         wb={wb}
         keepMounted={false}
-        open={openModal}
-        onClose={() => setOpenModal(false)}
+        open={openWbModal}
+        onClose={() => setOpenWbModal(false)}
+      />
+      <AddVocab
+        open={openVocModal}
+        setOpen={setOpenVocModal}
+        type="wbAdd"
+        wbs={[{ label: wb.name, value: wb.id }]}
       />
     </>
   );

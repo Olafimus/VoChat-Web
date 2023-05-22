@@ -8,8 +8,7 @@ export const createArrFromString = (el: string) => {
     .replaceAll("; ", "-")
     .replaceAll(" ;", "-")
     .replaceAll(",", "-")
+    .replaceAll("\n", "-")
     .trim()
     .split("-");
 };
-
-console.log(createArrFromString("test ,it, like ; its , hot"));

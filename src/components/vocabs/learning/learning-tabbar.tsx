@@ -28,19 +28,10 @@ export default function LearnTabs({ vocabs }: { vocabs: Vocab[] }) {
     setValue(val);
   };
 
-  useEffect(() => {
-    console.log("loaded");
-    console.log("vocs: ", vocabs);
-    setFilteredVocabs(vocabs);
-  }, [vocabs.length]);
-
-  useEffect(() => {
-    if (!finished) return;
-    console.log("fired2");
+  const retryMistakes = () => {
     const newVocArr: Vocab[] = [];
     vocabs.forEach((voc) => {
       if (voc.getResult() === false) newVocArr.push(voc);
-      console.log(voc.getResult());
     });
     if (newVocArr.length === 0) {
       vocabs.forEach((voc) => voc.resetStatus());
@@ -49,8 +40,15 @@ export default function LearnTabs({ vocabs }: { vocabs: Vocab[] }) {
     newVocArr.forEach((voc) => voc.resetStatus());
     setFilteredVocabs(newVocArr);
     setFinished(false);
+  };
+
+  useEffect(() => {
+    setFilteredVocabs(vocabs);
+  }, [vocabs.length]);
+
+  useEffect(() => {
+    if (!finished) return;
   }, [finished]);
-  console.log("vocs: ", filteredVocabs);
 
   return (
     <Box
