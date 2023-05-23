@@ -1,14 +1,13 @@
 import * as React from "react";
-import Tabs from "@mui/material/Tabs";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import Tab from "@mui/material/Tab";
+import CheckIcon from "@mui/icons-material/Check";
+import EditIcon from "@mui/icons-material/Edit";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import CardActions from "@mui/material/CardActions";
 import CardContent from "@mui/material/CardContent";
-import { CardHeader } from "@mui/material";
+import { CardHeader, Tooltip } from "@mui/material";
 import TextField from "@mui/material/TextField/TextField";
 import IconButton, { IconButtonProps } from "@mui/material/IconButton";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
@@ -32,6 +31,10 @@ const LearnCard = ({
   const [checked, setChecked] = React.useState(false);
   const [result, setResult] = React.useState(false);
   const [answer, setAnswer] = React.useState("");
+  const [hintsShown, setHintsShown] = React.useState(false);
+
+  let hints = vocab.getHints().join(", ");
+  if (!hints || hints === "") hints = "No Hints added to this Vocab";
 
   const checkAnswer = () => {
     if (vocab.getTranslArr().includes(answer.trim())) {
@@ -86,10 +89,12 @@ const LearnCard = ({
       )}
 
       <CardContent>
-        <Button>Show Hints</Button>
-        <Box>
-          <Typography pl="20px">hints 1 hints 2 </Typography>
-        </Box>
+        <Button onClick={() => setHintsShown((cur) => !cur)}>Show Hints</Button>
+        {hintsShown && (
+          <Box>
+            <Typography pt={1}>{hints}</Typography>
+          </Box>
+        )}
       </CardContent>
       <CardActions>
         <TextField
@@ -111,8 +116,23 @@ const LearnCard = ({
           autoFocus
           value={answer}
         />
+        {checked && (
+          <>
+            <Tooltip title="Mark answer as correct" arrow>
+              <IconButton size="small" sx={{ m: 0 }}>
+                <CheckIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Edit this Vocab" arrow>
+              <IconButton size="small" sx={{ m: 0 }}>
+                <EditIcon sx={{ m: 0 }} />
+              </IconButton>
+            </Tooltip>
+          </>
+        )}
         <Button
           size="small"
+          sx={{ m: 0 }}
           onClick={() => {
             if (!checked) return handleCeck();
             if (index === last) return goNext(0);

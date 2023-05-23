@@ -17,7 +17,7 @@ import AllVocabsReducer from "./slices/vocabs-class-slice";
 const persistConfig = {
   key: "root",
   storage,
-  blacklist: ["user", "conversations", "allVocabs"],
+  blacklist: ["user", "conversations", "allVocabs", "settings"],
 };
 
 // const userConfig = {
