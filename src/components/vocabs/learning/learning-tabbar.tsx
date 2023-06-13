@@ -29,6 +29,13 @@ export default function LearnTabs({ vocabs }: { vocabs: Vocab[] }) {
     setValue(val);
   };
 
+  const startAgain = () => {
+    vocabs.forEach((voc) => voc.resetStatus());
+    setFilteredVocabs(vocabs);
+    setCompleted(false);
+    setFinished(false);
+  };
+
   const retryMistakes = () => {
     const newVocArr: Vocab[] = [];
     vocabs.forEach((voc) => {
@@ -50,6 +57,10 @@ export default function LearnTabs({ vocabs }: { vocabs: Vocab[] }) {
   useEffect(() => {
     if (!finished) return;
     const newVocArr: Vocab[] = [];
+    filteredVocabs.forEach((voc) => {
+      const result = voc.getResult();
+      voc.addLearnHis(result).calcScore(result).calcImp();
+    });
     vocabs.forEach((voc) => {
       if (voc.getResult() === false) newVocArr.push(voc);
     });
@@ -58,6 +69,10 @@ export default function LearnTabs({ vocabs }: { vocabs: Vocab[] }) {
       setCompleted(true);
     }
   }, [finished]);
+
+  useEffect(() => {
+    console.log(vocabs);
+  }, [completed]);
 
   return (
     <Box
@@ -81,8 +96,10 @@ export default function LearnTabs({ vocabs }: { vocabs: Vocab[] }) {
             <Link to="/vocab/learning">
               <Button>Choose a new Method</Button>
             </Link>
-            <Button>Next Default Method</Button>
-            <Button>Again with the same vocabs</Button>
+            <Link to="/vocab/learning/default">
+              <Button>Next Default Method</Button>
+            </Link>
+            <Button onClick={startAgain}>Again with the same vocabs</Button>
           </Box>
         </Box>
       ) : (

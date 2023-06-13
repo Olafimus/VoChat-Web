@@ -169,6 +169,15 @@ export class Vocab {
     };
     return prop;
   }
+  getChecked() {
+    return this.checked;
+  }
+  getLastAnswer() {
+    return this.lastAnswer;
+  }
+  getResult() {
+    return this.result;
+  }
   updateVoc(vocObj: VocObj) {
     // this.voc.categories = vocObj.categories
     // this.voc.hints = vocObj.hints
@@ -187,23 +196,33 @@ export class Vocab {
   addWb(wb: workbookType) {
     this.voc = { ...this.voc, workbooks: [...this.voc.workbooks, wb] };
   }
+  addLearnHis(result: boolean) {
+    const learnHistory = [...this.voc.learnHistory];
+    learnHistory.push({ timeStamp: Date.now(), result });
+    this.voc = { ...this.voc, learnHistory };
+    return this;
+  }
+  calcScore(result: boolean) {
+    let score = this.voc.score;
+    if (score === 0) score = 5;
+    if (result && score < 10) score = score + 1;
+    if (!result && score > 1) score = score - 1;
+    this.voc = { ...this.voc, score };
+    return this;
+  }
+  calcImp() {
+    const calcImportance =
+      (this.voc.setImportance * 2 + (5 - this.voc.score)) / 3;
+    this.voc = { ...this.voc, calcImportance };
+  }
   setChecked(val: boolean) {
     this.checked = val;
   }
   setResult(val: boolean) {
     this.result = val;
   }
-  getChecked() {
-    return this.checked;
-  }
   setlastAnswer(val: string) {
     this.lastAnswer = val;
-  }
-  getLastAnswer() {
-    return this.lastAnswer;
-  }
-  getResult() {
-    return this.result;
   }
   resetStatus() {
     this.result = false;
