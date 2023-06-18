@@ -20,13 +20,13 @@ import Tooltip from "@mui/material/Tooltip";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import { useAppDispatch, useAppSelector } from "../../../../app/hooks";
 import {
-  removeVocFromLS,
   removeWorkbook,
   updateVocabLS,
 } from "../../../../app/slices/vocabs-slice";
 import { workbookType } from "../../../../logic/types/vocab.types";
 import ManageWorkbook from "../manage-workbook-dialog";
 import AddVocab from "../../add-vocab";
+import ShareMenu from "../../../general/shared-menu";
 
 interface ExpandMoreProps extends IconButtonProps {
   expand: boolean;
@@ -47,6 +47,8 @@ const WorkbookCard = ({ wb }: { wb: workbookType }) => {
   const [expanded, setExpanded] = React.useState(false);
   const [openWbModal, setOpenWbModal] = React.useState(false);
   const [openVocModal, setOpenVocModal] = React.useState(false);
+  const [openShareMenu, setOpenShareMenu] = React.useState(false);
+  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const { allVocabs } = useAppSelector((state) => state.allVocabs);
   const dispatch = useAppDispatch();
 
@@ -54,6 +56,7 @@ const WorkbookCard = ({ wb }: { wb: workbookType }) => {
     setExpanded(!expanded);
   };
   const wbVocs = allVocabs.getWbVocs(wb.id);
+  const wbVocObjs = wbVocs.map((voc) => voc.getVocObj());
 
   const moreInfo = [
     { title: "Score", info: wb.score },
@@ -83,11 +86,23 @@ const WorkbookCard = ({ wb }: { wb: workbookType }) => {
             <IconButton
               size="small"
               aria-label="share"
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                console.log(wbVocObjs);
+                setAnchorEl(e.currentTarget);
+                e.stopPropagation();
+                setOpenShareMenu(true);
+              }}
             >
               <ShareIcon />
             </IconButton>
           </Tooltip>
+          <ShareMenu
+            open={openShareMenu}
+            setOpen={setOpenShareMenu}
+            anchorEl={anchorEl}
+            wb={wb}
+            wbVocs={wbVocObjs}
+          />
           <Tooltip title="Manage workbook" arrow>
             <IconButton
               size="small"

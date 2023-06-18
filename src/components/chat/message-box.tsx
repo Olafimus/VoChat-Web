@@ -15,6 +15,7 @@ import AnsweredMsgBox from "./message-type-boxes/answer-message";
 import { StandardMsgBox } from "./message-type-boxes/standard-message";
 import EditedMsgBox from "./message-type-boxes/edit-message";
 import VocMsgBox from "./message-type-boxes/vocab-send-msg";
+import WbMsgBox from "./message-type-boxes/wb-send";
 
 type MsgProp = {
   msg: Message;
@@ -65,6 +66,7 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
   if (msg.messageHis.at(-1)?.type === "answer") msgType = "answer";
   if (msg.messageHis.at(-1)?.type === "edit") msgType = "edit";
   if (msg.messageHis.at(-1)?.type === "vocab") msgType = "vocab";
+  if (msg.messageHis.at(-1)?.type === "wb") msgType = "wb";
 
   // formating URLs and too long words
   const text = msg.messageHis.at(-1)?.message || "";
@@ -185,6 +187,13 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
           )}
           {msgType === "vocab" && (
             <VocMsgBox vocab={msg.messageHis.at(-1)?.vocab} msgHTML={msgHTML} />
+          )}
+          {msgType === "wb" && (
+            <WbMsgBox
+              wb={msg.messageHis.at(-1)?.wb}
+              wbCount={msg.messageHis.at(-1)?.wbCount}
+              msgHTML={msgHTML}
+            />
           )}
           <span
             className={

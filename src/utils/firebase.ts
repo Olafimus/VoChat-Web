@@ -223,4 +223,15 @@ export const sendResponse = async (
   });
 };
 
+export const sendSharedWb = async (id: string, vocabs: VocObj[]) => {
+  await setDoc(doc(db, "sharedWorkbooks", id), { vocabs });
+};
+
+export const getSharedWb = async (id: string) => {
+  const wbRef = doc(db, "sharedWorkbooks", id);
+  const data = await getDoc(wbRef);
+  const vocs = data.data()?.vocabs;
+  return vocs;
+};
+
 export const checkConvInDb = () => {};

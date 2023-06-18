@@ -22,10 +22,7 @@ import { Vocab } from "../../../logic/classes/vocab.class";
 import { useAppDispatch, useAppSelector } from "../../../app/hooks";
 import { removeVocFromLS, setVocabs } from "../../../app/slices/vocabs-slice";
 import AddVocab from "../add-vocab";
-import { Menu, MenuItem } from "@mui/material";
-import { addMsgHis, createMsgObj } from "../../chat/editable-input-div";
-import { VocObj } from "../../../logic/types/vocab.types";
-import { sendNewMessage } from "../../../utils/firebase";
+import ShareMenu from "../../general/shared-menu";
 
 interface ExpandMoreProps extends IconButtonProps {
   expand: boolean;
@@ -41,56 +38,6 @@ const ExpandMore = styled((props: ExpandMoreProps) => {
     duration: theme.transitions.duration.shortest,
   }),
 }));
-
-const ShareMenu = ({
-  open,
-  anchorEl,
-  setOpen,
-  vocObj,
-}: {
-  open: boolean;
-  anchorEl: HTMLElement | null;
-  setOpen: (val: boolean) => void;
-  vocObj: VocObj;
-}) => {
-  const { id } = useAppSelector((state) => state.user);
-
-  const handleSubmit = (convId: string) => {
-    const msg = createMsgObj(id);
-    addMsgHis(msg, "", "vocab", vocObj);
-    console.log(msg);
-    sendNewMessage(convId, msg);
-    setOpen(false);
-  };
-
-  const handleClose = () => {
-    setOpen(false);
-  };
-  const { friends } = useAppSelector((state) => state.user);
-
-  return (
-    <Menu
-      id="basic-menu"
-      anchorEl={anchorEl}
-      open={open}
-      onClose={handleClose}
-      MenuListProps={{
-        "aria-labelledby": "basic-button",
-      }}
-    >
-      {friends.map((friend) => (
-        <MenuItem
-          key={friend.id}
-          onClick={() => {
-            handleSubmit(friend.conversation);
-          }}
-        >
-          {friend.name}
-        </MenuItem>
-      ))}
-    </Menu>
-  );
-};
 
 const VocabCard = ({ vocab }: { vocab: Vocab }) => {
   const [expanded, setExpanded] = React.useState(false);

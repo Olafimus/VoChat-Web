@@ -19,7 +19,7 @@ import {
   formatInnerHTML,
   reformatHTMLtoTxt,
 } from "../../utils/text-scripts/html-formating";
-import { VocObj } from "../../logic/types/vocab.types";
+import { VocObj, workbookType } from "../../logic/types/vocab.types";
 
 type InputProps = {
   type: "newMsg" | "answer" | "edit";
@@ -46,7 +46,9 @@ export const addMsgHis = (
   msgObj: Message,
   message: string,
   type: MsgHisTypes,
-  vocab?: VocObj
+  vocab?: VocObj,
+  wb?: workbookType,
+  wbCount?: number
 ) => {
   const HisItem: MessageHisItem = {
     time: Date.now(),
@@ -56,6 +58,10 @@ export const addMsgHis = (
     type,
   };
   if (type === "vocab") HisItem.vocab = vocab;
+  if (type === "wb") {
+    HisItem.wb = wb;
+    HisItem.wbCount = wbCount;
+  }
   msgObj.messageHis.push(HisItem);
 };
 
