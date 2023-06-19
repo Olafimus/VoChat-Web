@@ -19,7 +19,7 @@ import {
   formatInnerHTML,
   reformatHTMLtoTxt,
 } from "../../utils/text-scripts/html-formating";
-import { VocObj, workbookType } from "../../logic/types/vocab.types";
+import { VocObj, WorkbookType } from "../../logic/types/vocab.types";
 
 type InputProps = {
   type: "newMsg" | "answer" | "edit";
@@ -47,7 +47,7 @@ export const addMsgHis = (
   message: string,
   type: MsgHisTypes,
   vocab?: VocObj,
-  wb?: workbookType,
+  wb?: WorkbookType,
   wbCount?: number
 ) => {
   const HisItem: MessageHisItem = {

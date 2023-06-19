@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   Grid,
   Box,
@@ -13,35 +13,46 @@ import {
   Divider,
 } from "@mui/material";
 import Dialog, { DialogProps } from "@mui/material/Dialog";
-import { VocObj, WorkbookType } from "./logic/types/vocab-types";
-import { dummyAllVocs, Vocab } from "./logic/classes/vocabs-class";
-import VocabListView from "./VocabView";
+import { VocObj, WorkbookType } from "./../../../logic/types/vocab.types";
+import { Vocab } from "./../../../logic/classes/vocab.class";
 import ListItemText from "@mui/material/ListItemText/ListItemText";
+import VocabListView from "./vocab-view";
+import { useAppSelector } from "../../../app/hooks";
+import { getSharedWb } from "../../../utils/firebase";
 
 const WorkbookView = ({
   wb,
-  wbVocs,
+  wbVocRef,
   open,
   setOpen,
 }: {
   wb: WorkbookType;
-  wbVocs?: VocObj[];
+  wbVocRef: string;
   open: boolean;
   setOpen: (val: boolean) => void;
 }) => {
   const [scroll, setScroll] = React.useState<DialogProps["scroll"]>("paper");
+  const [vocabs, setVocabs] = React.useState<Vocab[]>([]);
 
   let fullScreen = false;
   let disableEdit = true;
   let type: "own" | "send" = "own";
+  const { allVocabs } = useAppSelector((state) => state.allVocabs);
+  const { id: uid } = useAppSelector((state) => state.user);
 
   const handleClose = () => setOpen(false);
 
-  let vocabs: Vocab[] = [];
-  if (wbVocs) {
-    wbVocs.forEach((voc) => vocabs.push(new Vocab(voc)));
-    type = "send";
-  } else vocabs = dummyAllVocs.getWbVocs(wb.id);
+  useEffect(() => {
+    if (!open) return;
+    const loadWbVocs = async (ref: string) => {
+      const wbVocs: VocObj[] = await getSharedWb(ref);
+      const newVocs: Vocab[] = [];
+      wbVocs.forEach((voc) => newVocs.push(new Vocab(voc)));
+      setVocabs(newVocs);
+      type = "send";
+    };
+    loadWbVocs(wbVocRef);
+  }, [open]);
 
   return (
     <Dialog
@@ -131,7 +142,7 @@ const WorkbookView = ({
                 <Typography>Language</Typography>
               </Grid>
               <Grid item xs={1}>
-                <Typography>{wb.language}</Typography>
+                <Typography>{wb.vocLanguage}</Typography>
               </Grid>
             </Grid>
           </Grid>
@@ -143,7 +154,7 @@ const WorkbookView = ({
             sx={{ textAlign: "center" }}
           ></ListItemText>
           {vocabs.map((vocab) => (
-            <VocabListView vocab={vocab} type={type} />
+            <VocabListView key={vocab.getId()} vocab={vocab} type={type} />
           ))}
         </List>
       </DialogContent>
@@ -152,7 +163,7 @@ const WorkbookView = ({
       >
         <Button onClick={handleClose}>Back</Button>
 
-        {wbVocs ? (
+        {wb.createdBy !== uid ? (
           <span>
             <Tooltip title="delete and add vocabs from this workbook">
               <Button>Manage</Button>

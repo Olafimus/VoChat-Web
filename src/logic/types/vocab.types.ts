@@ -10,14 +10,14 @@ export type VocObj = {
   pronounciation: string[];
   hints: string[];
   categories: string[];
-  workbooks: workbookType[];
+  workbooks: WorkbookType[];
   setImportance: number;
   calcImportance: number;
   learnHistory: { timeStamp: number; result: boolean }[];
   score: number;
 };
 
-export type workbookType = {
+export type WorkbookType = {
   name: string;
   id: string;
   vocCount?: number;

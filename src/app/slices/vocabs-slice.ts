@@ -1,9 +1,9 @@
 import { PayloadAction, createSlice } from "@reduxjs/toolkit";
-import { VocObj, workbookType } from "../../logic/types/vocab.types";
+import { VocObj, WorkbookType } from "../../logic/types/vocab.types";
 
 interface VocabState {
   allUserVocabs: VocObj[];
-  workbooks: workbookType[];
+  workbooks: WorkbookType[];
   categories: string[];
   lastUpdate: number;
   currentLang: string;
@@ -45,11 +45,11 @@ export const VocabSlice = createSlice({
       state.allUserVocabs = newArr;
       state.lastUpdate = Date.now();
     },
-    addWorkbook: (state, actions: PayloadAction<workbookType>) => {
+    addWorkbook: (state, actions: PayloadAction<WorkbookType>) => {
       state.workbooks.push(actions.payload);
       state.lastUpdate = Date.now();
     },
-    removeWorkbook: (state, actions: PayloadAction<workbookType>) => {
+    removeWorkbook: (state, actions: PayloadAction<WorkbookType>) => {
       state.workbooks = state.workbooks.filter(
         (wb) => wb.id !== actions.payload.id
       );

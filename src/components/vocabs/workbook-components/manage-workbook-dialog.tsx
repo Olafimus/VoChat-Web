@@ -7,7 +7,7 @@ import Dialog from "@mui/material/Dialog";
 import { useAppDispatch, useAppSelector } from "../../../app/hooks";
 import VirtualizedList from "../../general/virtualized-list";
 import { Vocab } from "../../../logic/classes/vocab.class";
-import { workbookType } from "../../../logic/types/vocab.types";
+import { WorkbookType } from "../../../logic/types/vocab.types";
 import { nanoid } from "@reduxjs/toolkit";
 import { addWorkbook, updateVocabLS } from "../../../app/slices/vocabs-slice";
 
@@ -15,7 +15,7 @@ export interface ManageWbProps {
   keepMounted: boolean;
   open: boolean;
   onClose: () => void;
-  wb?: workbookType;
+  wb?: WorkbookType;
 }
 
 export default function ManageWorkbook(props: ManageWbProps) {
@@ -52,7 +52,7 @@ export default function ManageWorkbook(props: ManageWbProps) {
   const handleSubmit = () => {
     if (wb) return handleUpdate();
     const timeStamp = Date.now();
-    const newWb: workbookType = {
+    const newWb: WorkbookType = {
       name: wbName,
       id: nanoid(),
       vocLanguage: currentLang,

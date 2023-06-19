@@ -187,13 +187,13 @@ export const addConvToFriend = async (
   await updateDoc(userRef, { conversations: arrayUnion(convId) });
 };
 
-export const sendNewMessage = async (convId: string, msg: Message) => {
-  const convRef = doc(db, "conversations", convId);
-  await updateDoc(convRef, {
-    messages: arrayUnion(msg),
-    lastInteraction: Date.now(),
-  });
-};
+// export const sendNewMessage = async (convId: string, msg: Message) => {
+//   const convRef = doc(db, "conversations", convId);
+//   await updateDoc(convRef, {
+//     messages: arrayUnion(msg),
+//     lastInteraction: Date.now(),
+//   });
+// };
 
 export const updateFriendsData = async (uid: string, friends: Friend[]) => {
   const userDocRef = doc(db, "users", uid);
@@ -231,7 +231,53 @@ export const getSharedWb = async (id: string) => {
   const wbRef = doc(db, "sharedWorkbooks", id);
   const data = await getDoc(wbRef);
   const vocs = data.data()?.vocabs;
+
   return vocs;
 };
 
 export const checkConvInDb = () => {};
+
+// "Langzeitspeiche" für jede Conversation
+// Document "oldmessages"
+// im Conversationsdocument "longtermref: string" Feld einfügen
+
+//longtermn dann für alle 300 Nachrichten ein neues Feld " 1: (Arr mit 300 Nachrichten), 2: (Arr mir 300 Nachrichten)"
+// in Conversation Document dann einen Marker bei welcher Zahl mit aktuell ist: "longTermCount: 3
+
+export const setLongTermRef = async (convId: string) => {
+  await setDoc(doc(db, "oldmessages", convId), { 1: [] });
+};
+
+export const sendNewMessage = async (convId: string, msg: Message) => {
+  const convRef = doc(db, "conversations", convId);
+  const longRef = doc(db, "oldmessages", "LT" + convId);
+  const d = await getDoc(convRef);
+  const messages = d.data()?.messages || null;
+
+  if (messages.length > 250) {
+    const oldMsgs = messages.splice(0, 200);
+    console.log("msgs", oldMsgs);
+    messages.push(msg);
+    if (!d.data()?.longTermRef) {
+      await setLongTermRef("LT" + convId);
+      await updateDoc(convRef, {
+        longTermRef: "LT" + convId,
+        longTermCount: 1,
+      });
+    }
+    const count = d.data()?.longTermCount || 1;
+    await updateDoc(longRef, {
+      [count]: oldMsgs,
+    });
+    await updateDoc(convRef, {
+      messages,
+      longTermCount: count + 1,
+      lastInteraction: Date.now(),
+    });
+  } else {
+    await updateDoc(convRef, {
+      messages: arrayUnion(msg),
+      lastInteraction: Date.now(),
+    });
+  }
+};

@@ -1,7 +1,7 @@
 import React from "react";
 import { Vocab } from "../../../logic/classes/vocab.class";
 import WorkbookCard from "./workbook-card/workbook-card";
-import { workbookType } from "../../../logic/types/vocab.types";
+import { WorkbookType } from "../../../logic/types/vocab.types";
 
 const WorkbookColumnSection = ({
   num,
@@ -10,7 +10,7 @@ const WorkbookColumnSection = ({
 }: {
   num: number;
   max: number;
-  wbs: workbookType[];
+  wbs: WorkbookType[];
 }) => {
   let vocMaxCount = wbs.length;
   if (vocMaxCount > 60) vocMaxCount = 60;

@@ -2,7 +2,7 @@ import { useAppDispatch } from "../../app/hooks";
 import { MySelectOptionType } from "../../components/general/multi-select";
 import { EditProps } from "../../components/vocabs/add-vocab";
 
-import { VocObj, dummyVocObj, workbookType } from "../types/vocab.types";
+import { VocObj, dummyVocObj, WorkbookType } from "../types/vocab.types";
 
 export class AllVocabsClass {
   constructor(public vocs: Vocab[]) {}
@@ -193,7 +193,7 @@ export class Vocab {
     this.voc = { ...this.voc, workbooks: newWb };
     // console.log(newWb);
   }
-  addWb(wb: workbookType) {
+  addWb(wb: WorkbookType) {
     this.voc = { ...this.voc, workbooks: [...this.voc.workbooks, wb] };
   }
   addLearnHis(result: boolean) {

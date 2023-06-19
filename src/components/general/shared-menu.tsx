@@ -1,5 +1,5 @@
 import { Menu, MenuItem } from "@mui/material";
-import { VocObj, workbookType } from "../../logic/types/vocab.types";
+import { VocObj, WorkbookType } from "../../logic/types/vocab.types";
 import { useAppSelector } from "../../app/hooks";
 import { addMsgHis, createMsgObj } from "../chat/editable-input-div";
 import { sendNewMessage, sendSharedWb } from "../../utils/firebase";
@@ -16,7 +16,7 @@ const ShareMenu = ({
   anchorEl: HTMLElement | null;
   setOpen: (val: boolean) => void;
   vocObj?: VocObj;
-  wb?: workbookType;
+  wb?: WorkbookType;
   wbVocs?: VocObj[];
 }) => {
   const { id } = useAppSelector((state) => state.user);

@@ -23,7 +23,7 @@ import {
   removeWorkbook,
   updateVocabLS,
 } from "../../../../app/slices/vocabs-slice";
-import { workbookType } from "../../../../logic/types/vocab.types";
+import { WorkbookType } from "../../../../logic/types/vocab.types";
 import ManageWorkbook from "../manage-workbook-dialog";
 import AddVocab from "../../add-vocab";
 import ShareMenu from "../../../general/shared-menu";
@@ -43,7 +43,7 @@ const ExpandMore = styled((props: ExpandMoreProps) => {
   }),
 }));
 
-const WorkbookCard = ({ wb }: { wb: workbookType }) => {
+const WorkbookCard = ({ wb }: { wb: WorkbookType }) => {
   const [expanded, setExpanded] = React.useState(false);
   const [openWbModal, setOpenWbModal] = React.useState(false);
   const [openVocModal, setOpenVocModal] = React.useState(false);

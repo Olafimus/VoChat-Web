@@ -16,7 +16,7 @@ import {
   NativeSelect,
 } from "@mui/material";
 import MultiSelect, { MySelectOptionType } from "../general/multi-select";
-import { VocObj, workbookType } from "../../logic/types/vocab.types";
+import { VocObj, WorkbookType } from "../../logic/types/vocab.types";
 import { nanoid } from "@reduxjs/toolkit";
 import { AllVocabsClass, Vocab } from "../../logic/classes/vocab.class";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
@@ -153,10 +153,10 @@ const AddVocab = ({
 
   const handleSubmit = () => {
     validationCheck();
-    const workbooks: workbookType[] = [];
+    const workbooks: WorkbookType[] = [];
     wbSelection.forEach((sel) => {
       const timeStamp = Date.now();
-      const newWb: workbookType = {
+      const newWb: WorkbookType = {
         name: sel.label,
         id: sel.value,
         vocLanguage: vocLang,

@@ -7,7 +7,7 @@ import {
   updateVocabLS,
 } from "../../../app/slices/vocabs-slice";
 import ManageWorkbook from "./manage-workbook-dialog";
-import { workbookType } from "../../../logic/types/vocab.types";
+import { WorkbookType } from "../../../logic/types/vocab.types";
 
 const WorkbookCardList = ({
   searchString,
@@ -18,7 +18,7 @@ const WorkbookCardList = ({
 }) => {
   const [open, setOpen] = useState(false);
   const [columnCount, setColumnCount] = React.useState(1);
-  const [filteredWbs, setFilteredWbs] = React.useState<workbookType[]>([]);
+  const [filteredWbs, setFilteredWbs] = React.useState<WorkbookType[]>([]);
   const columnArr = [1, 2, 3, 4, 5];
   const { workbooks } = useAppSelector((state) => state.vocabs);
   const matchesOne = useMediaQuery("(min-width:750px)");

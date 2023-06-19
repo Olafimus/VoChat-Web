@@ -5,7 +5,7 @@ import { useAppSelector } from "../../app/hooks";
 import { Vocab } from "../../logic/classes/vocab.class";
 import LearnTabs from "../../components/vocabs/learning/learning-tabbar";
 import SearchField from "../../components/general/search-field";
-import { workbookType } from "../../logic/types/vocab.types";
+import { WorkbookType } from "../../logic/types/vocab.types";
 
 const LearningRoute = () => {
   const { route } = useParams();
@@ -34,7 +34,7 @@ const LearningRoute = () => {
 
   const WorkbookRoute = () => {
     const [searchTerm, setSearchTerm] = useState("");
-    const [filteredWb, setFilteredWb] = useState<workbookType[]>([]);
+    const [filteredWb, setFilteredWb] = useState<WorkbookType[]>([]);
 
     useEffect(() => {
       const newWb = workbooks.filter((wb) => wb.name.includes(searchTerm));

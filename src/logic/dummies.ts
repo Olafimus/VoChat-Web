@@ -1,5 +1,5 @@
 import { Vocab } from "./classes/vocab.class";
-import { workbookType } from "./types/vocab.types";
+import { WorkbookType } from "./types/vocab.types";
 
 // const user = new User("Horst", "AfjeiA2", 2321, ["german"], ["english"]);
 const voc = {
