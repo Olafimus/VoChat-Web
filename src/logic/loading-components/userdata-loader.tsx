@@ -13,6 +13,7 @@ const UserDataLoader: React.FC<{ id: string }> = ({ id }) => {
   });
 
   useEffect(() => {
+    console.log("test");
     if (!value) return;
     const data = value.data();
     if (!data) return;
@@ -26,7 +27,9 @@ const UserDataLoader: React.FC<{ id: string }> = ({ id }) => {
       teachLanguages: data.teachLanguages,
       learnLanguages: data.learnLanguages,
       allVocabs: data.allVocabs,
+      deletedFriends: data?.deletedFriends || [],
     };
+    console.log("userdata: ", userData.deletedFriends);
     dispatch(setFriends(friends));
     dispatch(setUserData(userData));
   }, [value]);

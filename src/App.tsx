@@ -7,9 +7,6 @@ import Navigation from "./screens/navigation/navigation";
 import HomeScreen from "./screens/home/home-screen";
 import SettingsScreen from "./screens/settings-screen/settings.screen";
 import { useAppDispatch, useAppSelector } from "./app/hooks";
-
-import AllAuthScreens from "./screens/auth-screens/all-auth.screen";
-
 import ContacChatScreen from "./screens/main-display-hanlder/contact-chat-handler";
 
 import DeleteFriend from "./components/contacts/delete-friend";
@@ -17,12 +14,14 @@ import LoadingContainer from "./logic/loading-components/LoadingContainer";
 import AllVocabs from "./screens/vocba-screens/all-vocabs-screen";
 import { AllVocabsClass, Vocab } from "./logic/classes/vocab.class";
 import { setAllVocabs } from "./app/slices/vocabs-class-slice";
-import { setVocabs } from "./app/slices/vocabs-slice";
 import WorkbooksScreen from "./screens/vocba-screens/workbooks-screen";
-import { VocObj } from "./logic/types/vocab.types";
 import { produce } from "immer";
 import LearningScreen from "./screens/vocba-screens/learning-screen";
 import LearningRoute from "./screens/vocba-screens/learning-route";
+import ProfilePage from "./screens/profile/profile-page";
+import SignUpStepper from "./screens/auth-screens/signup/signup-screen";
+import LogInScreen from "./screens/auth-screens/login.screen";
+import NotebookScreen from "./screens/notebook-screen/notebook-screen";
 
 function App() {
   const { theme } = useAppSelector((state) => state.settings);
@@ -48,10 +47,13 @@ function App() {
         <Routes>
           <Route path="/" element={<Navigation />}>
             <Route index element={<HomeScreen />} />
+            <Route path="notebook" element={<NotebookScreen />} />
+            <Route path="profile" element={<ProfilePage />} />
             <Route path="contacts" element={<ContacChatScreen />} />
             <Route path="chat" element={<ContacChatScreen />} />
             <Route path="settings" element={<SettingsScreen />} />
-            <Route path="login" element={<AllAuthScreens />} />
+            <Route path="login" element={<LogInScreen />} />
+            <Route path="signup" element={<SignUpStepper />} />
             <Route path="delete" element={<DeleteFriend />} />
             <Route path="vocab" element={<AllVocabs />}></Route>
             <Route path="vocab/workbooks" element={<WorkbooksScreen />} />

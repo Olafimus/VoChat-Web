@@ -13,7 +13,7 @@ import PersonIcon from "@mui/icons-material/Person";
 import AddIcon from "@mui/icons-material/Add";
 import { useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
-import { addFriend } from "../../app/slices/user-slice";
+import { addFriend, reAddFriend } from "../../app/slices/user-slice";
 import { Friend, OnlineUser } from "../../logic/types/user.types";
 import { getUsers } from "../../utils/firebase";
 import { blue } from "@mui/material/colors";
@@ -25,13 +25,14 @@ export interface SimpleDialogProps {
 }
 
 function AddDialog(props: SimpleDialogProps) {
-  const { friends, id } = useAppSelector((state) => state.user);
+  const { friends, id, deletedFriends } = useAppSelector((state) => state.user);
   const { onClose, selectedValue, open } = props;
   const [users, setUsers] = useState<OnlineUser[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<OnlineUser[]>([]);
   const [searchField, setSearchField] = useState("");
   const dispatch = useAppDispatch();
 
+  // loading the users from db and excluding friends
   useEffect(() => {
     const loadUsers = async () => {
       const frIds: string[] = [];
@@ -46,20 +47,13 @@ function AddDialog(props: SimpleDialogProps) {
       setFilteredUsers(newUsers);
     };
     loadUsers();
-    // const dummieUsers = [
-    //   { name: "horst", id: "fadj", email: "horst@das.de" },
-    //   { name: "Karl", id: "fadj", email: "walter@das.de" },
-    //   { name: "nuri", id: "fadj", email: "cooli@das.de" },
-    //   { name: "Barbara", id: "fadj", email: "Barbara@das.de" },
-    // ];
-    // setUsers(dummieUsers);
-    // setFilteredUsers(dummieUsers);
   }, []);
 
   const handleClose = () => {
     onClose(selectedValue);
   };
 
+  // filtering useres with typing
   useEffect(() => {
     const filUsr = users.filter((user) => {
       if (
@@ -73,7 +67,15 @@ function AddDialog(props: SimpleDialogProps) {
     setFilteredUsers(filUsr);
   }, [searchField]);
 
+  // adding new friend from users in redux store the user will be added to the DB in the store
+  // conversations will be added with the click on the contact in the contact-list
   const handleListItemClick = (user: OnlineUser) => {
+    // checking if users were friends before
+
+    const friend = deletedFriends.find((el) => el.id === user.id);
+
+    if (friend) return dispatch(reAddFriend(friend));
+
     const newFriend: Friend = {
       id: user.id,
       lastInteraction: Date.now(),

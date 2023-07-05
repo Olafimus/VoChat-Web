@@ -1,14 +1,11 @@
 import { useState } from "react";
 import "./chat.styles.scss";
-import { IconButton, useMediaQuery } from "@mui/material";
+import { IconButton, Box } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
 import { useAppSelector } from "../../app/hooks";
-import EmojiEmotionsIcon from "@mui/icons-material/EmojiEmotions";
-import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
-import BasicModal from "../../components/general/basic-modal";
+import { EmojiClickData } from "emoji-picker-react";
 import ChatTextBox from "../../components/chat/text-box";
 import InputDiv from "../../components/chat/editable-input-div";
-import ContactScreen from "../contacts/contacs-screen";
 import { setEndFocus } from "../../utils/text-scripts/set-focus-end";
 
 const ChatScreen = ({ matches }: { matches: boolean }) => {
@@ -42,9 +39,9 @@ const ChatScreen = ({ matches }: { matches: boolean }) => {
       className="chat-screen-section"
       style={screenCheck ? hiddenStyle : {}}
     >
-      <div>
+      <Box>
         <ChatTextBox matches={matches} />
-      </div>
+      </Box>
       <div className="chat-text-input-container">
         <InputDiv trigger={trigger} type="newMsg" />
         {/* <IconButton onClick={() => setOpen(true)}>

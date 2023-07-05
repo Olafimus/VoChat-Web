@@ -4,7 +4,9 @@ import React, { useEffect } from "react";
 import { useDocument } from "react-firebase-hooks/firestore";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import {
+  MutateOldMsg,
   addConversation,
+  addOldMsg,
   countUnreadMsgs,
   newMsgReceived,
   setUnreadMsgConv,
@@ -14,20 +16,21 @@ import {
   changeFrLastMsg,
   updateFriendInteraction,
 } from "../../app/slices/user-slice";
-import { db } from "../../utils/firebase";
+import { db, getOldMessages } from "../../utils/firebase";
 import { notifyUser } from "../../utils/notification";
 import { Conversation } from "../classes/conversation.class";
 import { Friend } from "../types/user.types";
+import { VocObj } from "../types/vocab.types";
 
 type Prop = {
   conversation: string;
 };
 
 const ConversationLoader: React.FC<Prop> = ({ conversation }) => {
-  const { conversations, activeContact, activeConv } = useAppSelector(
-    (state) => state.conversations
-  );
+  const { conversations, activeContact, activeConv, oldMessages } =
+    useAppSelector((state) => state.conversations);
   const { friends, id } = useAppSelector((state) => state.user);
+
   const dispatch = useAppDispatch();
 
   if (conversation === "")
@@ -40,11 +43,27 @@ const ConversationLoader: React.FC<Prop> = ({ conversation }) => {
     }
   );
 
+  const checkIfNewOldKey = async (ref: string, count: number) => {
+    if (ref === "none") return;
+    const thisOldMessages = oldMessages.find((el) => el.ref === ref);
+    console.log("fired");
+    const msgs = await getOldMessages(ref);
+    if (!msgs) return;
+    if (!thisOldMessages) return dispatch(addOldMsg({ ref, msgs }));
+    const dbKeys = Object.keys(msgs);
+    dispatch(MutateOldMsg({ ref, msgs }));
+  };
+
+  const loadOldMsgs = async (ref: string) => {
+    // const oldMsgs = getOldMsgs(ref); // in firebase bauen
+    // dipsatch() // adding missing ones
+  };
+
   useEffect(() => {
     if (!value?.data()) return;
     // const oldConv = conversations.find((conv) => conv.id === conversation);
     // if (!oldConv) return;
-
+    if (!value.data()) return;
     const conv: Conversation = {
       id: value.data()?.id ?? "",
       users: value.data()?.users,
@@ -53,7 +72,19 @@ const ConversationLoader: React.FC<Prop> = ({ conversation }) => {
       corrections: value.data()?.corrections,
       vocabs: value.data()?.vocabs,
       unreadMsgs: value.data()?.unreadMsgs,
+      leftUsers: value.data()?.leftUsers,
     };
+    if (conv.leftUsers?.some((el) => el.user === id))
+      return console.log("left");
+    if (value.data()?.longTermRef) conv.longTermRef = value.data()?.longTermRef;
+    if (value.data()?.longTermCount)
+      conv.longTermCount = value.data()?.longTermCount;
+    const count = conv.longTermCount || 0;
+    if (value.data()?.longTermCount > 1) {
+      const ref = value.data()?.longTermRef || "none";
+
+      checkIfNewOldKey(ref, count);
+    }
     // if (conv.messages.length === oldConv.messages.length) return;
 
     const frIdArr: string[] = [];

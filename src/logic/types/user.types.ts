@@ -10,6 +10,7 @@ export type AppUser = {
   teachLanguages: string[];
   learnLanguages: string[];
   friends?: Friend[];
+  deletedFriends?: Friend[];
   allVocabs: VocObj[];
 };
 

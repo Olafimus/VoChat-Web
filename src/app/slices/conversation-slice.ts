@@ -1,6 +1,12 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { Conversation } from "../../logic/classes/conversation.class";
 import { VocObj } from "../../logic/types/vocab.types";
+import { Message } from "../../logic/types/message.types";
+
+export interface OldMessages {
+  ref: string;
+  msgs: { [key: string]: Message[] };
+}
 
 interface conversation {
   conversations: Conversation[];
@@ -8,6 +14,7 @@ interface conversation {
   newMsg: boolean;
   activeContact: string;
   unreadMsgs: number;
+  oldMessages: OldMessages[];
 }
 
 const initialState: conversation = {
@@ -16,6 +23,7 @@ const initialState: conversation = {
   activeContact: "",
   newMsg: false,
   unreadMsgs: 0,
+  oldMessages: [],
 };
 
 export const ConversationSlice = createSlice({
@@ -67,6 +75,15 @@ export const ConversationSlice = createSlice({
     resetConversations: (state) => {
       return initialState;
     },
+    addOldMsg: (state, action: PayloadAction<OldMessages>) => {
+      state.oldMessages.push(action.payload);
+    },
+    MutateOldMsg: (state, action: PayloadAction<OldMessages>) => {
+      const refI = state.oldMessages.findIndex(
+        (el) => el.ref === action.payload.ref
+      );
+      state.oldMessages[refI] = action.payload;
+    },
   },
 });
 
@@ -79,6 +96,8 @@ export const {
   resetConversations,
   setUnreadMsgConv,
   countUnreadMsgs,
+  MutateOldMsg,
+  addOldMsg,
 } = ConversationSlice.actions;
 
 export default ConversationSlice.reducer;

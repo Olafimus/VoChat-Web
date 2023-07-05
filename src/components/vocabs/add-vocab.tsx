@@ -186,6 +186,16 @@ const AddVocab = ({
       calcImportance: 0,
       learnHistory: [],
       score: 0,
+      favored: false,
+      favoredAt: 0,
+      lastUpdated: 0,
+      checkStatus: {
+        checked: false,
+        corrected: false,
+        lastCorBy: null,
+        lastCheckBy: null,
+        lastChecked: 0,
+      },
     };
     if (type === "add" || type === "wbAdd") {
       const newVoc = new Vocab(newVocObj);

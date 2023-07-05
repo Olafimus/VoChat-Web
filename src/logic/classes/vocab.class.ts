@@ -2,7 +2,7 @@ import { useAppDispatch } from "../../app/hooks";
 import { MySelectOptionType } from "../../components/general/multi-select";
 import { EditProps } from "../../components/vocabs/add-vocab";
 
-import { VocObj, dummyVocObj, WorkbookType } from "../types/vocab.types";
+import { VocObj, WorkbookType } from "../types/vocab.types";
 
 export class AllVocabsClass {
   constructor(public vocs: Vocab[]) {}
@@ -58,14 +58,25 @@ export class AllVocabsClass {
     });
     return vocArr;
   }
-  // removeWb(id: string) {
-  //   this.vocs.forEach((voc) => voc.removeWb(id));
-  // }
 
-  getDefaultVocs(num: number) {
-    return this.vocs
+  getDefaultVocs(num: number, timeRef = 10, reThrowMistakes = false) {
+    // timeRef describes the threshold in minutes for vocabs to be excluded in the next learn run. If timeRef = 10, than all vocabs which were learned in the last 10 minutes will be excluded
+    // reThrowMistakes deaktiviert die timeRef für Vokabeln die zuletzt falsch beantwortet wurden
+    const sortedVocs = this.vocs
       .sort((a, b) => b.getCalcImp() - a.getCalcImp())
-      .slice(0, num);
+      .slice(0, num * 2 + 10);
+
+    const newDefaultVocs: Vocab[] = [];
+    sortedVocs.forEach((voc) => {
+      const learnHis = voc.getRecentHis(timeRef);
+      console.log(learnHis);
+      if (learnHis.length === 0) newDefaultVocs.push(voc);
+      if (!reThrowMistakes) return;
+
+      const recentResults = learnHis.map((his) => his.result);
+      if (!recentResults.every((res) => res === true)) newDefaultVocs.push(voc);
+    });
+    return newDefaultVocs.slice(0, num);
   }
 }
 
@@ -210,10 +221,54 @@ export class Vocab {
     this.voc = { ...this.voc, score };
     return this;
   }
-  calcImp() {
-    const calcImportance =
-      (this.voc.setImportance * 2 + (5 - this.voc.score)) / 3;
+
+  calcImp(timeRef: number) {
+    const now = Date.now();
+    const timeWindow = 30 * 24 * 60 * 60 * 1000; // Zeitfenster von 30 Tagen
+    const inactivityThreshold = 7 * 24 * 60 * 60 * 1000; // Inaktivitätsschwelle von 7 Tagen
+    const longInactivityThreshold = inactivityThreshold * 4; // Inaktivitätsschwelle von 28 Tagen
+    const inactivityBoost = 1; // Erhöhungsfaktor für Inaktivität bei letztem falschen Ergebnis
+    const lastEntriesTimeWindow = 5 * 60 * 1000; // Zeitfenster für die letzten Einträge (5 Minuten)
+
+    // Filtern der learnHistory-Einträge innerhalb des Zeitfensters
+    const recentLearnHistory = this.getRecentHis(timeRef);
+    // this.voc.learnHistory.filter(
+    //  entry => now - entry.timeStamp <= timeWindow
+    // );
+
+    // Prüfung, ob die Vokabel seit einer bestimmten Zeit nicht mehr gelernt wurde
+    const lastLearnedTimestamp =
+      recentLearnHistory.length > 0
+        ? recentLearnHistory[recentLearnHistory.length - 1].timeStamp
+        : 0;
+    const isInactive = now - lastLearnedTimestamp >= inactivityThreshold;
+    const isLongInactive =
+      now - lastLearnedTimestamp >= longInactivityThreshold;
+
+    // Prüfung, ob das letzte Ergebnis "false" war innerhalb des letzten Eintragszeitfensters
+    const lastResultWasFalse = recentLearnHistory.some(
+      (entry) =>
+        now - entry.timeStamp <= lastEntriesTimeWindow && entry.result === false
+    );
+
+    // Berechnung der Häufigkeit der falschen Antworten innerhalb des Zeitfensters
+    const incorrectCount = recentLearnHistory.reduce(
+      (count, entry) => count + (entry.result === false ? 1 : 0),
+      0
+    );
+
+    // Berechnung der Importance mit zusätzlicher Berücksichtigung der Inaktivität und des letzten falschen Ergebnisses
+    let calcImportance =
+      this.voc.setImportance +
+      (10 - this.voc.setImportance) *
+        (incorrectCount / recentLearnHistory.length);
+
+    if (isInactive && lastResultWasFalse) {
+      calcImportance += inactivityBoost; // Stärkere Erhöhung der Importance bei Inaktivität nach letztem falschen Ergebnis
+      if (isLongInactive) calcImportance += inactivityBoost;
+    }
     this.voc = { ...this.voc, calcImportance };
+    return this;
   }
   setChecked(val: boolean) {
     this.checked = val;
@@ -228,5 +283,18 @@ export class Vocab {
     this.result = false;
     this.checked = false;
     this.lastAnswer = "";
+  }
+  getRecentHis(timeRef: number) {
+    const recentHis = [];
+    const now = Date.now();
+    const threshold = timeRef * 60 * 1000; // convertes timeRef (minutes) in milliseconds
+    for (let i = this.voc.learnHistory.length - 1; i > -1; i--) {
+      console.log(i);
+      if (now - this.voc.learnHistory[i].timeStamp < threshold) {
+        console.log("passed");
+        recentHis.push(this.voc.learnHistory[i]);
+      } else break;
+    }
+    return recentHis;
   }
 }

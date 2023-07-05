@@ -1,4 +1,4 @@
-const supportedLanguages: string[][] = [
+export const supportedLanguages: string[][] = [
   ["German", "🇩🇪"],
   ["English", "🇬🇧"],
   ["Spanish", "🇪🇸"],

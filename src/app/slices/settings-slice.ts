@@ -1,4 +1,4 @@
-import { createSlice, nanoid, PayloadAction } from "@reduxjs/toolkit";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 type ScreenStrings = "" | "contacts" | "chat";
 
@@ -21,6 +21,12 @@ interface Settings {
     defaultVocCount: number;
     checkingConditions: "strict" | "loose";
   };
+  notebookFilterSet: {
+    showChecked: boolean;
+    filterBy: "none" | "language" | "sender";
+    language: string | null;
+    sender: string | null;
+  };
 }
 
 const initialState: Settings = {
@@ -41,6 +47,12 @@ const initialState: Settings = {
   vocabLearnSettings: {
     defaultVocCount: 20,
     checkingConditions: "strict",
+  },
+  notebookFilterSet: {
+    showChecked: true,
+    filterBy: "none",
+    language: null,
+    sender: null,
   },
 };
 
@@ -75,14 +87,37 @@ export const SettingsSlice = createSlice({
     changeDefaultVocCount: (state, action: PayloadAction<number>) => {
       state.vocabLearnSettings.defaultVocCount = action.payload;
     },
+    changeNoteShowChecked: (state, action: PayloadAction<boolean>) => {
+      state.notebookFilterSet.showChecked = action.payload;
+    },
+    changeNoteFilter: (
+      state,
+      action: PayloadAction<"language" | "sender" | "none">
+    ) => {
+      state.notebookFilterSet.filterBy = action.payload;
+      if (action.payload === "none") {
+        state.notebookFilterSet.language = null;
+        state.notebookFilterSet.sender = null;
+      }
+    },
+    changeNoteLang: (state, action: PayloadAction<string | null>) => {
+      state.notebookFilterSet.language = action.payload;
+    },
+    changeNoteSender: (state, action: PayloadAction<string | null>) => {
+      state.notebookFilterSet.sender = action.payload;
+    },
   },
 });
 
 export const {
   setTheme,
   switchScreen,
+  changeNoteLang,
+  changeNoteSender,
+  changeNoteShowChecked,
   changeVocBoolSetting,
   changeDefaultVocCount,
+  changeNoteFilter,
 } = SettingsSlice.actions;
 
 export default SettingsSlice.reducer;

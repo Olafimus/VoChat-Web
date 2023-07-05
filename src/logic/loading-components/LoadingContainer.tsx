@@ -8,6 +8,7 @@ import {
 import {
   setCurrentUser,
   setFriends,
+  setJoinDate,
   setUserData,
   setUserId,
 } from "./../../app/slices/user-slice";
@@ -15,6 +16,7 @@ import ConversationLoader from "./../../logic/loading-components/conversation-lo
 import { AppUser, CurrentUser, Friend } from "./../../logic/types/user.types";
 import FriendLoader from "./../../logic/loading-components/friend-loader";
 import { useAppDispatch, useAppSelector } from "./../../app/hooks";
+import { changeCurLang } from "../../app/slices/vocabs-slice";
 
 const LoadingContainer = () => {
   const { currentUser, conversations, friends, friendsSet } = useAppSelector(
@@ -32,6 +34,8 @@ const LoadingContainer = () => {
   }, [unreadMsgs]);
 
   useEffect(() => {
+    console.log(window.location.href);
+    if (window.location.href.includes("signup")) return;
     const unsubscribe = onAuthStateChangedListener((user) => {
       if (user) {
         createUserDocumentFromAuth(user);
@@ -57,7 +61,7 @@ const LoadingContainer = () => {
           expirationTime: 13242,
         },
       };
-
+      dispatch(setJoinDate(Number(user.metadata.creationTime)));
       dispatch(setCurrentUser(currentUser));
       if (user?.uid) dispatch(setUserId(user.uid));
     });
@@ -83,9 +87,13 @@ const LoadingContainer = () => {
         teachLanguages: data.teachLanguages,
         learnLanguages: data.learnLanguages,
         allVocabs: data.allVocabs,
+        deletedFriends: data?.deletedFriends || [],
       };
+
       dispatch(setFriends(friends));
       dispatch(setUserData(userData));
+      if (data.currentLang) dispatch(changeCurLang(data.currentLang));
+      if (data.nativeLang) dispatch(changeCurLang(data.nativeLang));
     };
     getFriends();
   }, [currentUser]);

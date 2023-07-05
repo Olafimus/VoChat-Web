@@ -104,7 +104,7 @@ const Drawer = styled(MuiDrawer, {
 
 const Navigation = () => {
   const { theme } = useAppSelector((state) => state.settings);
-  const { currentUser } = useAppSelector((state) => state.user);
+  const { currentUser, name } = useAppSelector((state) => state.user);
   const dispatch = useAppDispatch();
   const navigation = useNavigate();
   const [open, setOpen] = React.useState(false);
@@ -138,20 +138,18 @@ const Navigation = () => {
             <Typography
               variant="h6"
               noWrap
+              overflow="hidden"
+              textOverflow="ellipsis"
               component="div"
               onClick={() => navigation("/")}
             >
               VoChat
             </Typography>
             {currentUser ? (
-              <Link
-                to="/login"
-                onClick={() => {
-                  dispatch(resetUserState());
-                  dispatch(resetConversations());
-                }}
-              >
-                Log Out
+              <Link to="/profile">
+                <Typography variant="h6" noWrap color="white">
+                  {name}
+                </Typography>
               </Link>
             ) : (
               <Link to="login">Log In</Link>

@@ -1,18 +1,20 @@
 import { TextField } from "@mui/material";
 import * as React from "react";
 
-const SearchParent = () => {
-  const [searchTerm, setSearchTerm] = React.useState("");
-
-  return <SearchField setSearchTerm={setSearchTerm} />;
-};
-
 const SearchField = ({
   setSearchTerm,
   label = "Search Vocab",
+  autoFocus,
+  size,
+  onKeyDown,
+  onBlur,
 }: {
   setSearchTerm: (str: string) => void;
   label?: string;
+  autoFocus?: boolean;
+  size?: "small" | "medium";
+  onKeyDown?: (e: React.KeyboardEvent<HTMLDivElement>) => void;
+  onBlur?: () => void;
 }) => {
   const [typeTerm, setTypeTerm] = React.useState("");
   const [searchResults, setSearchResults] = React.useState([]);

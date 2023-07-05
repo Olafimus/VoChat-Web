@@ -67,6 +67,12 @@ export const VocabSlice = createSlice({
       if (index) state.categories.splice(index, 1);
       state.lastUpdate = Date.now();
     },
+    changeCurLang: (state, actions: PayloadAction<string>) => {
+      state.currentLang = actions.payload;
+    },
+    changeNativeLang: (state, actions: PayloadAction<string>) => {
+      state.nativeLang = actions.payload;
+    },
   },
 });
 
@@ -79,6 +85,8 @@ export const {
   addCategory,
   removeCategory,
   removeWorkbook,
+  changeCurLang,
+  changeNativeLang,
 } = VocabSlice.actions;
 
 export default VocabSlice.reducer;

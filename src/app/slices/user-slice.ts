@@ -1,7 +1,11 @@
 import { createSlice, nanoid, PayloadAction } from "@reduxjs/toolkit";
 import { User } from "firebase/auth";
 import { AppUser, CurrentUser, Friend } from "../../logic/types/user.types";
-import { addFriendToDb, updateFriendsData } from "../../utils/firebase";
+import {
+  addFriendToDb,
+  reAddFriendToDb,
+  updateFriendsData,
+} from "../../utils/firebase";
 
 interface UserState {
   currentUser: CurrentUser | null;
@@ -14,7 +18,9 @@ interface UserState {
   teachLanguages: string[];
   learnLanguages: string[];
   friends: Friend[];
+  deletedFriends: Friend[];
   friendsSet: boolean;
+  joinedAt?: Date;
 }
 
 const initialState: UserState = {
@@ -28,6 +34,7 @@ const initialState: UserState = {
   teachLanguages: [],
   learnLanguages: [],
   friends: [],
+  deletedFriends: [],
   friendsSet: false,
 };
 
@@ -54,6 +61,8 @@ export const UserSlice = createSlice({
       state.createdAt = action.payload.createdAt;
       state.teachLanguages = action.payload.teachLanguages;
       state.learnLanguages = action.payload.learnLanguages;
+      if (action.payload.deletedFriends)
+        state.deletedFriends = action.payload.deletedFriends;
     },
     changeFriendName: (
       state,
@@ -81,6 +90,18 @@ export const UserSlice = createSlice({
       if (frIdArr.includes(action.payload.id)) return;
       state.friends.push(action.payload);
       addFriendToDb(state.currentUser.uid, action.payload);
+    },
+    reAddFriend: (state, action: PayloadAction<Friend>) => {
+      if (!state.currentUser) return;
+      state.friends.push(action.payload);
+      state.deletedFriends = state.deletedFriends.filter(
+        (el) => el.id !== action.payload.id
+      );
+      reAddFriendToDb(
+        state.currentUser.uid,
+        action.payload,
+        state.deletedFriends
+      );
     },
     updateFriendLastMsg: (
       state,
@@ -118,10 +139,20 @@ export const UserSlice = createSlice({
         updateFriendsData(state.id, state.friends);
       }
     },
-    removeFriend: (state, action: PayloadAction<string>) => {
+    removeFriend: (state, action: PayloadAction<Friend>) => {
       state.friends = state.friends.filter(
-        (friend) => friend.id !== action.payload
+        (friend) => friend.id !== action.payload.id
       );
+      state.deletedFriends.push(action.payload);
+    },
+    changeTeachLangs: (state, actions: PayloadAction<string[]>) => {
+      state.teachLanguages = actions.payload;
+    },
+    changeLearnLangs: (state, actions: PayloadAction<string[]>) => {
+      state.learnLanguages = actions.payload;
+    },
+    setJoinDate: (state, actions: PayloadAction<number>) => {
+      state.joinedAt = new Date(actions.payload);
     },
     resetUserState: (state) => {
       return initialState;
@@ -133,9 +164,11 @@ export const {
   setCurrentUser,
   setFriends,
   setUserData,
+  setJoinDate,
   changeFriendName,
   changeFrLastMsg,
   addFriend,
+  reAddFriend,
   updateFriendLastMsg,
   updateFriendInteraction,
   removeFriend,
@@ -143,6 +176,8 @@ export const {
   addConvToFriendUser,
   setUserId,
   resetUserState,
+  changeLearnLangs,
+  changeTeachLangs,
 } = UserSlice.actions;
 
 export default UserSlice.reducer;

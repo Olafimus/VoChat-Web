@@ -37,11 +37,11 @@ const SignUpScreen = () => {
       return;
 
     try {
-      const user = await createAuthUserWithEmailAndPassword(mail, password);
+      // const user = await createAuthUserWithEmailAndPassword(mail, password);
       const displayName: string = name;
-      if (!user) throw new Error("fail");
-      await createUserDocumentFromAuth(user.user, { displayName });
-      dispatch(setCurrentUser(user.user));
+      // if (!user) throw new Error("fail");
+      // await createUserDocumentFromAuth(user.user, Credential.name, );
+      // dispatch(setCurrentUser(user.user));
     } catch (err) {
       console.log(err);
     }
@@ -55,6 +55,7 @@ const SignUpScreen = () => {
           "& .MuiTextField-root": { m: 1, width: "25ch" },
         }}
         noValidate
+        height="100%"
         autoComplete="off"
       >
         <Typography variant="h6">Create an Account</Typography>
