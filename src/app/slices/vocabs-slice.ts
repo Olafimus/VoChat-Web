@@ -1,5 +1,6 @@
 import { PayloadAction, createSlice } from "@reduxjs/toolkit";
 import { VocObj, WorkbookType } from "../../logic/types/vocab.types";
+import { addVocToDb, updateVocDb } from "../../utils/firebase/firebase-vocab";
 
 interface VocabState {
   allUserVocabs: VocObj[];

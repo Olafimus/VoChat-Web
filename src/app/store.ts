@@ -18,7 +18,7 @@ import NoteReducer from "./slices/notes-slice";
 const persistConfig = {
   key: "root",
   storage,
-  blacklist: ["user", "allVocabs", "settings", "conversations"],
+  blacklist: ["user", "allVocabs"],
 };
 
 // const userConfig = {

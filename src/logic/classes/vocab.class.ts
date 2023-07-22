@@ -65,11 +65,10 @@ export class AllVocabsClass {
     const sortedVocs = this.vocs
       .sort((a, b) => b.getCalcImp() - a.getCalcImp())
       .slice(0, num * 2 + 10);
-
+    sortedVocs.forEach((voc) => console.log(voc.getCalcImp()));
     const newDefaultVocs: Vocab[] = [];
     sortedVocs.forEach((voc) => {
       const learnHis = voc.getRecentHis(timeRef);
-      console.log(learnHis);
       if (learnHis.length === 0) newDefaultVocs.push(voc);
       if (!reThrowMistakes) return;
 
@@ -90,6 +89,9 @@ export class Vocab {
 
   getVocLang() {
     return this.voc.vocLanguage;
+  }
+  getOwner() {
+    return this.voc.owner;
   }
   getTransLang() {
     return this.voc.transLanguage;
@@ -257,11 +259,15 @@ export class Vocab {
       0
     );
 
+    console.log(incorrectCount, "recent: ", recentLearnHistory.length);
+
+    let failFactor = incorrectCount / recentLearnHistory.length;
+    if (!failFactor) failFactor = 1;
+
+    console.log(failFactor);
+
     // Berechnung der Importance mit zusätzlicher Berücksichtigung der Inaktivität und des letzten falschen Ergebnisses
-    let calcImportance =
-      this.voc.setImportance +
-      (10 - this.voc.setImportance) *
-        (incorrectCount / recentLearnHistory.length);
+    let calcImportance = this.voc.setImportance * failFactor;
 
     if (isInactive && lastResultWasFalse) {
       calcImportance += inactivityBoost; // Stärkere Erhöhung der Importance bei Inaktivität nach letztem falschen Ergebnis
@@ -289,9 +295,7 @@ export class Vocab {
     const now = Date.now();
     const threshold = timeRef * 60 * 1000; // convertes timeRef (minutes) in milliseconds
     for (let i = this.voc.learnHistory.length - 1; i > -1; i--) {
-      console.log(i);
       if (now - this.voc.learnHistory[i].timeStamp < threshold) {
-        console.log("passed");
         recentHis.push(this.voc.learnHistory[i]);
       } else break;
     }

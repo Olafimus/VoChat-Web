@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useLayoutEffect, useState } from "react";
 import {
   Box,
   Typography,
@@ -7,51 +7,42 @@ import {
   Button,
   TextField,
   IconButton,
-  Stack,
   Divider,
   Menu,
   MenuItem,
   Switch,
-  List,
   FormControl,
-  InputLabel,
   Select,
-  Dialog,
-  DialogTitle,
-  DialogContent,
+  Skeleton,
 } from "@mui/material";
 import FlatList from "flatlist-react";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import PostAddIcon from "@mui/icons-material/PostAdd";
+import CancelIcon from "@mui/icons-material/Cancel";
 import SearchIcon from "@mui/icons-material/Search";
+import EditIcon from "@mui/icons-material/Edit";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { addNote, deleteNote, updateNote } from "../../app/slices/notes-slice";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { nanoid } from "@reduxjs/toolkit";
 import {
+  changeNoteFiltLang,
   changeNoteFilter,
+  changeNoteSender,
   changeNoteShowChecked,
 } from "../../app/slices/settings-slice";
+import { Note } from "../../logic/types/note.types";
+import NoteAddDialog from "../../components/notes/note-add-dialog";
+import { deleteNoteDb, getAllNotes } from "../../utils/firebase/firebase-notes";
 
-export type Note = {
-  id: string;
-  type: "message" | "note";
-  language: string;
-  message: string;
-  sender: string;
-  sendTime: number;
-  savedTime: number;
-  checked: boolean;
-  note?: string;
-  date?: string;
-  ref: { conversation: string; msgId: string };
-};
+// um die Flickering zu vermeiden, die Flatlist mit render in eigene komponente
+// Packen und uid etc mit "isLoading" im useEffect verbinden
 
 const NotebookScreen = () => {
   const dispatch = useAppDispatch();
   const [open, setOpen] = React.useState(false);
-  const [openFilter, setOpenFilter] = React.useState(false);
+  const [openAdd, setOpenAdd] = React.useState(false);
+  const [editNote, setEditNote] = useState<undefined | Note>(undefined);
   const handleClick = () => {
     setOpen((cur) => !cur);
   };
@@ -60,28 +51,57 @@ const NotebookScreen = () => {
   };
   const handleClose = () => {
     setAnchorEl(null);
+    setOpenAdd(false);
   };
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const openMenu = Boolean(anchorEl);
   const [searchTerm, setSearchTerm] = React.useState("");
-  const { id: uid } = useAppSelector((state) => state.user);
+  const [isLoading, setIsLoading] = useState(true);
+  const [reRender, setReRender] = useState(true);
+  const { id: uid, friends } = useAppSelector((state) => state.user);
   const { theme, notebookFilterSet } = useAppSelector(
     (state) => state.settings
   );
-  const { notes: noteStore } = useAppSelector((state) => state.notes);
+  const { notes: noteStore, noteLangs } = useAppSelector(
+    (state) => state.notes
+  );
   const [notes, setNotes] = useState<Note[]>([]);
+  const [noteCreator, setNoteCreator] = useState<string[][]>([]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    // if (isLoading === true) return;
+    // setIsLoading(true);
+    if (uid === "" || !uid) return;
+    const newNoteCreatorIds: string[] = [];
+    setEditNote(undefined);
     setNotes(noteStore);
-  }, [notes]);
+    noteStore.forEach((note) => {
+      if (!newNoteCreatorIds.includes(note.sender))
+        newNoteCreatorIds.push(note.sender);
+    });
+    const newNoteCreator: string[][] = newNoteCreatorIds.map((crId) => {
+      if (crId === uid) {
+        return [crId, "Me"];
+      } else {
+        const name = friends.find((friend) => friend.id === crId)?.name;
+        return [crId, name || "No Name"];
+      }
+    });
+    setNoteCreator(newNoteCreator);
+    setIsLoading(false);
+  }, [notes, uid, noteStore, reRender]);
+
+  const loadNotes = async () => {
+    setIsLoading(true);
+    const loadedNotes = await getAllNotes(uid);
+    loadedNotes.forEach((note) => dispatch(addNote(note)));
+    setIsLoading(false);
+    setReRender((cur) => !cur);
+  };
 
   const bgColor = theme === "dark" ? "#1c1d2b" : "#bbdefb";
   const itemColor = theme === "dark" ? "#263238" : "#90caf9";
   const itemHover = theme === "dark" ? "#37474f" : "#64b5f6";
-
-  const clickHandler = (note: Note) => {
-    console.log(note);
-  };
 
   const renderNote = (note: Note, idx: string) => {
     let type = "message";
@@ -92,17 +112,17 @@ const NotebookScreen = () => {
     return (
       <ListItem
         sx={{
-          my: 1,
-          p: 0,
+          my: 0,
           justifyContent: position,
         }}
         key={idx}
-        onClick={() => console.log(note)}
       >
         <Box
           bgcolor={itemColor}
           p={1.5}
+          px={2}
           borderRadius={2}
+          minWidth={200}
           sx={{
             ":hover": {
               cursor: "pointer",
@@ -110,35 +130,85 @@ const NotebookScreen = () => {
             },
           }}
         >
-          <Typography color={theme === "light" ? "black" : ""} variant="body1">
-            {note.message}
-          </Typography>
-          {note.note && (
+          {note.message.map((msg, i) => {
+            return (
+              <Typography
+                key={msg}
+                color={theme === "light" ? "black" : ""}
+                variant="body1"
+              >
+                {msg}
+              </Typography>
+            );
+          })}
+
+          {note.note && note.note.length > 0 && (
             <>
               <Divider sx={{ my: 0.5 }} />
-              <Typography
-                color={theme === "light" ? "black" : ""}
-                variant="body2"
-              >
-                {note.note}
-              </Typography>
+              {note.note.map((text, i) => (
+                <Typography
+                  key={text}
+                  color={theme === "light" ? "black" : ""}
+                  variant="body2"
+                >
+                  {text}
+                </Typography>
+              ))}
             </>
           )}
-          <Divider />
+          <Divider sx={{ mt: 0.5 }} />
           <Box display="flex" justifyContent="flex-end" mt={0.3}>
             <IconButton
-              sx={{ p: 0 }}
               size="small"
-              onClick={() => dispatch(deleteNote(note))}
+              sx={{ p: 0, mx: 0.5 }}
+              onClick={() => {
+                setEditNote(note);
+                setOpenAdd(true);
+              }}
             >
-              <DeleteIcon />
+              <EditIcon />
             </IconButton>
+            {!note.delete ? (
+              <IconButton
+                sx={{ p: 0 }}
+                size="small"
+                onClick={() => {
+                  const updatedNote: Note = { ...note, delete: true };
+                  dispatch(updateNote({ note: updatedNote, uid }));
+                }}
+              >
+                <DeleteIcon />
+              </IconButton>
+            ) : (
+              <>
+                <Button
+                  color="error"
+                  size="small"
+                  onClick={() => {
+                    // deleteNoteDb(note.id);
+                    dispatch(deleteNote(note));
+                  }}
+                  endIcon={<DeleteIcon />}
+                >
+                  Confirm
+                </Button>
+                <IconButton
+                  size="small"
+                  onClick={() => {
+                    const updatedNote: Note = { ...note, delete: false };
+                    dispatch(updateNote({ note: updatedNote, uid }));
+                  }}
+                >
+                  <CancelIcon />
+                </IconButton>
+              </>
+            )}
+
             <Divider sx={{ mx: 0.5, height: 20 }} orientation="vertical" />
             <IconButton
               onClick={() => {
                 const updatedNote: Note = { ...note, checked: !note.checked };
-                console.log("dispatch: ", updatedNote);
-                dispatch(updateNote(updatedNote));
+                dispatch(updateNote({ note: updatedNote, uid }));
               }}
               size="small"
               sx={{ p: 0 }}
@@ -195,6 +265,7 @@ const NotebookScreen = () => {
                 <SearchIcon />
               </IconButton>
             </Box>
+            <Button onClick={loadNotes}>Load</Button>
             <Divider orientation="vertical" />
             <Button
               id="filter-menu-button"
@@ -239,7 +310,6 @@ const NotebookScreen = () => {
                     id="demo-simple-select-standard"
                     value={notebookFilterSet.filterBy}
                     onChange={(e) => {
-                      console.log(e.target.value);
                       const val = e.target.value;
                       if (
                         val === "language" ||
@@ -252,7 +322,7 @@ const NotebookScreen = () => {
                   >
                     <MenuItem value={"none"}>None</MenuItem>
                     <MenuItem value={"language"}>language</MenuItem>
-                    <MenuItem value={"creater"}>creater</MenuItem>
+                    <MenuItem value={"sender"}>creater</MenuItem>
                   </Select>
                 </FormControl>
               </MenuItem>
@@ -270,13 +340,40 @@ const NotebookScreen = () => {
                       }
                       onChange={(e) => {
                         const val = e.target.value;
-                        // dispatch(changeNoteFilter(val));
+                        dispatch(changeNoteFiltLang(val));
                       }}
                       label="language"
                     >
-                      <MenuItem value={"Farsi"}>Farsi</MenuItem>
-                      <MenuItem value={"German"}>German</MenuItem>
-                      <MenuItem value={"English"}>English</MenuItem>
+                      {noteLangs.map((lang) => (
+                        <MenuItem key={lang} value={lang}>
+                          {lang}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </MenuItem>
+              )}
+              {notebookFilterSet.filterBy === "sender" && (
+                <MenuItem>
+                  <Typography>Creator</Typography>
+                  <FormControl variant="standard" sx={{ m: 1, minWidth: 120 }}>
+                    <Select
+                      labelId="filter-creator-select-label"
+                      id="filter-creator-select"
+                      value={
+                        notebookFilterSet.sender ? notebookFilterSet.sender : ""
+                      }
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        dispatch(changeNoteSender(val as string));
+                      }}
+                      label="language"
+                    >
+                      {noteCreator.map((creator) => (
+                        <MenuItem key={creator[0]} value={creator[0]}>
+                          {creator[1]}
+                        </MenuItem>
+                      ))}
                     </Select>
                   </FormControl>
                 </MenuItem>
@@ -285,119 +382,145 @@ const NotebookScreen = () => {
           </Box>
         </Box>
         <Divider sx={{ mt: 1 }} />
-        <Box overflow={"auto"} maxHeight={"70dvh"} mt={2}>
-          <ul>
-            <FlatList
-              list={noteStore}
-              renderItem={renderNote}
-              renderWhenEmpty={() => (
-                <div>
-                  No notes yet!{" "}
-                  <Button
-                    onClick={() => {
-                      const id = nanoid();
-                      dispatch(
-                        addNote({
-                          id,
-                          type: "message",
-                          language: "farsi",
-                          message: `message with the proud number of`,
-                          checked: false,
-                          note: undefined,
-                          sender: uid,
-                          sendTime: Date.now() - 10000000,
-                          savedTime: Date.now() - 8000000,
-                          date: new Date(
-                            Date.now() - 8000000
-                          ).toLocaleDateString(),
-                          ref: { conversation: "alkdfa", msgId: "aflae" },
-                        })
-                      );
-                    }}
-                  >
-                    Add Note!
-                  </Button>{" "}
-                </div>
-              )}
-              scrollToTop
-              // limit="500"
-              searchBy={["message"]}
-              searchTerm={searchTerm}
-              renderOnScroll
-              groupBy={"date"}
-              filterBy={(note) => {
-                if (!notebookFilterSet.showChecked) return !note.checked;
-                return true;
-              }}
-              groupSeparator={(group, idx, groupLabel) => (
-                <Divider>{groupLabel}</Divider>
-              )}
-              // sortBy={["firstName", {key: "lastName", descending: true}]}
-              // groupBy={person => person.info.age > 18 ? 'Over 18' : 'Under 18'}
-            />
-          </ul>
-          {/* <List>
-            {notes.length > 0 ? (
-              notes.map((note) => <RenderNote note={note} />)
-            ) : (
-              <Box>
-                No Notes yet!{" "}
-                <Button
-                  onClick={() =>
-                    dispatch(
-                      addNote({
-                        id: `afw321`,
-                        type: "message",
-                        language: "farsi",
-                        message: `message with the proud number of`,
-                        checked: false,
-                        note: undefined,
-                        sender: uid,
-                        sendTime: Date.now() - 10000000,
-                        savedTime: Date.now() - 8000000,
-                        date: new Date(
-                          Date.now() - 8000000
-                        ).toLocaleDateString(),
-                        ref: { conversation: "alkdfa", msgId: "aflae" },
-                      })
-                    )
-                  }
-                >
-                  Add Note!
-                </Button>
+        <Box overflow={"auto"} height={"70dvh"} mt={2}>
+          {!isLoading ? (
+            <ul>
+              <FlatList
+                list={noteStore}
+                renderItem={renderNote}
+                renderWhenEmpty={() => (
+                  <>
+                    {notebookFilterSet.filterBy === "language" ? (
+                      <div>
+                        No notes in that language!{" "}
+                        <Button onClick={() => setOpenAdd(true)}>
+                          Add a Note!
+                        </Button>{" "}
+                      </div>
+                    ) : (
+                      <div>
+                        <Typography variant="h6">
+                          No notes on your device!
+                        </Typography>
+                        <Typography variant="body1">
+                          If you have notes stored in the database click on
+                          Load!
+                        </Typography>
+                        <Button sx={{ m: 1 }} onClick={loadNotes}>
+                          Load
+                        </Button>
+                        <Button sx={{ m: 1 }} onClick={() => setOpenAdd(true)}>
+                          Add a Note!
+                        </Button>{" "}
+                      </div>
+                    )}
+                  </>
+                )}
+                scrollToTop
+                // limit="500"
+                searchBy={["message", "note"]}
+                searchTerm={searchTerm}
+                renderOnScroll
+                reversed
+                groupBy={"date"}
+                filterBy={(note) => {
+                  let check = true;
+                  if (!notebookFilterSet.showChecked) check = !note.checked;
+                  if (
+                    notebookFilterSet.filterBy === "language" &&
+                    notebookFilterSet.language &&
+                    note.language !== notebookFilterSet.language
+                  )
+                    check = false;
+                  if (
+                    notebookFilterSet.filterBy === "sender" &&
+                    notebookFilterSet.sender &&
+                    note.sender !== notebookFilterSet.sender
+                  )
+                    check = false;
+                  return check;
+                }}
+                groupSeparator={(group, idx, groupLabel) => (
+                  <Divider>{groupLabel}</Divider>
+                )}
+                // sortBy={["firstName", {key: "lastName", descending: true}]}
+                // groupBy={person => person.info.age > 18 ? 'Over 18' : 'Under 18'}
+              />
+            </ul>
+          ) : (
+            <Box maxHeight="70dvh">
+              <Divider>
+                <Typography width={100} variant="body2">
+                  <Skeleton />
+                </Typography>
+              </Divider>
+              <Skeleton
+                sx={{ p: 1, m: 1 }}
+                variant="rounded"
+                height={75}
+                width="50%"
+              />
+              <Skeleton
+                sx={{ p: 1, m: 1 }}
+                variant="rounded"
+                height={85}
+                width="70%"
+              />
+              <Box display="flex" flexDirection="row" justifyContent="flex-end">
+                <Skeleton
+                  sx={{ p: 1, m: 1 }}
+                  variant="rounded"
+                  height={100}
+                  width="60%"
+                />
               </Box>
-            )}
-          </List> */}
+              <Skeleton
+                sx={{ p: 1, m: 1 }}
+                variant="rounded"
+                height={85}
+                width="40%"
+              />
+              <Divider>
+                <Typography width={100} variant="body2">
+                  <Skeleton />
+                </Typography>
+              </Divider>
+              <Box display="flex" flexDirection="row" justifyContent="flex-end">
+                <Skeleton
+                  sx={{ p: 1, m: 1 }}
+                  variant="rounded"
+                  height={90}
+                  width="45%"
+                />
+              </Box>
+              <Box display="flex" flexDirection="row" justifyContent="flex-end">
+                <Skeleton
+                  sx={{ p: 1, m: 1 }}
+                  variant="rounded"
+                  height={100}
+                  width="80%"
+                />
+              </Box>
+            </Box>
+          )}
         </Box>
         <Box>
           <IconButton
             size="small"
-            onClick={() =>
-              dispatch(
-                addNote({
-                  id: nanoid(),
-                  type: "message",
-                  language: "farsi",
-                  message: `message with the proud number of`,
-                  checked: false,
-                  note: undefined,
-                  sender: uid,
-                  sendTime: Date.now() - 10000000,
-                  savedTime: Date.now() - 8000000,
-                  date: new Date(Date.now() - 8000000).toLocaleDateString(),
-                  ref: { conversation: "alkdfa", msgId: "aflae" },
-                })
-              )
-            }
+            onClick={() => {
+              setEditNote(undefined);
+              setOpenAdd(true);
+            }}
           >
             <PostAddIcon />
           </IconButton>
         </Box>
       </Box>
-      <Dialog>
-        <DialogTitle>Add a Note</DialogTitle>
-        <DialogContent
-      </Dialog>
+      <NoteAddDialog
+        openAdd={openAdd}
+        note={editNote}
+        setOpenAdd={setOpenAdd}
+      />
     </Box>
   );
 };

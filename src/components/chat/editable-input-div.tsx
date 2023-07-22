@@ -129,17 +129,21 @@ const InputDiv: React.FC<InputProps> = ({
     textfeld.focus();
   };
 
-  const sendAnswerHandler = (oldMsg: Message, answer: string) => {
+  const sendAnswerHandler = (
+    oldMsg: Message,
+    answer: string,
+    type: MsgHisTypes = "answer"
+  ) => {
     const newMsg = createMsgObj(userId);
     oldMsg.messageHis.forEach((msg) => newMsg.messageHis.push({ ...msg }));
-    addMsgHis(newMsg, answer, "answer");
+    addMsgHis(newMsg, answer, type);
     newMsg.time = Date.now();
     newMsg.sender = id;
 
     sendNewMessage(activeConv, newMsg);
     // setMsgTxt("");
   };
-  const sendEditHandler = () => {};
+  const sendEditHandler = (oldMsg: Message, edit: string) => {};
 
   const handleSubmit = () => {
     if (msgTxt === "") return;
@@ -159,7 +163,8 @@ const InputDiv: React.FC<InputProps> = ({
         ref.current.innerHTML = "";
         break;
       case "edit":
-        sendEditHandler();
+        if (!oldMsg) return;
+        sendAnswerHandler(oldMsg, msgTxt, "edit");
         setMsgTxt("");
         ref.current.innerHTML = "";
         break;
@@ -228,7 +233,9 @@ const InputDiv: React.FC<InputProps> = ({
         onKeyDown={handleKeyDown}
         onInput={editFormating}
         contentEditable={true}
-      ></div>
+      >
+        {type === "edit" && oldMsg?.messageHis.at(-1)?.message}
+      </div>
 
       <IconButton onClick={() => setOpen(true)}>
         <EmojiEmotionsIcon />

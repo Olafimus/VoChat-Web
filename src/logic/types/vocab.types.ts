@@ -1,6 +1,5 @@
-import { nanoid } from "@reduxjs/toolkit";
-
 export type VocObj = {
+  owner: string;
   id: string;
   createdAt: Date;
   vocLanguage: string;
@@ -25,9 +24,11 @@ export type VocObj = {
     lastCheckBy: string | null;
     lastChecked: number;
   };
+  receivedFrom?: string;
 };
 
 export type WorkbookType = {
+  owner: string;
   name: string;
   id: string;
   vocCount?: number;

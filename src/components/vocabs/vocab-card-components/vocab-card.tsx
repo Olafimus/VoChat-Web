@@ -23,6 +23,7 @@ import { useAppDispatch, useAppSelector } from "../../../app/hooks";
 import { removeVocFromLS, setVocabs } from "../../../app/slices/vocabs-slice";
 import AddVocab from "../add-vocab";
 import ShareMenu from "../../general/shared-menu";
+import { deleteVocDb } from "../../../utils/firebase/firebase-vocab";
 
 interface ExpandMoreProps extends IconButtonProps {
   expand: boolean;
@@ -45,6 +46,7 @@ const VocabCard = ({ vocab }: { vocab: Vocab }) => {
   const [openShareMenu, setOpenShareMenu] = React.useState(false);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const { allVocabs } = useAppSelector((state) => state.allVocabs);
+  const { id: uid } = useAppSelector((state) => state.user);
   const dispatch = useAppDispatch();
 
   const handleExpandClick = () => {
@@ -123,6 +125,7 @@ const VocabCard = ({ vocab }: { vocab: Vocab }) => {
                 e.stopPropagation();
                 allVocabs.removeVoc(vocab.getId());
                 dispatch(removeVocFromLS(vocab.getId()));
+                deleteVocDb(vocab.getId(), uid);
               }}
             >
               <DeleteIcon sx={{ color: red[600] }} />

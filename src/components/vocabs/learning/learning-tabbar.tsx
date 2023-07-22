@@ -7,6 +7,9 @@ import TabPanel from "../../general/tab-bar/tab-panel";
 import LearnCard from "./learning-card";
 import { Link } from "react-router-dom";
 import { grey } from "@mui/material/colors";
+import { useAppDispatch, useAppSelector } from "../../../app/hooks";
+import { updateVocabLS } from "../../../app/slices/vocabs-slice";
+import { updateVocDb } from "../../../utils/firebase/firebase-vocab";
 
 function a11yProps(index: number) {
   return {
@@ -20,6 +23,8 @@ export default function LearnTabs({ vocabs }: { vocabs: Vocab[] }) {
   const [finished, setFinished] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [filteredVocabs, setFilteredVocabs] = useState<Vocab[]>([]);
+  const dispatch = useAppDispatch();
+  const { id: uid } = useAppSelector((state) => state.user);
 
   const handleChange = (event: React.SyntheticEvent, newValue: number) => {
     setValue(newValue);
@@ -59,7 +64,10 @@ export default function LearnTabs({ vocabs }: { vocabs: Vocab[] }) {
     const newVocArr: Vocab[] = [];
     filteredVocabs.forEach((voc) => {
       const result = voc.getResult();
-      voc.addLearnHis(result).calcScore(result).calcImp();
+      voc.addLearnHis(result).calcScore(result).calcImp(5);
+      const vocObj = voc.getVocObj();
+      dispatch(updateVocabLS(vocObj));
+      updateVocDb(vocObj, uid);
     });
     vocabs.forEach((voc) => {
       if (voc.getResult() === false) newVocArr.push(voc);

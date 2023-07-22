@@ -100,7 +100,7 @@ export const SettingsSlice = createSlice({
         state.notebookFilterSet.sender = null;
       }
     },
-    changeNoteLang: (state, action: PayloadAction<string | null>) => {
+    changeNoteFiltLang: (state, action: PayloadAction<string | null>) => {
       state.notebookFilterSet.language = action.payload;
     },
     changeNoteSender: (state, action: PayloadAction<string | null>) => {
@@ -112,7 +112,7 @@ export const SettingsSlice = createSlice({
 export const {
   setTheme,
   switchScreen,
-  changeNoteLang,
+  changeNoteFiltLang,
   changeNoteSender,
   changeNoteShowChecked,
   changeVocBoolSetting,

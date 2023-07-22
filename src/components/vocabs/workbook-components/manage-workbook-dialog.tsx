@@ -10,6 +10,8 @@ import { Vocab } from "../../../logic/classes/vocab.class";
 import { WorkbookType } from "../../../logic/types/vocab.types";
 import { nanoid } from "@reduxjs/toolkit";
 import { addWorkbook, updateVocabLS } from "../../../app/slices/vocabs-slice";
+import { updateVocDb } from "../../../utils/firebase/firebase-vocab";
+import { addWbToDb } from "../../../utils/firebase/firebase-workbooks";
 
 export interface ManageWbProps {
   keepMounted: boolean;
@@ -25,6 +27,7 @@ export default function ManageWorkbook(props: ManageWbProps) {
   const [removedWb, setRemovedWb] = React.useState<Vocab[]>([]);
   const [newWb, setNewWb] = React.useState<Vocab[]>([]);
   const [wbName, setWbName] = React.useState("");
+  const [updated, setUpdated] = React.useState(false);
   const { onClose, open, wb, ...other } = props;
   const { allVocabs } = useAppSelector((state) => state.allVocabs);
   const { currentLang, nativeLang } = useAppSelector((state) => state.vocabs);
@@ -42,8 +45,14 @@ export default function ManageWorkbook(props: ManageWbProps) {
     if (!wb) return;
     newWb.forEach((voc) => voc.addWb(wb));
     removedWb.forEach((voc) => voc.removeWb(wb.id));
-    newWb.forEach((voc) => dispatch(updateVocabLS(voc.getVocObj())));
-    removedWb.forEach((voc) => dispatch(updateVocabLS(voc.getVocObj())));
+    newWb.forEach((voc) => {
+      updateVocDb(voc.getVocObj(), uid);
+      dispatch(updateVocabLS(voc.getVocObj()));
+    });
+    removedWb.forEach((voc) => {
+      updateVocDb(voc.getVocObj(), uid);
+      dispatch(updateVocabLS(voc.getVocObj()));
+    });
     // !! TODO: lastupdated updaten in redux
 
     onClose();
@@ -53,11 +62,11 @@ export default function ManageWorkbook(props: ManageWbProps) {
     if (wb) return handleUpdate();
     const timeStamp = Date.now();
     const newWb: WorkbookType = {
+      owner: uid,
       name: wbName,
       id: nanoid(),
       vocLanguage: currentLang,
       transLanguage: nativeLang,
-      // vocCount: includedVocs.length,
       score: 0,
       createdAt: timeStamp,
       createdBy: uid,
@@ -67,6 +76,7 @@ export default function ManageWorkbook(props: ManageWbProps) {
     includedVocs.forEach((voc) => voc.addWb(newWb));
     includedVocs.forEach((voc) => dispatch(updateVocabLS(voc.getVocObj())));
     dispatch(addWorkbook(newWb));
+    addWbToDb(newWb);
     setIncludedVocs([]);
     setNotIncludedVocs(allVocabs.getAllVocs());
     onClose();

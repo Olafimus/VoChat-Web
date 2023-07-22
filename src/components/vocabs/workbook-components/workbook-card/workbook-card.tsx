@@ -27,6 +27,8 @@ import { WorkbookType } from "../../../../logic/types/vocab.types";
 import ManageWorkbook from "../manage-workbook-dialog";
 import AddVocab from "../../add-vocab";
 import ShareMenu from "../../../general/shared-menu";
+import { updateVocDb } from "../../../../utils/firebase/firebase-vocab";
+import { deleteWbDb } from "../../../../utils/firebase/firebase-workbooks";
 
 interface ExpandMoreProps extends IconButtonProps {
   expand: boolean;
@@ -50,6 +52,7 @@ const WorkbookCard = ({ wb }: { wb: WorkbookType }) => {
   const [openShareMenu, setOpenShareMenu] = React.useState(false);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const { allVocabs } = useAppSelector((state) => state.allVocabs);
+  const { id: uid } = useAppSelector((state) => state.user);
   const dispatch = useAppDispatch();
 
   const handleExpandClick = () => {
@@ -121,8 +124,12 @@ const WorkbookCard = ({ wb }: { wb: WorkbookType }) => {
             onClick={(e) => {
               e.stopPropagation();
               wbVocs.forEach((voc) => voc.removeWb(wb.id));
-              wbVocs.forEach((voc) => dispatch(updateVocabLS(voc.getVocObj())));
+              wbVocs.forEach((voc) => {
+                dispatch(updateVocabLS(voc.getVocObj()));
+                updateVocDb(voc.getVocObj(), uid);
+              });
               dispatch(removeWorkbook(wb));
+              deleteWbDb(wb.id, uid);
             }}
           >
             <DeleteIcon />
@@ -176,12 +183,15 @@ const WorkbookCard = ({ wb }: { wb: WorkbookType }) => {
           </CardContent>
         </Collapse>
       </Card>
-      <ManageWorkbook
-        wb={wb}
-        keepMounted={false}
-        open={openWbModal}
-        onClose={() => setOpenWbModal(false)}
-      />
+      {openWbModal && (
+        <ManageWorkbook
+          wb={wb}
+          keepMounted={false}
+          open={openWbModal}
+          onClose={() => setOpenWbModal(false)}
+        />
+      )}
+
       <AddVocab
         open={openVocModal}
         setOpen={setOpenVocModal}

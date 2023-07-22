@@ -16,6 +16,7 @@ import { StandardMsgBox } from "./message-type-boxes/standard-message";
 import EditedMsgBox from "./message-type-boxes/edit-message";
 import VocMsgBox from "./message-type-boxes/vocab-send-msg";
 import WbMsgBox from "./message-type-boxes/wb-send";
+import NoteAddDialog from "../notes/note-add-dialog";
 
 type MsgProp = {
   msg: Message;
@@ -47,7 +48,10 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
   const [trigger, setTrigger] = useState(false);
   const [answered, setAnswered] = useState(false);
   const [edited, setEdited] = useState(false);
-  const [open, setOpen] = React.useState(false);
+  const [open, setOpen] = useState(false);
+  const [openNote, setOpenNote] = useState(false);
+  const [note, setNote] = useState<null | string>(null);
+
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
   // const [msgType, setMsgType] = useState<MsgHisTypes>("standard");
@@ -213,6 +217,15 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
               </button>
             ))}
             <div className="response-divider"></div>
+            <button
+              className="response-emoji-btn"
+              onClick={() => {
+                setNote(msg.messageHis.at(-1)?.message || null);
+                setOpenNote(true);
+              }}
+            >
+              🗒️
+            </button>
             <button onClick={editHandler} className="response-emoji-btn">
               🖊️
             </button>
@@ -263,7 +276,7 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
             >
               <InputDiv
                 focus={true}
-                type="answer"
+                type="edit"
                 trigger={trigger}
                 oldMsg={msg}
               />
@@ -278,6 +291,13 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
           </div>
         </Box>
       </Modal>
+      <NoteAddDialog
+        openAdd={openNote}
+        setOpenAdd={setOpenNote}
+        text={note}
+        creatorId={msg.sender}
+        language={msg.language}
+      />
     </>
   );
 };

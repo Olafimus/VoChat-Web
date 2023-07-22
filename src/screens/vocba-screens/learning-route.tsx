@@ -18,7 +18,7 @@ const LearningRoute = () => {
   useEffect(() => {
     if (route === "default")
       setLearnVocs(
-        allVocabs.getDefaultVocs(vocabLearnSettings.defaultVocCount)
+        allVocabs.getDefaultVocs(vocabLearnSettings.defaultVocCount, 5)
       );
     if (route === "workbook" && workbook)
       setLearnVocs(allVocabs.getWbVocs(workbook));

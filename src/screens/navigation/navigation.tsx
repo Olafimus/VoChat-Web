@@ -30,6 +30,7 @@ import { resetUserState, setCurrentUser } from "../../app/slices/user-slice";
 import SchoolIcon from "@mui/icons-material/School";
 import { resetConversations } from "../../app/slices/conversation-slice";
 import AutoStoriesRoundedIcon from "@mui/icons-material/AutoStoriesRounded";
+import SpeakerNotesOutlinedIcon from "@mui/icons-material/SpeakerNotesOutlined";
 
 const drawerWidth = 240;
 
@@ -328,6 +329,30 @@ const Navigation = () => {
                 primary="Workbooks"
                 sx={{ opacity: open ? 1 : 0 }}
               />
+            </ListItemButton>
+          </ListItem>
+          <ListItem
+            onClick={() => navigation("/notebook")}
+            disablePadding
+            sx={{ display: "block" }}
+          >
+            <ListItemButton
+              sx={{
+                minHeight: 48,
+                justifyContent: open ? "initial" : "center",
+                px: 2.5,
+              }}
+            >
+              <ListItemIcon
+                sx={{
+                  minWidth: 0,
+                  mr: open ? 3 : "auto",
+                  justifyContent: "center",
+                }}
+              >
+                <SpeakerNotesOutlinedIcon />
+              </ListItemIcon>
+              <ListItemText primary="Notebook" sx={{ opacity: open ? 1 : 0 }} />
             </ListItemButton>
           </ListItem>
         </List>

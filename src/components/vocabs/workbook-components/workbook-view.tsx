@@ -165,11 +165,19 @@ const WorkbookView = ({
 
         {wb.createdBy !== uid ? (
           <span>
-            <Tooltip title="delete and add vocabs from this workbook">
+            {/* <Tooltip title="delete and add vocabs from this workbook">
               <Button>Manage</Button>
-            </Tooltip>
+            </Tooltip> */}
             <Tooltip title="Add this workbook to your workbooks">
-              <Button>Add to your Books</Button>
+              <Button
+                onClick={() => {
+                  const newWb: WorkbookType = { ...wb };
+                  newWb.owner = uid;
+                  console.log(newWb, vocabs);
+                }}
+              >
+                Add to your Books
+              </Button>
             </Tooltip>
           </span>
         ) : (

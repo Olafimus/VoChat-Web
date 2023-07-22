@@ -28,6 +28,7 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import SwitchMenu from "../general/switchmenu";
 import ImportanceSlider from "./Importance-slider";
 import { supLangObj, supportedLanguages } from "../../utils/country-flags";
+import { addVocToDb, updateVocDb } from "../../utils/firebase/firebase-vocab";
 
 let fullScreen = true;
 
@@ -172,6 +173,7 @@ const AddVocab = ({
     let id = nanoid();
     if (vocId) id = vocId;
     const newVocObj: VocObj = {
+      owner: uid,
       id,
       createdAt: new Date(),
       vocLanguage: vocLang,
@@ -183,7 +185,7 @@ const AddVocab = ({
       hints: createArrFromString(hintsTxt),
       workbooks,
       setImportance: importance,
-      calcImportance: 0,
+      calcImportance: importance,
       learnHistory: [],
       score: 0,
       favored: false,
@@ -201,6 +203,7 @@ const AddVocab = ({
       const newVoc = new Vocab(newVocObj);
       allVocabs.addVocab(newVoc);
       dispatch(addVocab(newVocObj));
+      addVocToDb(newVocObj);
       setVocs(vocs);
       setVocabTxt("");
       setTranslTxt("");
@@ -217,6 +220,7 @@ const AddVocab = ({
     if (type === "edit" && vocab) {
       vocab.updateVoc(newVocObj);
       dispatch(updateVocabLS(vocab.getVocObj()));
+      updateVocDb(vocab.getVocObj(), uid);
       if (vocabSubSettings.closeAfterEdit) handleClose();
     }
   };
