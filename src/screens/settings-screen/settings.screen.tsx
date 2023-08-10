@@ -5,15 +5,28 @@ import { notifyUser } from "../../utils/notification";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { AllVocabsClass } from "../../logic/classes/vocab.class";
 import { updateVocabLS } from "../../app/slices/vocabs-slice";
+import { loadPreVocs } from "../../utils/firebase/firebase-vocab";
+import { addVocToPre } from "../../utils/firebase/uploadPreData";
 
 const SettingsScreen = () => {
   const { allVocabs } = useAppSelector((state) => state.allVocabs);
-  const [vocs, setVocs] = useState<AllVocabsClass>([]);
+  const { workbooks } = useAppSelector((state) => state.vocabs);
+  const { id: uid } = useAppSelector((state) => state.user);
+  // const [vocs, setVocs] = useState<AllVocabsClass>([]);
   const dispatch = useAppDispatch();
 
-  useEffect(() => {
-    setVocs(allVocabs);
-  }, [allVocabs]);
+  const testing = async () => {
+    await addVocToPre();
+  };
+
+  const loading = async () => {
+    const data = await loadPreVocs("German", workbooks, uid);
+    console.log(data);
+  };
+
+  // useEffect(() => {
+  //   setVocs(allVocabs);
+  // }, [allVocabs]);
   // console.log(vocs.getDefaultVocs(5)[0].calcImp(5));
   const handleClick = async () => {
     Push.create("a push");
@@ -21,13 +34,12 @@ const SettingsScreen = () => {
   return (
     <div>
       SettingsScreen
-      <button onClick={() => console.log(vocs.getDefaultVocs(10))}>
-        testing
-      </button>
       <p>teest</p>
       <p>teest</p>
       <p>teest</p>
       <p>teest</p>
+      <button onClick={loading}>load</button>
+      <button onClick={testing}>upload</button>
       <button onClick={handleClick}>push</button>
     </div>
   );

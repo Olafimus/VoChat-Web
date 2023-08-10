@@ -5,6 +5,8 @@ import { addVocToDb, updateVocDb } from "../../utils/firebase/firebase-vocab";
 interface VocabState {
   allUserVocabs: VocObj[];
   workbooks: WorkbookType[];
+  loadedData: VocObj[];
+  loadedLangs: string[];
   categories: string[];
   lastUpdate: number;
   currentLang: string;
@@ -14,6 +16,8 @@ interface VocabState {
 const initialState: VocabState = {
   allUserVocabs: [],
   workbooks: [],
+  loadedData: [],
+  loadedLangs: [],
   categories: [],
   lastUpdate: 0,
   currentLang: "Farsi",

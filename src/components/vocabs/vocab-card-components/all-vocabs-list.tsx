@@ -10,10 +10,12 @@ import { setAllVocabs } from "../../../app/slices/vocabs-class-slice";
 
 const VocabCardList = ({
   allVocs,
+  dataVocs,
   searchString,
   render,
 }: {
   allVocs: AllVocabsClass;
+  dataVocs: AllVocabsClass | null;
   searchString: string;
   render: boolean;
 }) => {
@@ -42,11 +44,13 @@ const VocabCardList = ({
   };
 
   React.useLayoutEffect(() => {
-    if (allVocs.getVocCount() > 0) setCheck(true);
-    const vocArr = allVocs.getFilteredVoc(searchString);
+    if (allVocs.getVocCount() > 0 || dataVocs) setCheck(true);
+    const vocArr = dataVocs
+      ? dataVocs.getFilteredVoc(searchString)
+      : allVocs.getFilteredVoc(searchString);
     if (!vocArr) return;
     setFilteredVocs(vocArr);
-  }, [searchString, render, allVocs.getVocCount()]);
+  }, [searchString, render, allVocs.getVocCount(), dataVocs]);
 
   React.useEffect(() => {
     if (!matchesOne) {
@@ -57,6 +61,8 @@ const VocabCardList = ({
     if (matchesThree) setColumnCount(4);
     setLoading(false);
   }, [matchesOne, matchesTwo, matchesThree]);
+
+  // console.log(dbLang, dataVocs);
 
   return (
     <>

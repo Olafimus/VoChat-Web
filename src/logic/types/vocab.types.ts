@@ -1,7 +1,7 @@
 export type VocObj = {
   owner: string;
   id: string;
-  createdAt: Date;
+  createdAt: number;
   vocLanguage: string;
   transLanguage: string;
   vocab: string[];

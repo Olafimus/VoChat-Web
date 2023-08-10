@@ -86,10 +86,6 @@ const EditedMsgBox = ({
             const textDecoration = removed ? "line-through" : "none";
 
             return (
-              //       <Typography
-              //   variant="body1"
-              //   style={{ fontSize: "16px",color, textDecoration }}
-              // >{value}</Typography>
               <span
                 key={index}
                 style={{ fontSize: "16px", color, textDecoration }}

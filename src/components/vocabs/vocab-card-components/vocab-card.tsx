@@ -13,6 +13,8 @@ import { red, green, yellow } from "@mui/material/colors";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import ShareIcon from "@mui/icons-material/Share";
 import EditIcon from "@mui/icons-material/Edit";
+import AddIcon from "@mui/icons-material/Add";
+
 import DeleteIcon from "@mui/icons-material/Delete";
 import StarBorderPurple500Icon from "@mui/icons-material/StarBorderPurple500";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -48,6 +50,8 @@ const VocabCard = ({ vocab }: { vocab: Vocab }) => {
   const { allVocabs } = useAppSelector((state) => state.allVocabs);
   const { id: uid } = useAppSelector((state) => state.user);
   const dispatch = useAppDispatch();
+  let dataVoc = false;
+  if (vocab.getOwner() !== uid) dataVoc = true;
 
   const handleExpandClick = () => {
     setExpanded(!expanded);
@@ -105,32 +109,51 @@ const VocabCard = ({ vocab }: { vocab: Vocab }) => {
             anchorEl={anchorEl}
             vocObj={vocab.getVocObj()}
           />
-          <Tooltip title="Edit Vocab" arrow>
-            <IconButton
-              size="small"
-              aria-label="edit"
-              onClick={(e) => {
-                e.stopPropagation();
-                setOpenModal(true);
-              }}
-            >
-              <EditIcon sx={{ color: yellow[700] }} />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Delete Vocab" arrow>
-            <IconButton
-              size="small"
-              aria-label="delete"
-              onClick={(e) => {
-                e.stopPropagation();
-                allVocabs.removeVoc(vocab.getId());
-                dispatch(removeVocFromLS(vocab.getId()));
-                deleteVocDb(vocab.getId(), uid);
-              }}
-            >
-              <DeleteIcon sx={{ color: red[600] }} />
-            </IconButton>
-          </Tooltip>
+          {!dataVoc && (
+            <>
+              <Tooltip title="Edit Vocab" arrow>
+                <IconButton
+                  size="small"
+                  aria-label="edit"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpenModal(true);
+                  }}
+                >
+                  <EditIcon sx={{ color: yellow[700] }} />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Delete Vocab" arrow>
+                <IconButton
+                  size="small"
+                  aria-label="delete"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    allVocabs.removeVoc(vocab.getId());
+                    dispatch(removeVocFromLS(vocab.getId()));
+                    deleteVocDb(vocab.getId(), uid);
+                  }}
+                >
+                  <DeleteIcon sx={{ color: red[600] }} />
+                </IconButton>
+              </Tooltip>
+            </>
+          )}
+          {dataVoc && (
+            <Tooltip title="Add Vocab" arrow>
+              <IconButton
+                // size="small"
+                aria-label="add"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpenModal(true);
+                }}
+              >
+                {/* <DeleteIcon sx={{ color: red[600] }} /> */}
+                <AddIcon sx={{ color: green[600] }} />
+              </IconButton>
+            </Tooltip>
+          )}
           {/* <Tooltip title="learn" arrow>
             <IconButton
               size="small"
@@ -168,13 +191,15 @@ const VocabCard = ({ vocab }: { vocab: Vocab }) => {
           </CardContent>
         </Collapse>
       </Card>
-      <AddVocab
-        setOpen={setOpenModal}
-        open={openModal}
-        type="edit"
-        vocab={vocab}
-        {...vocab.getEditProps()}
-      />
+      {openModal && (
+        <AddVocab
+          setOpen={setOpenModal}
+          open={openModal}
+          type={dataVoc ? "add" : "edit"}
+          vocab={vocab}
+          {...vocab.getEditProps()}
+        />
+      )}
     </>
   );
 };

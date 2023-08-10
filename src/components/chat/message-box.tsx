@@ -2,7 +2,7 @@ import { Typography } from "@mui/material";
 import Box from "@mui/material/Box";
 import Modal from "@mui/material/Modal";
 import React, { useEffect, useState } from "react";
-import { Message } from "../../logic/types/message.types";
+import { Message, MsgHisTypes } from "../../logic/types/message.types";
 import { useAppSelector } from "../../app/hooks";
 import "./message-box.style.scss";
 import { sendResponse } from "../../utils/firebase";
@@ -46,11 +46,12 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
   const { id, name } = useAppSelector((state) => state.user);
   const { activeConv } = useAppSelector((state) => state.conversations);
   const [trigger, setTrigger] = useState(false);
-  const [answered, setAnswered] = useState(false);
-  const [edited, setEdited] = useState(false);
+  // const [answered, setAnswered] = useState(false);
+  // const [edited, setEdited] = useState(false);
   const [open, setOpen] = useState(false);
   const [openNote, setOpenNote] = useState(false);
   const [note, setNote] = useState<null | string>(null);
+  const [type, setType] = useState<"answer" | "edit">("answer");
 
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
@@ -122,18 +123,20 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
   };
 
   const editHandler = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
-    setEdited(true);
-    setAnswered(false);
+    // setEdited(true);
+    // setAnswered(false);
     // setMsgType("answered");
+    setType("edit");
     resetToolTip(e);
     handleOpen();
   };
   const answerHandler = (
     e: React.MouseEvent<HTMLButtonElement, MouseEvent>
   ) => {
-    setEdited(false);
-    setAnswered(true);
+    // setEdited(false);
+    // setAnswered(true);
     // setMsgType("answered");
+    setType("answer");
     resetToolTip(e);
     handleOpen();
   };
@@ -276,7 +279,7 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
             >
               <InputDiv
                 focus={true}
-                type="edit"
+                type={type}
                 trigger={trigger}
                 oldMsg={msg}
               />

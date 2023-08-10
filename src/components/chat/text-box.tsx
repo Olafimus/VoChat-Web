@@ -1,7 +1,7 @@
 import { useState, useLayoutEffect, useRef, useEffect, useMemo } from "react";
 import { Button, Box } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { Message } from "../../logic/types/message.types";
+import { Message, MsgHisTypes } from "../../logic/types/message.types";
 import { useAppSelector } from "../../app/hooks";
 import MessageBox from "./message-box";
 import { Conversation } from "../../logic/classes/conversation.class";
@@ -23,6 +23,10 @@ const ChatTextBox = ({ matches }: { matches: boolean }) => {
   const [firstLoad, setFirstLoad] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [scrollType, setScrollType] = useState<"up" | "down">("up");
+  const [filterSet, setFilterSet] = useState<{
+    lang: string;
+    msgTypes: MsgHisTypes[];
+  }>({ lang: "all", msgTypes: ["answer", "edit", "vocab", "wb", "standard"] });
   const [contacts, setContacts] = useState<string[]>([]);
   const [newMsg, setNewMsg] = useState(false);
   const { id } = useAppSelector((state) => state.user);
@@ -60,7 +64,13 @@ const ChatTextBox = ({ matches }: { matches: boolean }) => {
     let start = end - range.range;
     if (start < 0) start = 0;
     setRange({ start, end, range: 50 });
-    setMessages(allMsgs);
+    const filteredAllMsgs = allMsgs.filter((msg) => {
+      const type = msg.messageHis.at(-1)?.type;
+      if (!type) return false;
+      return filterSet.msgTypes.includes(type);
+    });
+
+    setMessages(filteredAllMsgs);
   };
 
   useEffect(() => {
@@ -76,7 +86,7 @@ const ChatTextBox = ({ matches }: { matches: boolean }) => {
 
   useLayoutEffect(() => {
     defaultLoad();
-  }, [activeConv, conversations]);
+  }, [activeConv, conversations, filterSet]);
 
   useLayoutEffect(() => {
     const scrollBox = document.getElementById("chat--container");
@@ -157,6 +167,8 @@ const ChatTextBox = ({ matches }: { matches: boolean }) => {
         searchFunc={searchFunc}
         resetSearch={resetSearch}
         cIds={cIds}
+        setFilterSet={setFilterSet}
+        filterSet={filterSet}
       />
       <div
         style={

@@ -162,10 +162,11 @@ export class Vocab {
     return this.voc.id;
   }
   getEditProps() {
-    const categories: MySelectOptionType[] = [];
+    const cats: MySelectOptionType[] = [];
     this.getCategories().forEach((cat) =>
-      categories.push({ label: cat, value: cat })
+      cats.push({ label: cat, value: cat })
     );
+
     const wbs: MySelectOptionType[] = [];
     this.getWorkbooks().forEach((wb) =>
       wbs.push({ label: wb.name, value: wb.id })
@@ -176,7 +177,7 @@ export class Vocab {
       tra: this.getTranslString(),
       pronunc: this.getPronuncStr(),
       hints: this.getHintsStr(),
-      categories,
+      cats,
       wbs,
       imp: this.getSetImp(),
     };

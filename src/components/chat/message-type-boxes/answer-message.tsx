@@ -3,6 +3,7 @@ import { Message } from "../../../logic/types/message.types";
 
 import { formatMsg } from "../../../utils/text-scripts/fortmat-message";
 import { getFormatedDate } from "../../../utils/getFormDate";
+import { useAppSelector } from "../../../app/hooks";
 
 const AnsweredMsgBox = ({
   msg,
@@ -17,9 +18,11 @@ const AnsweredMsgBox = ({
 }) => {
   const oldText = msg.messageHis.at(-2)?.message || "";
   const oldMsgtxt = formatMsg(oldText);
+  const { name } = useAppSelector((state) => state.user);
   let senderName = contactName;
   if (msg.messageHis.at(-2)?.editor === id) senderName = "you";
   const oldTime = msg.messageHis.at(-2)?.time || msg.time;
+  const backgroundColor = contactName === name ? "#2c8a3c" : "#31206a";
 
   const captionStyles = {
     fontSize: "12px",
@@ -60,7 +63,8 @@ const AnsweredMsgBox = ({
             position: "absolute",
             top: "-1px",
             left: "20px",
-            backgroundColor: "#2c8a3c",
+            backgroundColor,
+            borderRadius: 6,
             paddingLeft: "2px",
             paddingRight: "2px",
           }}

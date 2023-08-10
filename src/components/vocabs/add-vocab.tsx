@@ -121,7 +121,7 @@ const AddVocab = ({
   };
   let [transLangDisabler, setTransLangDisabler] = React.useState(true);
   let [vocLangDisabler, setVocLangDisabler] = React.useState(true);
-
+  console.log(vocab?.getCategories(), cats);
   let disable = true;
   if (vocabTxt !== "" && translTxt !== "") disable = false;
   // const dummyOptions = [
@@ -138,6 +138,10 @@ const AddVocab = ({
     categories.forEach((cat) => newCatOptions.push({ label: cat, value: cat }));
     setWbOptions(newWbOptions);
     setCatOptions(newCatOptions);
+    if (vocab) {
+      setTransLang(vocab.getTransLang());
+      setVocLang(vocab.getVocLang());
+    }
   }, []);
 
   const defaultVal = importance;
@@ -158,6 +162,7 @@ const AddVocab = ({
     wbSelection.forEach((sel) => {
       const timeStamp = Date.now();
       const newWb: WorkbookType = {
+        owner: uid,
         name: sel.label,
         id: sel.value,
         vocLanguage: vocLang,
@@ -175,7 +180,7 @@ const AddVocab = ({
     const newVocObj: VocObj = {
       owner: uid,
       id,
-      createdAt: new Date(),
+      createdAt: Date.now(),
       vocLanguage: vocLang,
       transLanguage: nativeLang,
       vocab: createArrFromString(vocabTxt),
@@ -310,9 +315,9 @@ const AddVocab = ({
                 />
                 <Box sx={{ maxWidth: 200 }}>
                   <FormControl>
-                    <InputLabel id="demo-simple-select-label">Lang</InputLabel>
+                    <InputLabel id="vocab-lang-picker-label">Lang</InputLabel>
                     <Select
-                      labelId="demo-simple-select-label"
+                      labelId="vocab-lang-picker-label"
                       tabIndex={-1}
                       disabled={vocLangDisabler}
                       sx={{ minWidth: 60 }}

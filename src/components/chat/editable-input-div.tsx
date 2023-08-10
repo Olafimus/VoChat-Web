@@ -90,6 +90,8 @@ const InputDiv: React.FC<InputProps> = ({
       ref.current.focus();
       // setEndFocus(divId);
     }
+    if (type === "edit" && ref.current)
+      ref.current.textContent = oldMsg?.messageHis.at(-1)?.message || "";
   }, [ref]);
 
   const emojiHandler = async (e: EmojiClickData) => {
@@ -234,7 +236,7 @@ const InputDiv: React.FC<InputProps> = ({
         onInput={editFormating}
         contentEditable={true}
       >
-        {type === "edit" && oldMsg?.messageHis.at(-1)?.message}
+        {/* {type === "edit" && oldMsg?.messageHis.at(-1)?.message} */}
       </div>
 
       <IconButton onClick={() => setOpen(true)}>

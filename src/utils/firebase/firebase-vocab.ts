@@ -10,9 +10,11 @@ import {
   where,
 } from "firebase/firestore";
 import { db } from "../firebase";
-import { VocObj } from "../../logic/types/vocab.types";
+import { VocObj, WorkbookType } from "../../logic/types/vocab.types";
+import { nanoid } from "@reduxjs/toolkit";
 
 const vocCol = collection(db, "vocabs");
+const preVocCol = collection(db, "preDataVocabs");
 
 export const addVocToDb = async (voc: VocObj) => {
   await setDoc(doc(vocCol), { ...voc });
@@ -61,4 +63,63 @@ export const updateVocDb = async (voc: VocObj, uid: string) => {
   console.log(voc);
   let ref: string | undefined = snap.docs[0].ref.id;
   if (ref) updateDoc(doc(vocCol, ref), { ...voc });
+};
+
+export const loadPreVocs = async (
+  lang: string,
+  wbs: WorkbookType[],
+  uid: string
+) => {
+  const searchString = `preData${lang}InEnglish`;
+  const q = query(preVocCol, where("owner", "==", searchString));
+  const snap = await getDocs(q);
+  const vocs: VocObj[] = [];
+  snap.forEach((doc) => {
+    const workbooks: WorkbookType[] = [];
+    const levels = ["A1", "A2", "B1", "B2"];
+    levels.forEach((level) => {
+      if (doc.data().categories.includes(level)) {
+        let wb = wbs.find((wb) => wb.name === level);
+        if (wb) workbooks.push(wb);
+        else
+          workbooks.push({
+            owner: uid,
+            name: level,
+            id: nanoid(),
+            vocCount: undefined,
+            vocLanguage: doc.data().vocLanguage,
+            transLanguage: doc.data().transLanguage,
+            score: 0,
+            createdAt: Date.now(),
+            createdBy: uid,
+            lastUpdated: Date.now(),
+            lastLearned: 0,
+          });
+      }
+    });
+
+    const voc: VocObj = {
+      owner: doc.data().owner,
+      id: doc.data().id,
+      createdAt: doc.data().createdAt,
+      vocLanguage: doc.data().vocLanguage,
+      transLanguage: doc.data().transLanguage,
+      vocab: doc.data().translation,
+      translation: doc.data().vocab,
+      pronounciation: doc.data().pronounciation || [],
+      hints: doc.data().hints || [],
+      categories: doc.data().categories,
+      workbooks,
+      setImportance: doc.data().setImportance,
+      calcImportance: doc.data().calcImportance,
+      learnHistory: doc.data().learnHistory,
+      score: doc.data().score,
+      favored: doc.data().favored,
+      favoredAt: doc.data().favoredAt,
+      lastUpdated: doc.data().lastUpdated,
+      checkStatus: doc.data().checkStatus,
+    };
+    vocs.push(voc);
+  });
+  return vocs;
 };
