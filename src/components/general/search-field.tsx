@@ -8,6 +8,8 @@ const SearchField = ({
   size,
   onKeyDown,
   onBlur,
+  ref,
+  focus = false,
 }: {
   setSearchTerm: (str: string) => void;
   label?: string;
@@ -15,6 +17,8 @@ const SearchField = ({
   size?: "small" | "medium";
   onKeyDown?: (e: React.KeyboardEvent<HTMLDivElement>) => void;
   onBlur?: () => void;
+  ref?: React.RefObject<HTMLInputElement>;
+  focus?: boolean;
 }) => {
   const [typeTerm, setTypeTerm] = React.useState("");
   const [searchResults, setSearchResults] = React.useState([]);
@@ -40,6 +44,9 @@ const SearchField = ({
         label={label}
         value={typeTerm}
         onChange={handleInputChange}
+        ref={ref}
+        autoFocus={focus}
+        onBlur={onBlur}
       />
     </div>
   );

@@ -137,10 +137,10 @@ export class Vocab {
     return this.voc.categories.join(", ");
   }
   getPronunc() {
-    return this.voc.pronounciation;
+    return this.voc.pronunciation;
   }
   getPronuncStr() {
-    return this.voc.pronounciation.join(", ");
+    return this.voc.pronunciation.join(", ");
   }
   getHints() {
     return this.voc.hints;

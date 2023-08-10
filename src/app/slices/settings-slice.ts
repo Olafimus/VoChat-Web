@@ -5,6 +5,10 @@ type ScreenStrings = "" | "contacts" | "chat";
 interface Settings {
   theme: "dark" | "light";
   activeScreen: ScreenStrings;
+  vocabScreenSettings: {
+    maxVocs: number;
+    catFilter: string[];
+  };
   vocabSubSettings: {
     closeAfterAdd: boolean;
     closeAfterEdit: boolean;
@@ -32,6 +36,10 @@ interface Settings {
 const initialState: Settings = {
   theme: "dark",
   activeScreen: "",
+  vocabScreenSettings: {
+    maxVocs: 100,
+    catFilter: [],
+  },
   vocabSubSettings: {
     closeAfterAdd: false,
     closeAfterEdit: false,
@@ -106,6 +114,12 @@ export const SettingsSlice = createSlice({
     changeNoteSender: (state, action: PayloadAction<string | null>) => {
       state.notebookFilterSet.sender = action.payload;
     },
+    changeMaxShownVocs: (state, action: PayloadAction<number>) => {
+      state.vocabScreenSettings.maxVocs = action.payload;
+    },
+    changeVocCatFilter: (state, action: PayloadAction<string[]>) => {
+      state.vocabScreenSettings.catFilter = action.payload;
+    },
   },
 });
 
@@ -118,6 +132,8 @@ export const {
   changeVocBoolSetting,
   changeDefaultVocCount,
   changeNoteFilter,
+  changeMaxShownVocs,
+  changeVocCatFilter,
 } = SettingsSlice.actions;
 
 export default SettingsSlice.reducer;

@@ -1,25 +1,20 @@
-import * as React from "react";
+import { useState, MouseEvent, Dispatch, useRef } from "react";
 import AppBar from "@mui/material/AppBar";
 import { styled } from "@mui/material/styles";
 import Box from "@mui/material/Box";
-import { Tooltip } from "@mui/material";
-import TextField from "@mui/material/TextField";
+import { useMediaQuery } from "@mui/material";
 import Toolbar from "@mui/material/Toolbar";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
-import Menu from "@mui/material/Menu";
-import MenuItem from "@mui/material/MenuItem";
 import AddIcon from "@mui/icons-material/Add";
-import MoreIcon from "@mui/icons-material/MoreVert";
 import SearchIcon from "@mui/icons-material/Search";
 import Fab from "@mui/material/Fab";
-import FilterListIcon from "@mui/icons-material/FilterList";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import CategoryIcon from "@mui/icons-material/Category";
-import Chip from "@mui/material/Chip";
-import Stack from "@mui/material/Stack";
-import Pagination from "@mui/material/Pagination";
-import { useAppSelector } from "../../app/hooks";
+import AddVocab from "./add-vocab";
+import SearchField from "../general/search-field";
+import FilterMenu from "./voc-screen-header-components/filter-menu";
+import OptionsMenu from "./voc-screen-header-components/options-menu";
+import CategoriesMenu from "./voc-screen-header-components/categories-menu";
 
 const StyledFab = styled(Fab)({
   position: "absolute",
@@ -32,204 +27,131 @@ const StyledFab = styled(Fab)({
   height: "2.7em",
 });
 
-const CategoriesMenu = () => {
-  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
-  const open = Boolean(anchorEl);
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
-  const matches = true;
-  return (
-    <span>
-      {!matches ? (
-        <IconButton
-          aria-label="options-menu"
-          color="inherit"
-          aria-controls={open ? "basic-menu" : undefined}
-          aria-haspopup="true"
-          aria-expanded={open ? "true" : undefined}
-          onClick={handleClick}
-        >
-          <CategoryIcon />
-        </IconButton>
-      ) : (
-        <span onClick={handleClick}>
-          <Box
-            display="flex"
-            // border="1px solid black"
-            borderRadius={2}
-            sx={{
-              "&:hover": {
-                color: "red",
-                backgroundColor: "white",
-              },
-            }}
-          >
-            <Typography sx={{ pl: 1 }}>Categories</Typography>
-            <ExpandMoreIcon />
-          </Box>
-        </span>
-      )}
-
-      <Menu
-        id="basic-menu"
-        anchorEl={anchorEl}
-        open={open}
-        onClose={handleClose}
-        MenuListProps={{
-          "aria-labelledby": "basic-button",
-        }}
-      >
-        <TextField
-          size="small"
-          label="Search"
-          sx={{ m: "5px", position: "sticky" }}
-        />
-        <MenuItem onClick={handleClose}>Name</MenuItem>
-        <MenuItem onClick={handleClose}>My account</MenuItem>
-        <MenuItem onClick={handleClose}>Logout</MenuItem>
-        <MenuItem onClick={handleClose}>Logout</MenuItem>
-        <MenuItem onClick={handleClose}>Logout</MenuItem>
-        <MenuItem onClick={handleClose}>Logout</MenuItem>
-        <MenuItem onClick={handleClose}>Logout</MenuItem>
-        <MenuItem onClick={handleClose}>Logout</MenuItem>
-        <MenuItem onClick={handleClose}>Logout</MenuItem>
-        <MenuItem onClick={handleClose}>Logout</MenuItem>
-        <MenuItem onClick={handleClose}>Logout</MenuItem>
-        <MenuItem onClick={handleClose}>Logout</MenuItem>
-        <MenuItem onClick={handleClose}>Logout</MenuItem>
-      </Menu>
-    </span>
-  );
+type HeaderProps = {
+  dbLang: string | null;
+  setSearchString: Dispatch<React.SetStateAction<string>>;
+  theme: string;
+  searchString: string;
 };
 
-const OptionsMenu = () => {
-  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
-  const open = Boolean(anchorEl);
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
-  return (
-    <span>
-      <IconButton
-        edge="end"
-        aria-label="options-menu"
-        color="inherit"
-        aria-controls={open ? "basic-menu" : undefined}
-        aria-haspopup="true"
-        aria-expanded={open ? "true" : undefined}
-        onClick={handleClick}
-      >
-        <MoreIcon />
-      </IconButton>
-      <Menu
-        id="basic-menu"
-        anchorEl={anchorEl}
-        open={open}
-        onClose={handleClose}
-        MenuListProps={{
-          "aria-labelledby": "basic-button",
-        }}
-      >
-        <MenuItem onClick={handleClose}>Profile</MenuItem>
-        <MenuItem onClick={handleClose}>My account</MenuItem>
-        <MenuItem onClick={handleClose}>Logout</MenuItem>
-      </Menu>
-    </span>
-  );
-};
+const VocHeader = ({
+  theme,
+  dbLang,
+  setSearchString,
+  searchString,
+}: HeaderProps) => {
+  const [open, setOpen] = useState(false);
+  const [render, setRender] = useState(false);
+  const [searchActive, setSearchActive] = useState(false);
 
-const FilterMenu = () => {
-  // Filtern/Sortieren nach: Sprache, gelernt / ungelernt, Score von bis, neu
-  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
-  const open = Boolean(anchorEl);
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
-  return (
-    <span>
-      <IconButton
-        edge="end"
-        aria-label="options-menu"
-        color="inherit"
-        aria-controls={open ? "basic-menu" : undefined}
-        aria-haspopup="true"
-        aria-expanded={open ? "true" : undefined}
-        onClick={handleClick}
-      >
-        <FilterListIcon />
-      </IconButton>
-      <Menu
-        id="basic-menu"
-        anchorEl={anchorEl}
-        open={open}
-        onClose={handleClose}
-        MenuListProps={{
-          "aria-labelledby": "basic-button",
-        }}
-      >
-        <MenuItem onClick={handleClose}>Profile</MenuItem>
-        <MenuItem onClick={handleClose}>My account</MenuItem>
-        <MenuItem onClick={handleClose}>Logout</MenuItem>
-      </Menu>
-    </span>
-  );
-};
-
-const VocHeader = () => {
-  const { theme } = useAppSelector((state) => state.settings);
-  let matches = true;
+  const matches = useMediaQuery("(min-width:1000px)");
+  const matches2 = useMediaQuery("(min-width:850px)");
+  const matches3 = useMediaQuery("(min-width:600px)");
   const flag = "\ud83c\uddee\ud83c\uddf3";
   let vocabType = "Your Vocabs"; // Je nachdem was gezeigt wird
-  const bgcolor = theme === "dark" ? "blue" : "#81d4fa";
-  return (
-    <Box bgcolor={bgcolor} sx={{ flexGrow: 1, borderRadius: 2 }}>
-      <Toolbar variant="dense">
-        <Typography
-          sx={{
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            maxWidth: "50%",
-          }}
-          variant="h6"
-          color="inherit"
-          component="div"
-        >
-          {vocabType}
-        </Typography>
+  const bgcolor = theme === "dark" ? "#3f51b5" : "#81d4fa";
 
-        <StyledFab color="primary" aria-label="add">
-          <AddIcon />
-        </StyledFab>
-        <Box sx={{ flexGrow: 1 }} />
-        {!matches ? (
-          <input />
-        ) : (
-          <IconButton aria-label="search-menu" color="inherit">
+  const onBlur = () => {
+    if (searchString === "") setSearchActive(false);
+  };
+
+  const rightSide = (
+    <>
+      {matches2 ? (
+        <SearchField setSearchTerm={setSearchString} />
+      ) : (
+        <>
+          <IconButton
+            aria-label="search-menu"
+            color="inherit"
+            onClick={() => {
+              setSearchActive(true);
+            }}
+          >
             <SearchIcon />
           </IconButton>
+        </>
+      )}
+      <Tooltip arrow title="Filter Categories">
+        <CategoriesMenu theme={theme} matches={matches} />
+      </Tooltip>
+      <Tooltip arrow title="Set Filters">
+        <FilterMenu />
+      </Tooltip>
+      <Tooltip arrow title="Show options">
+        <OptionsMenu />
+      </Tooltip>
+    </>
+  );
+
+  const mt = matches3 ? 8.05 : 7.05;
+
+  return (
+    <AppBar sx={{ mt, pl: 7, marginLeft: 10 }}>
+      <Box bgcolor={bgcolor} position="sticky" py={0.5} sx={{ flexGrow: 1 }}>
+        <Toolbar variant="dense">
+          <Typography
+            sx={{
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              maxWidth: "50%",
+            }}
+            variant="h6"
+            color="inherit"
+            component="div"
+          >
+            {vocabType}
+          </Typography>
+
+          {!searchActive && (
+            <StyledFab
+              color="primary"
+              aria-label="add"
+              onClick={() => setOpen(!open)}
+            >
+              <AddIcon />
+            </StyledFab>
+          )}
+          <Box sx={{ flexGrow: 1 }} />
+          {searchActive ? (
+            <SearchField
+              focus={true}
+              onBlur={onBlur}
+              setSearchTerm={setSearchString}
+            />
+          ) : (
+            rightSide
+          )}
+          {/* {matches2 ? (
+          <SearchField setSearchTerm={setSearchString} />
+        ) : (
+          <>
+            <IconButton aria-label="search-menu" color="inherit">
+              <SearchIcon />
+            </IconButton>
+          </>
         )}
         <Tooltip arrow title="Filter Categories">
-          <CategoriesMenu />
+          <CategoriesMenu matches={matches} />
         </Tooltip>
         <Tooltip arrow title="Set Filters">
           <FilterMenu />
         </Tooltip>
         <Tooltip arrow title="Show options">
           <OptionsMenu />
-        </Tooltip>
-      </Toolbar>
-    </Box>
+        </Tooltip> */}
+        </Toolbar>
+        {!dbLang && (
+          <AddVocab
+            open={open}
+            setOpen={setOpen}
+            render={render}
+            setRender={setRender}
+          />
+        )}
+      </Box>
+    </AppBar>
   );
 };
 

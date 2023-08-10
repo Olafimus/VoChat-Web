@@ -159,6 +159,8 @@ const AddVocab = ({
   const handleSubmit = () => {
     validationCheck();
     const workbooks: WorkbookType[] = [];
+    const categories: string[] = catSelection.map((item) => item.label);
+
     wbSelection.forEach((sel) => {
       const timeStamp = Date.now();
       const newWb: WorkbookType = {
@@ -185,8 +187,8 @@ const AddVocab = ({
       transLanguage: nativeLang,
       vocab: createArrFromString(vocabTxt),
       translation: createArrFromString(translTxt),
-      pronounciation: createArrFromString(pronounceTxt),
-      categories: [],
+      pronunciation: createArrFromString(pronounceTxt),
+      categories,
       hints: createArrFromString(hintsTxt),
       workbooks,
       setImportance: importance,
@@ -380,7 +382,7 @@ const AddVocab = ({
               </Box>
               {vocabSubSettings.showPronunc && (
                 <TextField
-                  label="Pronounciation"
+                  label="pronunciation"
                   variant="standard"
                   multiline
                   maxRows={3}

@@ -12,15 +12,20 @@ import { Button } from "@mui/material";
 import { AllVocabsClass, Vocab } from "../../logic/classes/vocab.class";
 import { loadPreVocs } from "../../utils/firebase/firebase-vocab";
 import VocHeader from "../../components/vocabs/vocab-header";
+import { Theme } from "emoji-picker-react";
+import { createFilter } from "react-select";
 
 const AllVocabs = () => {
   const [searchString, setSearchString] = useState("");
   const [dbLang, setDbLang] = useState<null | string>(null);
   const [open, setOpen] = useState(false);
+  const [render, setRender] = useState(false);
   const { allVocabs } = useAppSelector((state) => state.allVocabs);
   const { workbooks } = useAppSelector((state) => state.vocabs);
   const { id: uid } = useAppSelector((state) => state.user);
-  const [render, setRender] = useState(false);
+  const { theme, vocabScreenSettings } = useAppSelector(
+    (state) => state.settings
+  );
   const [dataVocs, setDataVocs] = useState<null | AllVocabsClass>(null);
   // let check = allVocabs.getAllVocs.length > 0;
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -46,6 +51,7 @@ const AllVocabs = () => {
     if (!dbLang) return;
     const data = await loadPreVocs(dbLang, workbooks, uid);
     const newVocs = new AllVocabsClass([]);
+
     data.forEach((voc) => newVocs.addVocab(new Vocab(voc)));
     setDataVocs(newVocs);
     handleClose();
@@ -56,63 +62,63 @@ const AllVocabs = () => {
     handleDbLoad();
   }, [dbLang]);
 
-  const oldContent = () => (
-    <>
-      <Typography variant="h5">
-        {dbLang ? `${dbLang} Database Vocabs` : "All your Vocabs"}
-      </Typography>
-      <Box display="flex" flexDirection="row" justifyContent="center" mb={2}>
-        <SearchField setSearchTerm={setSearchString} />
-        {!dbLang && (
-          <Button
-            sx={{ mx: 1 }}
-            size="large"
-            onClick={() => setOpen(!open)}
-            endIcon={<AddIcon />}
-          >
-            Add
-          </Button>
-        )}
-        <Button onClick={handleClick}>DB Vocs</Button>
-        <Menu
-          id="basic-menu"
-          anchorEl={anchorEl}
-          open={openDbMen}
-          onClose={handleClose}
-          MenuListProps={{
-            "aria-labelledby": "basic-button",
-          }}
-        >
-          <MenuItem
-            onClick={() => {
-              setDataVocs(null);
-              setDbLang(null);
-              handleClose();
-            }}
-          >
-            None
-          </MenuItem>
-          {languages.map((lang) => (
-            <MenuItem onClick={() => setDbLang(lang)}>{lang}</MenuItem>
-          ))}
-        </Menu>
-      </Box>
-      {!dbLang && (
-        <AddVocab
-          open={open}
-          setOpen={setOpen}
-          render={render}
-          setRender={setRender}
-        />
-      )}
-      <VocabCardList
-        dataVocs={dataVocs}
-        allVocs={allVocabs}
-        render={render}
-        searchString={searchString}
-      />
-    </>
-  );
+  // const oldContent = () => (
+  //   <>
+  //     <Typography variant="h5">
+  //       {dbLang ? `${dbLang} Database Vocabs` : "All your Vocabs"}
+  //     </Typography>
+  //     <Box display="flex" flexDirection="row" justifyContent="center" mb={2}>
+  //       <SearchField setSearchTerm={setSearchString} />
+  //       {!dbLang && (
+  //         <Button
+  //           sx={{ mx: 1 }}
+  //           size="large"
+  //           onClick={() => setOpen(!open)}
+  //           endIcon={<AddIcon />}
+  //         >
+  //           Add
+  //         </Button>
+  //       )}
+  //       <Button onClick={handleClick}>DB Vocs</Button>
+  //       <Menu
+  //         id="basic-menu"
+  //         anchorEl={anchorEl}
+  //         open={openDbMen}
+  //         onClose={handleClose}
+  //         MenuListProps={{
+  //           "aria-labelledby": "basic-button",
+  //         }}
+  //       >
+  //         <MenuItem
+  //           onClick={() => {
+  //             setDataVocs(null);
+  //             setDbLang(null);
+  //             handleClose();
+  //           }}
+  //         >
+  //           None
+  //         </MenuItem>
+  //         {languages.map((lang) => (
+  //           <MenuItem onClick={() => setDbLang(lang)}>{lang}</MenuItem>
+  //         ))}
+  //       </Menu>
+  //     </Box>
+  //     {!dbLang && (
+  //       <AddVocab
+  //         open={open}
+  //         setOpen={setOpen}
+  //         render={render}
+  //         setRender={setRender}
+  //       />
+  //     )}
+  //     <VocabCardList
+  //       dataVocs={dataVocs}
+  //       allVocs={allVocabs}
+  //       render={render}
+  //       searchString={searchString}
+  //     />
+  //   </>
+  // );
 
   const [page, setPage] = React.useState(1);
   const handleChange = (event: React.ChangeEvent<unknown>, value: number) => {
@@ -121,71 +127,92 @@ const AllVocabs = () => {
   const handleDelete = () => {
     console.info("You clicked the delete icon.");
   };
-
-  const backgroundColor = "white";
+  const backgroundColor = theme === "light" ? "white" : "#263238";
 
   return (
-    <Box minHeight="73dvh">
-      <VocHeader />
-      <Box
-        border="2px solid lightgrey"
-        mt={4}
-        p={1}
-        height="68dvh"
-        sx={{ position: "relative" }}
-      >
-        <Box position="absolute" top={0} sx={{ transform: "translateY(-50%)" }}>
-          <Stack direction="row" spacing={1}>
-            <Chip
-              size="small"
-              sx={{ backgroundColor }}
-              label="Spanish"
-              variant="outlined"
-              onDelete={handleDelete}
-            />
-            <Chip
-              size="small"
-              sx={{ backgroundColor }}
-              label="not learned"
-              variant="outlined"
-              onDelete={handleDelete}
-            />
-          </Stack>
-        </Box>
-        <VocabCardList
-          dataVocs={dataVocs}
-          allVocs={allVocabs}
-          render={render}
-          searchString={searchString}
-        />
+    <>
+      <VocHeader
+        theme={theme}
+        dbLang={dbLang}
+        setSearchString={setSearchString}
+        searchString={searchString}
+      />
+      <Box minHeight="73dvh" mt={10}>
         <Box
-          width="100%"
-          display="flex"
-          justifyContent="center"
-          position="absolute"
-          bottom={0}
-          sx={{ transform: "translateY(50%)" }}
+          border="2px solid lightgrey"
+          mt={4}
+          mb={3}
+          p={1}
+          minHeight="68dvh"
+          sx={{ position: "relative" }}
         >
           <Box
-            display="flex"
-            p={0.25}
-            sx={{
-              backgroundColor,
-              border: "2px solid lightgrey",
-              borderRadius: 2,
-            }}
+            position="absolute"
+            top={0}
+            sx={{ transform: "translateY(-50%)" }}
           >
-            <Typography variant="body1">100</Typography>
-            <Pagination
-              size="small"
-              count={2}
-              page={page}
-              onChange={handleChange}
-            />
+            <Stack direction="row" spacing={1}>
+              <Chip
+                size="small"
+                sx={{ backgroundColor }}
+                label="Spanish"
+                variant="outlined"
+                onDelete={handleDelete}
+              />
+              <Chip
+                size="small"
+                sx={{ backgroundColor }}
+                label="not learned"
+                variant="outlined"
+                onDelete={handleDelete}
+              />
+              {vocabScreenSettings.catFilter.length > 0 && (
+                <Chip
+                  size="small"
+                  sx={{ backgroundColor }}
+                  label={`Categories: ${vocabScreenSettings.catFilter.join(
+                    ", "
+                  )}`}
+                  variant="outlined"
+                  onDelete={handleDelete}
+                />
+              )}
+            </Stack>
+          </Box>
+          <VocabCardList
+            dataVocs={dataVocs}
+            allVocs={allVocabs}
+            render={render}
+            searchString={searchString}
+          />
+          <Box
+            width="100%"
+            display="flex"
+            justifyContent="center"
+            position="absolute"
+            bottom={0}
+            sx={{ transform: "translateY(50%)" }}
+          >
+            <Box
+              display="flex"
+              p={0.25}
+              sx={{
+                backgroundColor,
+                border: "2px solid lightgrey",
+                borderRadius: 2,
+              }}
+            >
+              <Pagination
+                size="small"
+                count={Math.ceil(allVocabs.getVocCount() / 100) || 1}
+                page={page}
+                onChange={handleChange}
+              />
+            </Box>
           </Box>
         </Box>
       </Box>
-    </Box>
+    </>
   );
 };
 

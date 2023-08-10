@@ -6,7 +6,7 @@ export type VocObj = {
   transLanguage: string;
   vocab: string[];
   translation: string[];
-  pronounciation: string[];
+  pronunciation: string[];
   hints: string[];
   categories: string[];
   workbooks: WorkbookType[];
@@ -48,7 +48,7 @@ export type WorkbookType = {
 //   vocab: ["برنج", "rice"],
 //   translation: ["reis", "lecker"],
 //   hints: ["This is a basic food, which is famous in asia"],
-//   pronounciation: ["berenj"],
+//   pronunciation: ["berenj"],
 //   categories: ["food", "tasty"],
 //   workbooks: [
 //     { name: "food", id: "asdadstring" },
