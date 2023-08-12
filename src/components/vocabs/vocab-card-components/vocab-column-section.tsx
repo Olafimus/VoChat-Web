@@ -1,19 +1,22 @@
 import React from "react";
 import { Vocab } from "../../../logic/classes/vocab.class";
 import VocabCard from "./vocab-card";
+import { useAppSelector } from "../../../app/hooks";
 
 const VocabColumnSection = ({
   num,
-  max,
+  max: maxColumns,
   vocabs,
 }: {
   num: number;
   max: number;
   vocabs: Vocab[];
 }) => {
+  const { vocabScreenSettings } = useAppSelector((state) => state.settings);
   let vocMaxCount = vocabs.length; // real vocabs hier einsetzen
-  if (vocMaxCount > 60) vocMaxCount = 60;
-  const vocPerSection = vocMaxCount / max;
+  if (vocMaxCount > vocabScreenSettings.maxVocs)
+    vocMaxCount = vocabScreenSettings.maxVocs;
+  const vocPerSection = vocMaxCount / maxColumns;
   const start = (num - 1) * vocPerSection;
   const end = start + vocPerSection;
 

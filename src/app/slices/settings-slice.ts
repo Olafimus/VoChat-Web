@@ -1,26 +1,37 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 type ScreenStrings = "" | "contacts" | "chat";
+type VocabSubSettings = {
+  closeAfterAdd: boolean;
+  closeAfterEdit: boolean;
+  submitWithEnter: boolean;
+  needConfirmation: boolean;
+  showWbs: boolean;
+  keepWbs: boolean;
+  showCat: boolean;
+  showImp: boolean;
+  showHints: boolean;
+  showPronunc: boolean;
+};
+type VocabScreenSettings = {
+  keepSettings: boolean;
+  maxVocs: number;
+  catFilter: string[];
+  wbFilter: string[];
+  onlyNew: boolean;
+  onlyUnlearned: boolean;
+  filterByLang: string[];
+  filterByCreator: string[];
+  sortBy: "date" | "score" | "importance" | "none";
+  sortOrder: "standard" | "reversed";
+  timeRange: number;
+};
 
 interface Settings {
   theme: "dark" | "light";
   activeScreen: ScreenStrings;
-  vocabScreenSettings: {
-    maxVocs: number;
-    catFilter: string[];
-  };
-  vocabSubSettings: {
-    closeAfterAdd: boolean;
-    closeAfterEdit: boolean;
-    submitWithEnter: boolean;
-    needConfirmation: boolean;
-    showWbs: boolean;
-    keepWbs: boolean;
-    showCat: boolean;
-    showImp: boolean;
-    showHints: boolean;
-    showPronunc: boolean;
-  };
+  vocabScreenSettings: VocabScreenSettings;
+  vocabSubSettings: VocabSubSettings;
   vocabLearnSettings: {
     defaultVocCount: number;
     checkingConditions: "strict" | "loose";
@@ -33,25 +44,38 @@ interface Settings {
   };
 }
 
+const initalVocabScreenSettings: VocabScreenSettings = {
+  keepSettings: false,
+  maxVocs: 100,
+  catFilter: [],
+  wbFilter: [],
+  onlyNew: false,
+  onlyUnlearned: false,
+  filterByLang: [],
+  filterByCreator: [],
+  sortBy: "none",
+  sortOrder: "standard",
+  timeRange: 0,
+};
+
+const initalVocabSubSettings = {
+  closeAfterAdd: false,
+  closeAfterEdit: false,
+  submitWithEnter: false,
+  needConfirmation: false,
+  showWbs: true,
+  keepWbs: false,
+  showCat: true,
+  showImp: true,
+  showHints: true,
+  showPronunc: true,
+};
+
 const initialState: Settings = {
   theme: "dark",
   activeScreen: "",
-  vocabScreenSettings: {
-    maxVocs: 100,
-    catFilter: [],
-  },
-  vocabSubSettings: {
-    closeAfterAdd: false,
-    closeAfterEdit: false,
-    submitWithEnter: false,
-    needConfirmation: false,
-    showWbs: true,
-    keepWbs: false,
-    showCat: true,
-    showImp: true,
-    showHints: true,
-    showPronunc: true,
-  },
+  vocabScreenSettings: initalVocabScreenSettings,
+  vocabSubSettings: initalVocabSubSettings,
   vocabLearnSettings: {
     defaultVocCount: 20,
     checkingConditions: "strict",
@@ -63,6 +87,8 @@ const initialState: Settings = {
     sender: null,
   },
 };
+
+export type VocScreenSetIdentifier = "onlyNew" | "onlyUnlearned";
 
 export type VocSetIdentifier =
   | "closeAfterAdd"
@@ -120,6 +146,21 @@ export const SettingsSlice = createSlice({
     changeVocCatFilter: (state, action: PayloadAction<string[]>) => {
       state.vocabScreenSettings.catFilter = action.payload;
     },
+    changeVocScreenTimeRange: (state, action: PayloadAction<number>) => {
+      state.vocabScreenSettings.timeRange = action.payload;
+    },
+    keepScreenSettings: (state, action: PayloadAction<boolean>) => {
+      state.vocabScreenSettings.keepSettings = action.payload;
+    },
+    resetScreenSettings: (state) => {
+      state.vocabScreenSettings = initalVocabScreenSettings;
+    },
+    changeVocScreenBoolSetting: (
+      state,
+      action: PayloadAction<{ name: VocScreenSetIdentifier; value: boolean }>
+    ) => {
+      state.vocabScreenSettings[action.payload.name] = action.payload.value;
+    },
   },
 });
 
@@ -134,6 +175,10 @@ export const {
   changeNoteFilter,
   changeMaxShownVocs,
   changeVocCatFilter,
+  keepScreenSettings,
+  resetScreenSettings,
+  changeVocScreenBoolSetting,
+  changeVocScreenTimeRange,
 } = SettingsSlice.actions;
 
 export default SettingsSlice.reducer;

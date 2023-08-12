@@ -59,6 +59,22 @@ export class AllVocabsClass {
     return vocArr;
   }
 
+  getVocLangs() {
+    return this.vocs.reduce((acc: string[], voc) => {
+      const lang = voc.getVocLang();
+      if (!acc.includes(lang)) return [...acc, lang];
+      else return acc;
+    }, []);
+  }
+
+  getVocCreator() {
+    return this.vocs.reduce((acc: string[], voc) => {
+      const owner = voc.getOwner();
+      if (!acc.includes(owner)) return [...acc, owner];
+      else return acc;
+    }, []);
+  }
+
   getDefaultVocs(num: number, timeRef = 10, reThrowMistakes = false) {
     // timeRef describes the threshold in minutes for vocabs to be excluded in the next learn run. If timeRef = 10, than all vocabs which were learned in the last 10 minutes will be excluded
     // reThrowMistakes deaktiviert die timeRef für Vokabeln die zuletzt falsch beantwortet wurden

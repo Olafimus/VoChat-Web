@@ -2,11 +2,16 @@ import React, { useState } from "react";
 import { AllVocabsClass, Vocab } from "../../../logic/classes/vocab.class";
 import { useMediaQuery, Typography, Button } from "@mui/material";
 import VocabColumnSection from "./vocab-column-section";
-import { VocObj } from "../../../logic/types/vocab.types";
+import { VocObj, WorkbookType } from "../../../logic/types/vocab.types";
 import { useAppDispatch, useAppSelector } from "../../../app/hooks";
 import { getAllVocsDb } from "../../../utils/firebase/firebase-vocab";
-import { addVocab } from "../../../app/slices/vocabs-slice";
+import {
+  addVocab,
+  addCategory,
+  addWorkbook,
+} from "../../../app/slices/vocabs-slice";
 import { setAllVocabs } from "../../../app/slices/vocabs-class-slice";
+// import { addWorkbook } from "../../../app/slices/vocabs-slice";
 
 const VocabCardList = ({
   allVocs,
@@ -28,17 +33,33 @@ const VocabCardList = ({
   const matchesTwo = useMediaQuery("(min-width:1075px)");
   const matchesThree = useMediaQuery("(min-width:1400px)");
   const { id: uid } = useAppSelector((state) => state.user);
+  const { workbooks, categories } = useAppSelector((state) => state.vocabs);
 
   const [check, setCheck] = useState(false);
   const loadVocs = async () => {
     const vocs: VocObj[] = await getAllVocsDb(uid);
     const newAllVocabs = new AllVocabsClass([]);
     if (vocs.length < 1) return;
+    const wbs: WorkbookType[] = [];
+    const cats: string[] = [];
+    const wbIds: string[] = workbooks.map((wb) => wb.id);
     vocs.forEach((voc) => {
       newAllVocabs.addVocab(new Vocab(voc));
+      voc.workbooks.forEach((wb) => {
+        if (!wbIds.includes(wb.id)) {
+          wbIds.push(wb.id);
+          wbs.push(wb);
+        }
+      });
+      voc.categories.forEach((cat) => {
+        console.log(cat);
+        if (!categories.includes(cat) && !cats.includes(cat)) cats.push(cat);
+      });
       dispatch(addVocab(voc));
     });
-    console.log(newAllVocabs.getAllVocs());
+    wbs.forEach((wb) => dispatch(addWorkbook));
+    console.log("cats: ", cats);
+    cats.forEach((cat) => dispatch(addCategory({ label: cat })));
     dispatch(setAllVocabs(newAllVocabs));
     setCheck(true);
   };

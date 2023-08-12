@@ -6,10 +6,14 @@ import {
   Typography,
   Box,
   TextField,
+  Switch,
 } from "@mui/material";
 import MoreIcon from "@mui/icons-material/MoreVert";
 import { useAppDispatch, useAppSelector } from "../../../app/hooks";
-import { changeMaxShownVocs } from "../../../app/slices/settings-slice";
+import {
+  changeMaxShownVocs,
+  keepScreenSettings,
+} from "../../../app/slices/settings-slice";
 
 type Props = {};
 
@@ -52,13 +56,26 @@ const OptionsMenu = (props: Props) => {
           "aria-labelledby": "basic-button",
         }}
       >
-        <Box p={1}>
+        <MenuItem
+          sx={{ display: "flex", justifyContent: "space-between", py: 0.4 }}
+        >
+          <Typography variant="body1">Keep Filtersettings on Reload</Typography>
+          <Switch
+            aria-label="keep settings switch"
+            value="keep Settingss"
+            checked={vocabScreenSettings.keepSettings}
+            onChange={() =>
+              dispatch(keepScreenSettings(!vocabScreenSettings.keepSettings))
+            }
+          />
+        </MenuItem>
+        <Box display="flex" justifyContent="center" p={1}>
           {/* <Typography>Vocabs on 1 page:</Typography> */}
           <TextField
             value={newMaxVocs}
             type="number"
             onChange={(e) => setNewMaxVocs(+e.currentTarget.value)}
-            label="Vocabs on 1 page"
+            label="Vocabs per page"
           />
         </Box>
         {/* <MenuItem onClick={handleClose}>Profile</MenuItem> */}
