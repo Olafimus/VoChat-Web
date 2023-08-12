@@ -66,6 +66,9 @@ const FilterMenu = (props: Props) => {
   const [expanded, setExpanded] = useState(false);
   const [expandedCreat, setExpandedCreat] = useState(false);
   const [expandedWb, setExpandedWb] = useState(false);
+  const [checkedLangs, setCheckedLangs] = useState<string[]>([]);
+  const [checkedWbs, setCheckedWbs] = useState<string[]>([]);
+  const [checkedCreator, setCheckedCreator] = useState<string[]>([]);
   const { vocabScreenSettings } = useAppSelector((state) => state.settings);
   const { allVocabs } = useAppSelector((state) => state.allVocabs);
   const { workbooks } = useAppSelector((state) => state.vocabs);
@@ -120,7 +123,6 @@ const FilterMenu = (props: Props) => {
     dispatch(changeVocScreenTimeRange(time));
   };
 
-  console.log("langs: ", allVocabs.getVocLangs());
   return (
     <span>
       <IconButton
@@ -243,9 +245,10 @@ const FilterMenu = (props: Props) => {
           >
             <Typography variant="body1">Show All</Typography>
             <Checkbox
+              checked={checkedLangs.length === 0}
               onChange={(e) => {
                 const check = e.currentTarget.checked;
-                // if (check) setCheckedCats([]);
+                if (check) setCheckedLangs([]);
               }}
             />
           </MenuItem>
@@ -256,9 +259,13 @@ const FilterMenu = (props: Props) => {
             >
               <Typography variant="body1">{lang}</Typography>
               <Checkbox
-                onChange={(e) => {
-                  const check = e.currentTarget.checked;
-                  // if (check) setCheckedCats([]);
+                checked={checkedLangs.includes(lang)}
+                onClick={(e) => {
+                  const check = checkedLangs.includes(lang);
+                  if (!check) {
+                    setCheckedLangs((cur) => [...cur, lang]);
+                  } else
+                    setCheckedLangs((cur) => cur.filter((el) => el !== lang));
                 }}
               />
             </MenuItem>
@@ -285,9 +292,10 @@ const FilterMenu = (props: Props) => {
           >
             <Typography variant="body1">Show All</Typography>
             <Checkbox
+              checked={checkedWbs.length === 0}
               onChange={(e) => {
                 const check = e.currentTarget.checked;
-                // if (check) setCheckedCats([]);
+                if (check) setCheckedWbs([]);
               }}
             />
           </MenuItem>
@@ -298,9 +306,13 @@ const FilterMenu = (props: Props) => {
             >
               <Typography variant="body1">{wb.name}</Typography>
               <Checkbox
-                onChange={(e) => {
-                  const check = e.currentTarget.checked;
-                  // if (check) setCheckedCats([]);
+                checked={checkedWbs.includes(wb.id)}
+                onClick={(e) => {
+                  const check = checkedWbs.includes(wb.id);
+                  if (!check) {
+                    setCheckedWbs((cur) => [...cur, wb.id]);
+                  } else
+                    setCheckedWbs((cur) => cur.filter((el) => el !== wb.id));
                 }}
               />
             </MenuItem>
@@ -327,9 +339,10 @@ const FilterMenu = (props: Props) => {
           >
             <Typography variant="body1">Show All</Typography>
             <Checkbox
+              checked={checkedCreator.length === 0}
               onChange={(e) => {
                 const check = e.currentTarget.checked;
-                // if (check) setCheckedCats([]);
+                if (check) setCheckedCreator([]);
               }}
             />
           </MenuItem>
@@ -340,9 +353,15 @@ const FilterMenu = (props: Props) => {
             >
               <Typography variant="body1">{creator}</Typography>
               <Checkbox
-                onChange={(e) => {
-                  const check = e.currentTarget.checked;
-                  // if (check) setCheckedCats([]);
+                checked={checkedCreator.includes(creator)}
+                onClick={(e) => {
+                  const check = checkedCreator.includes(creator);
+                  if (!check) {
+                    setCheckedCreator((cur) => [...cur, creator]);
+                  } else
+                    setCheckedCreator((cur) =>
+                      cur.filter((el) => el !== creator)
+                    );
                 }}
               />
             </MenuItem>

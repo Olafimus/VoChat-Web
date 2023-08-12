@@ -79,7 +79,7 @@ export default function LearnTabs({ vocabs }: { vocabs: Vocab[] }) {
   }, [finished]);
 
   useEffect(() => {
-    console.log(vocabs);
+    // console.log(vocabs);
   }, [completed]);
 
   return (

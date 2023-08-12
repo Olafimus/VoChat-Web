@@ -22,6 +22,6 @@ export const addVocToPre = async () => {
   };
   const vocabs = Object.values(preData);
   // vocabs.forEach((vocs) => vocs.forEach((voc) => uploadVoc(voc)));
-  vocabs[6].forEach((voc) => uploadVoc(voc));
-  console.log("6", vocabs[6]);
+  // vocabs[6].forEach((voc) => uploadVoc(voc));
+  // console.log("6", vocabs[6]);
 };

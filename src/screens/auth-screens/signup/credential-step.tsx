@@ -49,7 +49,6 @@ const CredentialsStep = ({
 
     if (checks.includes(false)) return;
 
-    console.log(nameCheck);
     handleCredSub({ name, mail, password });
   };
 

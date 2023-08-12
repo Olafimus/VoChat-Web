@@ -60,7 +60,6 @@ export const deleteVocDb = async (id: string, uid: string) => {
 export const updateVocDb = async (voc: VocObj, uid: string) => {
   const q = query(vocCol, where("id", "==", voc.id), where("owner", "==", uid));
   const snap = await getDocs(q);
-  console.log(voc);
   let ref: string | undefined = snap.docs[0].ref.id;
   if (ref) updateDoc(doc(vocCol, ref), { ...voc });
 };

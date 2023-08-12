@@ -78,7 +78,6 @@ const LanguageConfiguration: React.FC<LangConfigProps> = ({
         (teachLang) => languages.find((lang) => lang[0] === teachLang) || []
       );
     }
-    console.log(defTeachLangs);
     setTempLangs({
       vocLang: defVocLang,
       transLang: defTransLang,
@@ -92,10 +91,8 @@ const LanguageConfiguration: React.FC<LangConfigProps> = ({
   };
 
   const handleProfileChange = () => {
-    console.log(tempLangs);
     const teachLangLoad = tempLangs.teachLangs.map((el) => el[0]);
     const learnLangLoad = tempLangs.learnLangs.map((el) => el[0]);
-    console.log(teachLangLoad, learnLangLoad);
     dispatch(changeCurLang(tempLangs.vocLang));
     dispatch(changeNativeLang(tempLangs.transLang));
     dispatch(changeTeachLangs(teachLangLoad));

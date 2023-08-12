@@ -46,19 +46,18 @@ const VocabCardList = ({
     vocs.forEach((voc) => {
       newAllVocabs.addVocab(new Vocab(voc));
       voc.workbooks.forEach((wb) => {
+        console.log("wb inner: ", wb);
         if (!wbIds.includes(wb.id)) {
           wbIds.push(wb.id);
           wbs.push(wb);
         }
       });
       voc.categories.forEach((cat) => {
-        console.log(cat);
         if (!categories.includes(cat) && !cats.includes(cat)) cats.push(cat);
       });
       dispatch(addVocab(voc));
     });
-    wbs.forEach((wb) => dispatch(addWorkbook));
-    console.log("cats: ", cats);
+    wbs.forEach((wb) => dispatch(addWorkbook(wb)));
     cats.forEach((cat) => dispatch(addCategory({ label: cat })));
     dispatch(setAllVocabs(newAllVocabs));
     setCheck(true);

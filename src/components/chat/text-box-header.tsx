@@ -82,9 +82,7 @@ const ChatBoxHeader = ({
   };
 
   const handleDelete = async () => {
-    console.log(cIds);
     const friend = friends.find((el) => cIds.includes(el.id));
-    console.log(friend);
     if (!friend) return;
     try {
       const newFriends = friends.filter((el) => el.id !== friend.id);

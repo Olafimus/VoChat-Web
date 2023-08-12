@@ -13,7 +13,6 @@ const UserDataLoader: React.FC<{ id: string }> = ({ id }) => {
   });
 
   useEffect(() => {
-    console.log("test");
     if (!value) return;
     const data = value.data();
     if (!data) return;

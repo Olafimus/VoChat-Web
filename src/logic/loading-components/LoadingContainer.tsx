@@ -34,7 +34,6 @@ const LoadingContainer = () => {
   }, [unreadMsgs]);
 
   useEffect(() => {
-    console.log(window.location.href);
     if (window.location.href.includes("signup")) return;
     const unsubscribe = onAuthStateChangedListener((user) => {
       if (user) {

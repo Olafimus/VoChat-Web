@@ -148,11 +148,9 @@ const ChatTextBox = ({ matches }: { matches: boolean }) => {
   }, [scroll]);
 
   const searchFunc = (search: string) => {
-    console.log(messages);
     const filteredMsgs = messages.filter((msg) =>
       msg.messageHis.at(-1)?.message.includes(search)
     );
-    console.log(filteredMsgs);
     setMessages(filteredMsgs);
   };
 

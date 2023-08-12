@@ -39,8 +39,6 @@ const CategoriesMenu = ({
     dispatch(changeVocCatFilter(checkedCats));
   };
 
-  console.log(checkedCats);
-
   return (
     <>
       {!matches ? (
@@ -95,6 +93,7 @@ const CategoriesMenu = ({
             >
               <Typography variant="body1">Show All</Typography>
               <Checkbox
+                checked={checkedCats.length === 0}
                 onChange={(e) => {
                   const check = e.currentTarget.checked;
                   if (check) setCheckedCats([]);
@@ -115,8 +114,9 @@ const CategoriesMenu = ({
               checked={checkedCats.includes(cat)}
               onClick={(e) => {
                 const check = checkedCats.includes(cat);
-                if (!check) setCheckedCats((cur) => [...cur, cat]);
-                else setCheckedCats((cur) => cur.filter((el) => el !== cat));
+                if (!check) {
+                  setCheckedCats((cur) => [...cur, cat]);
+                } else setCheckedCats((cur) => cur.filter((el) => el !== cat));
               }}
             />
           </MenuItem>

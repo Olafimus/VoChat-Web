@@ -173,7 +173,6 @@ const WorkbookView = ({
                 onClick={() => {
                   const newWb: WorkbookType = { ...wb };
                   newWb.owner = uid;
-                  console.log(newWb, vocabs);
                 }}
               >
                 Add to your Books

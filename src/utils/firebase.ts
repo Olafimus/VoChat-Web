@@ -174,7 +174,6 @@ export const deleteContact = async (
   const conversationDocRef = doc(db, "conversations", convId);
 
   // friends hier filtern
-  console.log("new friends: ", newFriends);
   await updateDoc(userDocRef, {
     friends: newFriends,
     deletedFriends: arrayUnion(friend),
@@ -182,7 +181,6 @@ export const deleteContact = async (
     leftConversations: arrayUnion({ id: convId, contact: friend.id }),
   });
 
-  console.log("reached1");
   await updateDoc(conversationDocRef, {
     leftUsers: arrayUnion({ user: uid, time: Date.now() }),
     inactive: !multiChat,

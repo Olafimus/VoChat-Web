@@ -46,7 +46,6 @@ const ConversationLoader: React.FC<Prop> = ({ conversation }) => {
   const checkIfNewOldKey = async (ref: string, count: number) => {
     if (ref === "none") return;
     const thisOldMessages = oldMessages.find((el) => el.ref === ref);
-    console.log("fired");
     const msgs = await getOldMessages(ref);
     if (!msgs) return;
     if (!thisOldMessages) return dispatch(addOldMsg({ ref, msgs }));

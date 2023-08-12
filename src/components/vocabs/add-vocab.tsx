@@ -121,7 +121,6 @@ const AddVocab = ({
   };
   let [transLangDisabler, setTransLangDisabler] = React.useState(true);
   let [vocLangDisabler, setVocLangDisabler] = React.useState(true);
-  console.log(vocab?.getCategories(), cats);
   let disable = true;
   if (vocabTxt !== "" && translTxt !== "") disable = false;
   // const dummyOptions = [
@@ -309,7 +308,6 @@ const AddVocab = ({
                   error={vocabErr}
                   value={vocabTxt}
                   onChange={(e) => {
-                    console.log(createArrFromString(e.currentTarget.value));
                     setVocabErr(false);
                     setVocabTxt(e.currentTarget.value);
                   }}

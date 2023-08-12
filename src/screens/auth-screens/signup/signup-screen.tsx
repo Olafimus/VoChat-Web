@@ -95,7 +95,6 @@ export default function SignUpStepper() {
       if (!user) throw new Error("fail");
       const teachLangs = langs.teachLangs.map((el) => el[0]);
       const learnLangs = langs.learnLangs.map((el) => el[0]);
-      console.log(teachLangs, learnLangs);
       await createUserDocumentFromAuth(
         user.user,
         credentials.name,

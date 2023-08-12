@@ -281,7 +281,7 @@ export class Vocab {
     let failFactor = incorrectCount / recentLearnHistory.length;
     if (!failFactor) failFactor = 1;
 
-    console.log(failFactor);
+    // console.log(failFactor);
 
     // Berechnung der Importance mit zusätzlicher Berücksichtigung der Inaktivität und des letzten falschen Ergebnisses
     let calcImportance = this.voc.setImportance * failFactor;

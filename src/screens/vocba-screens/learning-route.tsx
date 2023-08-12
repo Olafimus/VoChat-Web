@@ -79,7 +79,6 @@ const LearningRoute = () => {
       </>
     );
   };
-  console.log(route);
   return (
     <>
       <Typography>2 / 4</Typography>
