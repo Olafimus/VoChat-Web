@@ -1,13 +1,22 @@
 import { PayloadAction, createSlice } from "@reduxjs/toolkit";
 import { VocObj } from "../../logic/types/vocab.types";
 import { AllVocabsClass } from "../../logic/classes/vocab.class";
+import { dbLangObj } from "../../assets/constants/db-lang-obj";
 
+type dbLangKeys = keyof typeof dbLangObj;
 interface VocabClassState {
   allVocabs: AllVocabsClass;
+  dbLang: keyof typeof dbLangObj | null;
+  dataCategories: string[];
+  // vocHeaderTitle: "Y"
+  dataVocs: AllVocabsClass | null;
 }
 
 const initialState: VocabClassState = {
   allVocabs: new AllVocabsClass([]),
+  dataVocs: null,
+  dbLang: null,
+  dataCategories: [],
 };
 
 const allVocabsSlice = createSlice({
@@ -17,9 +26,21 @@ const allVocabsSlice = createSlice({
     setAllVocabs: (state, actions: PayloadAction<AllVocabsClass>) => {
       state.allVocabs = actions.payload;
     },
+    setDataVocs: (state, actions: PayloadAction<AllVocabsClass | null>) => {
+      state.dataVocs = actions.payload;
+      if (!actions.payload) return;
+      const categories = actions.payload.getCategories();
+      state.dataCategories = categories;
+    },
+    setDbLang: (
+      state,
+      actions: PayloadAction<keyof typeof dbLangObj | null>
+    ) => {
+      state.dbLang = actions.payload;
+    },
   },
 });
 
-export const { setAllVocabs } = allVocabsSlice.actions;
+export const { setAllVocabs, setDataVocs, setDbLang } = allVocabsSlice.actions;
 
 export default allVocabsSlice.reducer;

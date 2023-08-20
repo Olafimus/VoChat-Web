@@ -1,6 +1,8 @@
 import { Typography } from "@mui/material";
 import { getFormatedDate } from "../../../utils/getFormDate";
 import { Message } from "../../../logic/types/message.types";
+import { Interweave } from "interweave";
+import { UrlMatcher } from "interweave-autolink";
 
 export const StandardMsgBox = ({
   msg,
@@ -18,11 +20,9 @@ export const StandardMsgBox = ({
         gap: "1rem",
       }}
     >
-      <Typography
-        dangerouslySetInnerHTML={{ __html: msgHTML }}
-        variant="body1"
-        style={{ fontSize: "16px" }}
-      ></Typography>
+      <Typography variant="body1" style={{ fontSize: "16px" }}>
+        <Interweave content={msgHTML} />
+      </Typography>
       <Typography variant="caption">{getFormatedDate(msg.time)}</Typography>
     </div>
   );

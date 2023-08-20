@@ -86,9 +86,9 @@ const LanguageConfiguration: React.FC<LangConfigProps> = ({
     });
   }, [teachLanguages, learnLanguages]);
 
-  const handleLangSet = () => {
-    console.log(tempLangs);
-  };
+  // const handleLangSet = () => {
+  //   console.log(tempLangs);
+  // };
 
   const handleProfileChange = () => {
     const teachLangLoad = tempLangs.teachLangs.map((el) => el[0]);

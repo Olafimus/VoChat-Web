@@ -90,7 +90,6 @@ const WorkbookCard = ({ wb }: { wb: WorkbookType }) => {
               size="small"
               aria-label="share"
               onClick={(e) => {
-                console.log(wbVocObjs);
                 setAnchorEl(e.currentTarget);
                 e.stopPropagation();
                 setOpenShareMenu(true);

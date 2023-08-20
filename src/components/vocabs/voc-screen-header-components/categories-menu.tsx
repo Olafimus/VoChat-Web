@@ -26,9 +26,10 @@ const CategoriesMenu = ({
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
   const { categories } = useAppSelector((state) => state.vocabs);
+  const { dataCategories, dbLang } = useAppSelector((state) => state.allVocabs);
   const backgroundColor = theme === "light" ? "white" : "#5c6bc0";
   // const color =
-
+  const filCats = dbLang ? dataCategories : categories;
   const [checkedCats, setCheckedCats] = useState<string[]>([]);
 
   const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
@@ -81,13 +82,14 @@ const CategoriesMenu = ({
           "aria-labelledby": "basic-button",
         }}
       >
-        {categories.length > 0 ? (
+        {filCats.length > 0 ? (
           <span>
-            <TextField
+            {/* <TextField
               size="small"
               label="Search"
               sx={{ m: "5px", position: "sticky" }}
-            />
+              onChange={(e) => e.preventDefault()}
+            /> */}
             <MenuItem
               sx={{ display: "flex", justifyContent: "space-between", py: 0.4 }}
             >
@@ -104,7 +106,7 @@ const CategoriesMenu = ({
         ) : (
           <MenuItem>No Vocabs with Categories yet!</MenuItem>
         )}
-        {categories.map((cat) => (
+        {filCats.map((cat) => (
           <MenuItem
             key={cat}
             sx={{ display: "flex", justifyContent: "space-between", py: 0.4 }}

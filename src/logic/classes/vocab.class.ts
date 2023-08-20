@@ -67,6 +67,18 @@ export class AllVocabsClass {
     }, []);
   }
 
+  getCategories() {
+    const catss = this.vocs.reduce((acc: string[], cur) => {
+      const cats = cur.getCategories();
+      const newCats: string[] = [];
+      cats.forEach((cat) => {
+        if (!acc.includes(cat)) newCats.push(cat);
+      });
+      return [...acc, ...newCats];
+    }, []);
+    return catss;
+  }
+
   getVocCreator() {
     return this.vocs.reduce((acc: string[], voc) => {
       const owner = voc.getOwner();
@@ -202,11 +214,17 @@ export class Vocab {
   getChecked() {
     return this.checked;
   }
+  getCreatedAt() {
+    return this.voc.createdAt;
+  }
   getLastAnswer() {
     return this.lastAnswer;
   }
   getResult() {
     return this.result;
+  }
+  getLearnHis() {
+    return this.voc.learnHistory;
   }
   updateVoc(vocObj: VocObj) {
     // this.voc.categories = vocObj.categories
@@ -275,8 +293,6 @@ export class Vocab {
       (count, entry) => count + (entry.result === false ? 1 : 0),
       0
     );
-
-    console.log(incorrectCount, "recent: ", recentLearnHistory.length);
 
     let failFactor = incorrectCount / recentLearnHistory.length;
     if (!failFactor) failFactor = 1;

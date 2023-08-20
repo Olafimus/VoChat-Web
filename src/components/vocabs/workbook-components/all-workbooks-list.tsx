@@ -47,7 +47,6 @@ const WorkbookCardList = ({
 
   const loadWorkbooks = async () => {
     const wbs = await getAllWbsDb(uid);
-    console.log(wbs);
     wbs.forEach((wb) => dispatch(addWorkbook(wb)));
   };
 

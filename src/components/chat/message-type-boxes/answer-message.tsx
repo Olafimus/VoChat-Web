@@ -1,6 +1,6 @@
 import { Typography, Box, Divider, Tooltip } from "@mui/material";
 import { Message } from "../../../logic/types/message.types";
-
+import { Interweave } from "interweave";
 import { formatMsg } from "../../../utils/text-scripts/fortmat-message";
 import { getFormatedDate } from "../../../utils/getFormDate";
 import { useAppSelector } from "../../../app/hooks";
@@ -49,10 +49,11 @@ const AnsweredMsgBox = ({
         }}
       >
         <Typography
-          dangerouslySetInnerHTML={{ __html: oldText }}
           variant="body1"
           style={{ fontSize: "16px", paddingLeft: "0.3rem" }}
-        ></Typography>
+        >
+          <Interweave content={oldText} />
+        </Typography>
         <Typography variant="caption" sx={{ paddingTop: "0.2rem" }}>
           {getFormatedDate(oldTime)}
         </Typography>
@@ -81,11 +82,9 @@ const AnsweredMsgBox = ({
           gap: "1rem",
         }}
       >
-        <Typography
-          dangerouslySetInnerHTML={{ __html: msgHTML }}
-          variant="body1"
-          style={{ fontSize: "16px" }}
-        ></Typography>
+        <Typography variant="body1" style={{ fontSize: "16px" }}>
+          <Interweave content={msgHTML} />
+        </Typography>
         <Typography variant="caption">{getFormatedDate(msg.time)}</Typography>
       </div>
     </>

@@ -28,7 +28,6 @@ const UserDataLoader: React.FC<{ id: string }> = ({ id }) => {
       allVocabs: data.allVocabs,
       deletedFriends: data?.deletedFriends || [],
     };
-    console.log("userdata: ", userData.deletedFriends);
     dispatch(setFriends(friends));
     dispatch(setUserData(userData));
   }, [value]);

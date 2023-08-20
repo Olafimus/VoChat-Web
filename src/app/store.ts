@@ -5,6 +5,7 @@ import {
   combineReducers,
 } from "@reduxjs/toolkit";
 import storage from "redux-persist/lib/storage";
+import localforage from "localforage";
 import { persistReducer } from "redux-persist";
 import persistStore from "redux-persist/es/persistStore";
 import thunk from "redux-thunk";
@@ -15,10 +16,16 @@ import conversationReducer from "./slices/conversation-slice";
 import AllVocabsReducer from "./slices/vocabs-class-slice";
 import NoteReducer from "./slices/notes-slice";
 
-const persistConfig = {
+const rootPersistConfig = {
   key: "root",
-  storage,
-  blacklist: ["user", "allVocabs", "settings", "vocabs"],
+  storage: localforage,
+  blacklist: ["user", "allVocabs"],
+};
+
+const userPersistConfig = {
+  key: "user",
+  storage: storage,
+  blacklist: ["currentUser"],
 };
 
 // const userConfig = {
@@ -29,14 +36,14 @@ const persistConfig = {
 
 const appReducer = combineReducers({
   settings: SettingsReducer,
-  user: UserReducer,
+  user: persistReducer(userPersistConfig, UserReducer),
   vocabs: vocabsReducer,
   allVocabs: AllVocabsReducer,
   conversations: conversationReducer,
   notes: NoteReducer,
 });
 
-const persistedReducer = persistReducer(persistConfig, appReducer);
+const persistedReducer = persistReducer(rootPersistConfig, appReducer);
 
 export const store = configureStore({
   reducer: persistedReducer,

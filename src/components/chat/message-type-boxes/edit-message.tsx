@@ -3,6 +3,8 @@ import { Message } from "../../../logic/types/message.types";
 import { Typography, Box, Divider, Tooltip } from "@mui/material";
 import { formatMsg } from "../../../utils/text-scripts/fortmat-message";
 import { getFormatedDate } from "../../../utils/getFormDate";
+import { Interweave } from "interweave";
+
 import * as Diff from "diff";
 const EditedMsgBox = ({
   msg,
@@ -48,10 +50,11 @@ const EditedMsgBox = ({
         }}
       >
         <Typography
-          dangerouslySetInnerHTML={{ __html: oldText }}
           variant="body1"
           style={{ fontSize: "16px", paddingLeft: "0.3rem" }}
-        ></Typography>
+        >
+          <Interweave content={oldText} />
+        </Typography>
         <Typography variant="caption" sx={{ paddingTop: "0.2rem" }}>
           {getFormatedDate(oldTime)}
         </Typography>

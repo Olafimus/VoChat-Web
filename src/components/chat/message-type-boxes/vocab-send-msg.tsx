@@ -2,6 +2,7 @@ import { Typography, Box, Divider, Tooltip } from "@mui/material";
 import LanguageRoundedIcon from "@mui/icons-material/LanguageRounded";
 import PriorityHighRoundedIcon from "@mui/icons-material/PriorityHighRounded";
 import CategoryRoundedIcon from "@mui/icons-material/CategoryRounded";
+import { Interweave } from "interweave";
 import { red, blue, cyan, lightBlue, teal } from "@mui/material/colors";
 import { VocObj } from "../../../logic/types/vocab.types";
 import { supLangObj } from "../../../utils/country-flags";
@@ -91,11 +92,9 @@ const VocMsgBox = ({ vocab, msgHTML }: VocMsgProps) => {
           </Tooltip>
         </Box>
       </Box>
-      <Typography
-        dangerouslySetInnerHTML={{ __html: msgHTML }}
-        variant="body1"
-        style={{ fontSize: "16px" }}
-      ></Typography>
+      <Typography variant="body1" style={{ fontSize: "16px" }}>
+        <Interweave content={msgHTML} />
+      </Typography>
     </Box>
   );
 };

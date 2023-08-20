@@ -5,6 +5,7 @@ import { WorkbookType } from "../../../logic/types/vocab.types";
 import FunctionsIcon from "@mui/icons-material/Functions";
 import LanguageRoundedIcon from "@mui/icons-material/LanguageRounded";
 import WorkbookView from "./../../vocabs/workbook-components/workbook-view";
+import { Interweave } from "interweave";
 
 const WbMsgBox = ({
   wb,
@@ -87,11 +88,9 @@ const WbMsgBox = ({
             </Tooltip>
           </Box>
         </Box>
-        <Typography
-          dangerouslySetInnerHTML={{ __html: msgHTML }}
-          variant="body1"
-          style={{ fontSize: "16px" }}
-        ></Typography>
+        <Typography variant="body1" style={{ fontSize: "16px" }}>
+          <Interweave content={msgHTML} />
+        </Typography>
       </Box>
       <WorkbookView wb={wb} wbVocRef={wb.id} open={open} setOpen={setOpen} />
     </>

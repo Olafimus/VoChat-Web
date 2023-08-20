@@ -216,6 +216,7 @@ const AddVocab = ({
       setPronounceTxt("");
       setHintsTxt("");
       if (type === "add" && !vocabSubSettings.keepWbs) setWbSelection([]);
+      if (type === "add" && !vocabSubSettings.keepCats) setCatSelection([]);
       setVocLangDisabler(true);
       setTransLangDisabler(true);
       if (setRender) setRender(!render);

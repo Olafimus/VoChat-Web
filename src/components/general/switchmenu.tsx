@@ -223,6 +223,23 @@ const SwitchMenu = ({
         <Divider sx={{ my: 0.5 }} />
         <MenuItem disableRipple>
           <Switch
+            value="keepCats"
+            onChange={(e) => {
+              dispatch(
+                changeVocBoolSetting({
+                  name: "keepCats",
+                  value: e.currentTarget.checked,
+                })
+              );
+            }}
+            checked={vocabSubSettings.keepCats}
+            name="Keep Categories"
+          />
+          Keep Categories
+        </MenuItem>
+        <Divider sx={{ my: 0.5 }} />
+        <MenuItem disableRipple>
+          <Switch
             value="showImp"
             onChange={(e) => {
               dispatch(

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AllVocabsClass, Vocab } from "../../../logic/classes/vocab.class";
 import { useMediaQuery, Typography, Button } from "@mui/material";
 import VocabColumnSection from "./vocab-column-section";
@@ -11,6 +11,7 @@ import {
   addWorkbook,
 } from "../../../app/slices/vocabs-slice";
 import { setAllVocabs } from "../../../app/slices/vocabs-class-slice";
+import { useVocFilter } from "../../../utils/hooks/useVocFilter";
 // import { addWorkbook } from "../../../app/slices/vocabs-slice";
 
 const VocabCardList = ({
@@ -18,16 +19,17 @@ const VocabCardList = ({
   dataVocs,
   searchString,
   render,
+  page,
 }: {
   allVocs: AllVocabsClass;
   dataVocs: AllVocabsClass | null;
   searchString: string;
   render: boolean;
+  page: number;
 }) => {
   const dispatch = useAppDispatch();
   const [columnCount, setColumnCount] = React.useState(1);
   const [loading, setLoading] = useState(true);
-  const [filteredVocs, setFilteredVocs] = React.useState<Vocab[]>([]);
   const columnArr = [1, 2, 3, 4, 5];
   const matchesOne = useMediaQuery("(min-width:750px)");
   const matchesTwo = useMediaQuery("(min-width:1075px)");
@@ -35,7 +37,13 @@ const VocabCardList = ({
   const { id: uid } = useAppSelector((state) => state.user);
   const { workbooks, categories } = useAppSelector((state) => state.vocabs);
 
-  const [check, setCheck] = useState(false);
+  const [filteredVocs, check] = useVocFilter(
+    allVocs,
+    dataVocs,
+    searchString,
+    render
+  );
+
   const loadVocs = async () => {
     const vocs: VocObj[] = await getAllVocsDb(uid);
     const newAllVocabs = new AllVocabsClass([]);
@@ -46,7 +54,6 @@ const VocabCardList = ({
     vocs.forEach((voc) => {
       newAllVocabs.addVocab(new Vocab(voc));
       voc.workbooks.forEach((wb) => {
-        console.log("wb inner: ", wb);
         if (!wbIds.includes(wb.id)) {
           wbIds.push(wb.id);
           wbs.push(wb);
@@ -60,29 +67,16 @@ const VocabCardList = ({
     wbs.forEach((wb) => dispatch(addWorkbook(wb)));
     cats.forEach((cat) => dispatch(addCategory({ label: cat })));
     dispatch(setAllVocabs(newAllVocabs));
-    setCheck(true);
   };
 
-  React.useLayoutEffect(() => {
-    if (allVocs.getVocCount() > 0 || dataVocs) setCheck(true);
-    const vocArr = dataVocs
-      ? dataVocs.getFilteredVoc(searchString)
-      : allVocs.getFilteredVoc(searchString);
-    if (!vocArr) return;
-    setFilteredVocs(vocArr);
-  }, [searchString, render, allVocs.getVocCount(), dataVocs]);
-
-  React.useEffect(() => {
-    if (!matchesOne) {
-      return setColumnCount(1);
-    }
+  useEffect(() => {
+    // setLoading(true);
+    if (!matchesOne) setColumnCount(1);
     if (matchesOne) setColumnCount(2);
     if (matchesTwo) setColumnCount(3);
     if (matchesThree) setColumnCount(4);
     setLoading(false);
   }, [matchesOne, matchesTwo, matchesThree]);
-
-  // console.log(dbLang, dataVocs);
 
   return (
     <>
@@ -96,17 +90,20 @@ const VocabCardList = ({
         </>
       )}
       <div id="all-vocs-container" className="vocab-card-list-container">
-        {!loading &&
+        {!loading ? (
           columnArr
             .slice(0, columnCount)
             .map((colNum) => (
               <VocabColumnSection
-                num={colNum}
+                num={colNum + columnCount * (page - 1)}
                 max={columnCount}
                 vocabs={filteredVocs}
                 key={colNum}
               />
-            ))}
+            ))
+        ) : (
+          <div>loading</div>
+        )}
       </div>
     </>
   );

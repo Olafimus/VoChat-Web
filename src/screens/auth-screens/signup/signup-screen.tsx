@@ -41,7 +41,6 @@ export default function SignUpStepper() {
   useEffect(() => {
     dispatch(resetUserState());
     dispatch(resetConversations());
-    console.log("run");
   }, []);
 
   const totalSteps = () => {

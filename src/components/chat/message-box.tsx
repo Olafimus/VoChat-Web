@@ -1,6 +1,7 @@
 import { Typography } from "@mui/material";
 import Box from "@mui/material/Box";
 import Modal from "@mui/material/Modal";
+import { Interweave } from "interweave";
 import React, { useEffect, useState } from "react";
 import { Message, MsgHisTypes } from "../../logic/types/message.types";
 import { useAppSelector } from "../../app/hooks";
@@ -75,7 +76,6 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
 
   // formating URLs and too long words
   const text = msg.messageHis.at(-1)?.message || "";
-
   const msgText = formatMsg(text);
   const msgHTML = formatInnerHTML(msgText) || msgText;
 
@@ -259,7 +259,6 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
               id="modal-modal-title"
               variant="h6"
               component="h2"
-              dangerouslySetInnerHTML={{ __html: text }}
               style={{
                 border: "solid 0.15rem #2756ef",
                 padding: "0.5rem",
@@ -268,7 +267,9 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
                 marginBottom: "8px",
                 borderRadius: "5px",
               }}
-            ></Typography>
+            >
+              <Interweave content={text} />
+            </Typography>
             <span className="msg-sender">{name}</span>
           </span>
 

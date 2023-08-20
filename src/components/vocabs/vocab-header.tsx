@@ -1,10 +1,9 @@
-import { useState, MouseEvent, Dispatch, useRef } from "react";
+import { useState, MouseEvent, Dispatch } from "react";
 import AppBar from "@mui/material/AppBar";
 import { styled } from "@mui/material/styles";
 import Box from "@mui/material/Box";
-import { useMediaQuery } from "@mui/material";
+import { Tooltip, useMediaQuery } from "@mui/material";
 import Toolbar from "@mui/material/Toolbar";
-import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import AddIcon from "@mui/icons-material/Add";
@@ -15,6 +14,8 @@ import SearchField from "../general/search-field";
 import FilterMenu from "./voc-screen-header-components/filter-menu";
 import OptionsMenu from "./voc-screen-header-components/options-menu";
 import CategoriesMenu from "./voc-screen-header-components/categories-menu";
+import { useAppSelector } from "../../app/hooks";
+import DbLangMenu from "./voc-screen-header-components/db-lang-menu";
 
 const StyledFab = styled(Fab)({
   position: "absolute",
@@ -28,7 +29,7 @@ const StyledFab = styled(Fab)({
 });
 
 type HeaderProps = {
-  dbLang: string | null;
+  // dbLang: string | null;
   setSearchString: Dispatch<React.SetStateAction<string>>;
   theme: string;
   searchString: string;
@@ -36,7 +37,7 @@ type HeaderProps = {
 
 const VocHeader = ({
   theme,
-  dbLang,
+  // dbLang,
   setSearchString,
   searchString,
 }: HeaderProps) => {
@@ -44,11 +45,12 @@ const VocHeader = ({
   const [render, setRender] = useState(false);
   const [searchActive, setSearchActive] = useState(false);
 
+  const dbLang = useAppSelector((state) => state.allVocabs.dbLang);
+
   const matches = useMediaQuery("(min-width:1000px)");
   const matches2 = useMediaQuery("(min-width:850px)");
   const matches3 = useMediaQuery("(min-width:600px)");
-  const flag = "\ud83c\uddee\ud83c\uddf3";
-  let vocabType = "Your Vocabs"; // Je nachdem was gezeigt wird
+  let vocabType = dbLang ? `${dbLang} Database Vocabs` : "Your Vocabs"; // Je nachdem was gezeigt wird
   const bgcolor = theme === "dark" ? "#3f51b5" : "#81d4fa";
 
   const onBlur = () => {
@@ -72,15 +74,10 @@ const VocHeader = ({
           </IconButton>
         </>
       )}
-      <Tooltip arrow title="Filter Categories">
-        <CategoriesMenu theme={theme} matches={matches} />
-      </Tooltip>
-      <Tooltip arrow title="Set Filters">
-        <FilterMenu />
-      </Tooltip>
-      <Tooltip arrow title="Show options">
-        <OptionsMenu />
-      </Tooltip>
+      <CategoriesMenu theme={theme} matches={matches} />
+      {!dbLang && <FilterMenu />}
+      <DbLangMenu theme={theme} matches={matches} />
+      <OptionsMenu />
     </>
   );
 
@@ -105,13 +102,20 @@ const VocHeader = ({
           </Typography>
 
           {!searchActive && (
-            <StyledFab
-              color="primary"
-              aria-label="add"
-              onClick={() => setOpen(!open)}
+            <Tooltip
+              title={dbLang ? "Add all to your Vocabs" : "Add a Vocab"}
+              placement="top"
+              disableInteractive
+              arrow
             >
-              <AddIcon />
-            </StyledFab>
+              <StyledFab
+                color={dbLang ? "success" : "primary"}
+                aria-label="add"
+                onClick={() => setOpen(!open)}
+              >
+                <AddIcon />
+              </StyledFab>
+            </Tooltip>
           )}
           <Box sx={{ flexGrow: 1 }} />
           {searchActive ? (
@@ -123,24 +127,6 @@ const VocHeader = ({
           ) : (
             rightSide
           )}
-          {/* {matches2 ? (
-          <SearchField setSearchTerm={setSearchString} />
-        ) : (
-          <>
-            <IconButton aria-label="search-menu" color="inherit">
-              <SearchIcon />
-            </IconButton>
-          </>
-        )}
-        <Tooltip arrow title="Filter Categories">
-          <CategoriesMenu matches={matches} />
-        </Tooltip>
-        <Tooltip arrow title="Set Filters">
-          <FilterMenu />
-        </Tooltip>
-        <Tooltip arrow title="Show options">
-          <OptionsMenu />
-        </Tooltip> */}
         </Toolbar>
         {!dbLang && (
           <AddVocab

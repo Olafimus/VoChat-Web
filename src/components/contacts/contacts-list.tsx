@@ -20,7 +20,6 @@ export default function ContactsList() {
   const LongList = () => (
     <List
       sx={{
-        width: "100%",
         maxWidth: "23rem",
         height: "100%",
         overflow: "auto",

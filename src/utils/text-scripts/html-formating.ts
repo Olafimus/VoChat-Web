@@ -37,7 +37,7 @@ export const formatInnerHTML = (
     render = true;
   }
   if (render) {
-    return newTxt;
+    return newTxt.replaceAll("&nbsp;&nbsp;", "&nbsp;");
   }
 };
 

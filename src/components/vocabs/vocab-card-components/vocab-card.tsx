@@ -59,6 +59,7 @@ const VocabCard = ({ vocab }: { vocab: Vocab }) => {
 
   const moreInfo = [
     { title: "Score", info: vocab.getScore() },
+    { title: "Pronunciation", info: vocab.getPronunc().join(", ") },
     { title: "Workbooks", info: vocab.getWorkbooksStr() },
     { title: "Categories", info: vocab.getCategoriesStr() },
     { title: "Hints", info: vocab.getHintsStr() },

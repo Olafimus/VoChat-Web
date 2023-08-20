@@ -90,8 +90,6 @@ const ChatBoxHeader = ({
       dispatch(removeFriend(friend));
       dispatch(switchActiveConv(""));
       nav("/contacts");
-
-      console.log("reached end");
     } catch {
       console.log("error");
     }

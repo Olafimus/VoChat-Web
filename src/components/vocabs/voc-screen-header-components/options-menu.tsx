@@ -74,7 +74,11 @@ const OptionsMenu = (props: Props) => {
           <TextField
             value={newMaxVocs}
             type="number"
-            onChange={(e) => setNewMaxVocs(+e.currentTarget.value)}
+            required
+            onChange={(e) => {
+              const val = +e.currentTarget.value;
+              if (val > 0 && val < 501) setNewMaxVocs(+e.currentTarget.value);
+            }}
             label="Vocabs per page"
           />
         </Box>

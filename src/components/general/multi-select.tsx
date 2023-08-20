@@ -4,6 +4,7 @@ import Select from "react-select";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { nanoid } from "@reduxjs/toolkit";
 import { addCategory, addWorkbook } from "../../app/slices/vocabs-slice";
+import { WorkbookType } from "../../logic/types/vocab.types";
 
 export type MySelectOptionType = {
   label: string;
@@ -31,8 +32,8 @@ const MultiSelect = ({
   const [input, setInput] = React.useState("");
   const [selOptions, setSelOptions] = React.useState([...options]);
   // const selectBar = document.getElementById("react-select-415-input");
-  // const { theme } = useAppSelector((state) => state.settings);
-  // const { workbooks, categories } = useAppSelector((state) => state.vocabs);
+  const { id: uid } = useAppSelector((state) => state.user);
+  const { currentLang, nativeLang } = useAppSelector((state) => state.vocabs);
   const dispatch = useAppDispatch();
 
   const inputHandler = (input: string) => {
@@ -44,21 +45,6 @@ const MultiSelect = ({
       setInput(input);
     }
   };
-
-  // const newSelOption = (e: React.MouseEvent<HTMLSpanElement, MouseEvent>) => {
-  //   const newBtn = document.getElementById("new-option-button");
-  //   if (!newBtn) return;
-  //   const newOption = {
-  //     label: input,
-  //     value: nanoid(),
-  //   };
-  //   console.log("option: ", newOption);
-  //   setSelOptions((curOpt) => [...curOpt, newOption]);
-  //   setFunc([...selection, newOption]);
-  //   newBtn.style.display = "none";
-  //   console.log(selectBar);
-  //   //setTimeout(() => selectBar.focus(), 1000)
-  // };
 
   return (
     <div>
@@ -72,10 +58,21 @@ const MultiSelect = ({
           };
           const check = selOptions.filter((opt) => opt.label === input);
           if (check.length > 0 || input === "") return;
-          if (type === "workbooks")
-            dispatch(
-              addWorkbook({ name: newOption.label, id: newOption.value })
-            );
+          if (type === "workbooks") {
+            const newWb: WorkbookType = {
+              owner: uid,
+              name: newOption.label,
+              id: newOption.value,
+              vocLanguage: currentLang,
+              transLanguage: nativeLang,
+              score: 0,
+              createdAt: Date.now(),
+              createdBy: uid,
+              lastLearned: 0,
+              lastUpdated: 0,
+            };
+            dispatch(addWorkbook(newWb));
+          }
           if (type === "categories")
             dispatch(addCategory({ label: newOption.label }));
           setSelOptions((curOpt) => [...curOpt, newOption]);

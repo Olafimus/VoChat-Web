@@ -1,139 +1,38 @@
 import React, { useState, memo, useEffect } from "react";
-import AddVocab from "../../components/vocabs/add-vocab";
 import VocabCardList from "../../components/vocabs/vocab-card-components/all-vocabs-list";
-import Chip from "@mui/material/Chip";
-import Stack from "@mui/material/Stack";
 import Pagination from "@mui/material/Pagination";
-import { Box, Menu, MenuItem, Typography } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
-import SearchField from "../../components/general/search-field";
+import { Box } from "@mui/material";
+
 import { useAppSelector } from "../../app/hooks";
-import { Button } from "@mui/material";
-import { AllVocabsClass, Vocab } from "../../logic/classes/vocab.class";
-import { loadPreVocs } from "../../utils/firebase/firebase-vocab";
+
 import VocHeader from "../../components/vocabs/vocab-header";
-import { Theme } from "emoji-picker-react";
-import { createFilter } from "react-select";
+
+import FilterChip from "./vocab-screen-subcomponents/filter-chips";
 
 const AllVocabs = () => {
   const [searchString, setSearchString] = useState("");
-  const [dbLang, setDbLang] = useState<null | string>(null);
-  const [open, setOpen] = useState(false);
   const [render, setRender] = useState(false);
-  const { allVocabs } = useAppSelector((state) => state.allVocabs);
-  const { workbooks } = useAppSelector((state) => state.vocabs);
-  const { id: uid } = useAppSelector((state) => state.user);
-  const { theme, vocabScreenSettings } = useAppSelector(
-    (state) => state.settings
+  const { allVocabs, dataVocs } = useAppSelector((state) => state.allVocabs);
+  const { theme } = useAppSelector((state) => state.settings);
+  const { maxPages } = useAppSelector(
+    (state) => state.settings.vocabScreenSettings
   );
-  const [dataVocs, setDataVocs] = useState<null | AllVocabsClass>(null);
-  // let check = allVocabs.getAllVocs.length > 0;
-  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
-  const openDbMen = Boolean(anchorEl);
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
-
-  // useEffec;
-  const languages = [
-    "Dutch",
-    "Farsi",
-    "French",
-    "German",
-    "Italian",
-    "Japanese",
-    "Korean",
-  ];
-  const handleDbLoad = async () => {
-    if (!dbLang) return;
-    const data = await loadPreVocs(dbLang, workbooks, uid);
-    const newVocs = new AllVocabsClass([]);
-
-    data.forEach((voc) => newVocs.addVocab(new Vocab(voc)));
-    setDataVocs(newVocs);
-    handleClose();
-  };
-
-  useEffect(() => {
-    if (!dbLang) return;
-    handleDbLoad();
-  }, [dbLang]);
-
-  // const oldContent = () => (
-  //   <>
-  //     <Typography variant="h5">
-  //       {dbLang ? `${dbLang} Database Vocabs` : "All your Vocabs"}
-  //     </Typography>
-  //     <Box display="flex" flexDirection="row" justifyContent="center" mb={2}>
-  //       <SearchField setSearchTerm={setSearchString} />
-  //       {!dbLang && (
-  //         <Button
-  //           sx={{ mx: 1 }}
-  //           size="large"
-  //           onClick={() => setOpen(!open)}
-  //           endIcon={<AddIcon />}
-  //         >
-  //           Add
-  //         </Button>
-  //       )}
-  //       <Button onClick={handleClick}>DB Vocs</Button>
-  //       <Menu
-  //         id="basic-menu"
-  //         anchorEl={anchorEl}
-  //         open={openDbMen}
-  //         onClose={handleClose}
-  //         MenuListProps={{
-  //           "aria-labelledby": "basic-button",
-  //         }}
-  //       >
-  //         <MenuItem
-  //           onClick={() => {
-  //             setDataVocs(null);
-  //             setDbLang(null);
-  //             handleClose();
-  //           }}
-  //         >
-  //           None
-  //         </MenuItem>
-  //         {languages.map((lang) => (
-  //           <MenuItem onClick={() => setDbLang(lang)}>{lang}</MenuItem>
-  //         ))}
-  //       </Menu>
-  //     </Box>
-  //     {!dbLang && (
-  //       <AddVocab
-  //         open={open}
-  //         setOpen={setOpen}
-  //         render={render}
-  //         setRender={setRender}
-  //       />
-  //     )}
-  //     <VocabCardList
-  //       dataVocs={dataVocs}
-  //       allVocs={allVocabs}
-  //       render={render}
-  //       searchString={searchString}
-  //     />
-  //   </>
-  // );
 
   const [page, setPage] = React.useState(1);
+  useEffect(() => {
+    if (page > maxPages) setPage(maxPages);
+  }, [maxPages]);
   const handleChange = (event: React.ChangeEvent<unknown>, value: number) => {
     setPage(value);
   };
-  const handleDelete = () => {
-    console.info("You clicked the delete icon.");
-  };
+
   const backgroundColor = theme === "light" ? "white" : "#263238";
 
   return (
     <>
       <VocHeader
         theme={theme}
-        dbLang={dbLang}
+        // dbLang={dbLang}
         setSearchString={setSearchString}
         searchString={searchString}
       />
@@ -151,35 +50,10 @@ const AllVocabs = () => {
             top={0}
             sx={{ transform: "translateY(-50%)" }}
           >
-            <Stack direction="row" spacing={1}>
-              <Chip
-                size="small"
-                sx={{ backgroundColor }}
-                label="Spanish"
-                variant="outlined"
-                onDelete={handleDelete}
-              />
-              <Chip
-                size="small"
-                sx={{ backgroundColor }}
-                label="not learned"
-                variant="outlined"
-                onDelete={handleDelete}
-              />
-              {vocabScreenSettings.catFilter.length > 0 && (
-                <Chip
-                  size="small"
-                  sx={{ backgroundColor }}
-                  label={`Categories: ${vocabScreenSettings.catFilter.join(
-                    ", "
-                  )}`}
-                  variant="outlined"
-                  onDelete={handleDelete}
-                />
-              )}
-            </Stack>
+            <FilterChip />
           </Box>
           <VocabCardList
+            page={page}
             dataVocs={dataVocs}
             allVocs={allVocabs}
             render={render}
@@ -204,7 +78,7 @@ const AllVocabs = () => {
             >
               <Pagination
                 size="small"
-                count={Math.ceil(allVocabs.getVocCount() / 100) || 1}
+                count={maxPages}
                 page={page}
                 onChange={handleChange}
               />

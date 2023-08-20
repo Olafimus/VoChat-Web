@@ -21,7 +21,6 @@ const SettingsScreen = () => {
 
   const loading = async () => {
     const data = await loadPreVocs("German", workbooks, uid);
-    console.log(data);
   };
 
   // useEffect(() => {

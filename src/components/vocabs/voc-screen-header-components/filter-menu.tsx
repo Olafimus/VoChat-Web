@@ -17,6 +17,7 @@ import FilterListIcon from "@mui/icons-material/FilterList";
 import { useAppDispatch, useAppSelector } from "../../../app/hooks";
 import {
   changeVocScreenBoolSetting,
+  changeVocScreenSetting,
   changeVocScreenTimeRange,
 } from "../../../app/slices/settings-slice";
 import { handleRenderGroupSeparator } from "flatlist-react/lib/___subComponents/uiFunctions";
@@ -43,6 +44,20 @@ const timeRanges = [
   "2 Years",
 ];
 
+export const timeObj = {
+  [hour]: "Hour",
+  [day]: "Day",
+  [week]: "Week",
+  [2 * week]: "2 Weeks",
+  [3 * week]: "3 Weeks",
+  [month]: "Month",
+  [2 * month]: "2 Months",
+  [3 * month]: "3 Months",
+  [6 * month]: "6 Months",
+  [year]: "Year",
+  [2 * year]: "2 Years",
+};
+
 interface ExpandMoreProps extends IconButtonProps {
   expand: boolean;
 }
@@ -61,19 +76,16 @@ const ExpandMore = styled((props: ExpandMoreProps) => {
 const FilterMenu = (props: Props) => {
   // Filtern/Sortieren nach: Sprache, gelernt / ungelernt, Score von bis, neu
   const dispatch = useAppDispatch();
+
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
   const [expanded, setExpanded] = useState(false);
   const [expandedCreat, setExpandedCreat] = useState(false);
   const [expandedWb, setExpandedWb] = useState(false);
-  const [checkedLangs, setCheckedLangs] = useState<string[]>([]);
-  const [checkedWbs, setCheckedWbs] = useState<string[]>([]);
-  const [checkedCreator, setCheckedCreator] = useState<string[]>([]);
   const { vocabScreenSettings } = useAppSelector((state) => state.settings);
   const { allVocabs } = useAppSelector((state) => state.allVocabs);
   const { workbooks } = useAppSelector((state) => state.vocabs);
   const {
-    learnLanguages,
     friends,
     id: uid,
     name: userName,
@@ -105,7 +117,6 @@ const FilterMenu = (props: Props) => {
   };
 
   const calcTimeRef = (val: string) => {
-    let time: number;
     if (val === "Hour") return hour;
     if (val === "Day") return day;
     if (val === "Week") return week;
@@ -113,9 +124,9 @@ const FilterMenu = (props: Props) => {
     if (val === "Year") return year;
     const valArr = val.split(" ");
     const count = +val[0];
-    if (val[1] === "Weeks") return count * week;
-    if (val[1] === "Months") return count * week;
-    if (val[1] === "Years") return count * year;
+    if (valArr[1] === "Weeks") return count * week;
+    if (valArr[1] === "Months") return count * week;
+    if (valArr[1] === "Years") return count * year;
     return Date.now();
   };
   const handleTimeChange = (val: string) => {
@@ -191,6 +202,7 @@ const FilterMenu = (props: Props) => {
                 <Select
                   size="small"
                   sx={{ minWidth: 120 }}
+                  value={timeObj[vocabScreenSettings.timeRange] || "Hour"}
                   onChange={(e) => {
                     const val = e.target.value as string;
                     handleTimeChange(val);
@@ -245,10 +257,16 @@ const FilterMenu = (props: Props) => {
           >
             <Typography variant="body1">Show All</Typography>
             <Checkbox
-              checked={checkedLangs.length === 0}
+              checked={vocabScreenSettings.filterByLang.length === 0}
               onChange={(e) => {
                 const check = e.currentTarget.checked;
-                if (check) setCheckedLangs([]);
+                if (check)
+                  dispatch(
+                    changeVocScreenSetting({
+                      ...vocabScreenSettings,
+                      filterByLang: [],
+                    })
+                  );
               }}
             />
           </MenuItem>
@@ -259,13 +277,28 @@ const FilterMenu = (props: Props) => {
             >
               <Typography variant="body1">{lang}</Typography>
               <Checkbox
-                checked={checkedLangs.includes(lang)}
+                checked={vocabScreenSettings.filterByLang.includes(lang)}
                 onClick={(e) => {
-                  const check = checkedLangs.includes(lang);
+                  const check = vocabScreenSettings.filterByLang.includes(lang);
                   if (!check) {
-                    setCheckedLangs((cur) => [...cur, lang]);
+                    dispatch(
+                      changeVocScreenSetting({
+                        ...vocabScreenSettings,
+                        filterByLang: [
+                          ...vocabScreenSettings.filterByLang,
+                          lang,
+                        ],
+                      })
+                    );
                   } else
-                    setCheckedLangs((cur) => cur.filter((el) => el !== lang));
+                    dispatch(
+                      changeVocScreenSetting({
+                        ...vocabScreenSettings,
+                        filterByLang: vocabScreenSettings.filterByLang.filter(
+                          (el) => el !== lang
+                        ),
+                      })
+                    );
                 }}
               />
             </MenuItem>
@@ -292,10 +325,16 @@ const FilterMenu = (props: Props) => {
           >
             <Typography variant="body1">Show All</Typography>
             <Checkbox
-              checked={checkedWbs.length === 0}
+              checked={vocabScreenSettings.wbFilter.length === 0}
               onChange={(e) => {
                 const check = e.currentTarget.checked;
-                if (check) setCheckedWbs([]);
+                if (check)
+                  dispatch(
+                    changeVocScreenSetting({
+                      ...vocabScreenSettings,
+                      wbFilter: [],
+                    })
+                  );
               }}
             />
           </MenuItem>
@@ -306,13 +345,25 @@ const FilterMenu = (props: Props) => {
             >
               <Typography variant="body1">{wb.name}</Typography>
               <Checkbox
-                checked={checkedWbs.includes(wb.id)}
+                checked={vocabScreenSettings.wbFilter.includes(wb.id)}
                 onClick={(e) => {
-                  const check = checkedWbs.includes(wb.id);
+                  const check = vocabScreenSettings.wbFilter.includes(wb.id);
                   if (!check) {
-                    setCheckedWbs((cur) => [...cur, wb.id]);
+                    dispatch(
+                      changeVocScreenSetting({
+                        ...vocabScreenSettings,
+                        wbFilter: [...vocabScreenSettings.wbFilter, wb.id],
+                      })
+                    );
                   } else
-                    setCheckedWbs((cur) => cur.filter((el) => el !== wb.id));
+                    dispatch(
+                      changeVocScreenSetting({
+                        ...vocabScreenSettings,
+                        wbFilter: vocabScreenSettings.wbFilter.filter(
+                          (el) => el !== wb.id
+                        ),
+                      })
+                    );
                 }}
               />
             </MenuItem>
@@ -339,10 +390,16 @@ const FilterMenu = (props: Props) => {
           >
             <Typography variant="body1">Show All</Typography>
             <Checkbox
-              checked={checkedCreator.length === 0}
+              checked={vocabScreenSettings.filterByCreator.length === 0}
               onChange={(e) => {
                 const check = e.currentTarget.checked;
-                if (check) setCheckedCreator([]);
+                if (check)
+                  dispatch(
+                    changeVocScreenSetting({
+                      ...vocabScreenSettings,
+                      filterByCreator: [],
+                    })
+                  );
               }}
             />
           </MenuItem>
@@ -353,14 +410,29 @@ const FilterMenu = (props: Props) => {
             >
               <Typography variant="body1">{creator}</Typography>
               <Checkbox
-                checked={checkedCreator.includes(creator)}
+                checked={vocabScreenSettings.filterByCreator.includes(creator)}
                 onClick={(e) => {
-                  const check = checkedCreator.includes(creator);
+                  const check =
+                    vocabScreenSettings.filterByCreator.includes(creator);
                   if (!check) {
-                    setCheckedCreator((cur) => [...cur, creator]);
+                    dispatch(
+                      changeVocScreenSetting({
+                        ...vocabScreenSettings,
+                        filterByCreator: [
+                          ...vocabScreenSettings.filterByCreator,
+                          creator,
+                        ],
+                      })
+                    );
                   } else
-                    setCheckedCreator((cur) =>
-                      cur.filter((el) => el !== creator)
+                    dispatch(
+                      changeVocScreenSetting({
+                        ...vocabScreenSettings,
+                        filterByCreator:
+                          vocabScreenSettings.filterByCreator.filter(
+                            (el) => el !== creator
+                          ),
+                      })
                     );
                 }}
               />

@@ -8,6 +8,7 @@ type VocabSubSettings = {
   needConfirmation: boolean;
   showWbs: boolean;
   keepWbs: boolean;
+  keepCats: boolean;
   showCat: boolean;
   showImp: boolean;
   showHints: boolean;
@@ -16,6 +17,7 @@ type VocabSubSettings = {
 type VocabScreenSettings = {
   keepSettings: boolean;
   maxVocs: number;
+  maxPages: number;
   catFilter: string[];
   wbFilter: string[];
   onlyNew: boolean;
@@ -47,6 +49,7 @@ interface Settings {
 const initalVocabScreenSettings: VocabScreenSettings = {
   keepSettings: false,
   maxVocs: 100,
+  maxPages: 1,
   catFilter: [],
   wbFilter: [],
   onlyNew: false,
@@ -55,7 +58,7 @@ const initalVocabScreenSettings: VocabScreenSettings = {
   filterByCreator: [],
   sortBy: "none",
   sortOrder: "standard",
-  timeRange: 0,
+  timeRange: 3600000,
 };
 
 const initalVocabSubSettings = {
@@ -65,6 +68,7 @@ const initalVocabSubSettings = {
   needConfirmation: false,
   showWbs: true,
   keepWbs: false,
+  keepCats: false,
   showCat: true,
   showImp: true,
   showHints: true,
@@ -97,6 +101,7 @@ export type VocSetIdentifier =
   | "needConfirmation"
   | "showWbs"
   | "keepWbs"
+  | "keepCats"
   | "showCat"
   | "showImp"
   | "showHints"
@@ -155,6 +160,15 @@ export const SettingsSlice = createSlice({
     resetScreenSettings: (state) => {
       state.vocabScreenSettings = initalVocabScreenSettings;
     },
+    changePageNumber: (state, actions: PayloadAction<number>) => {
+      state.vocabScreenSettings.maxPages = actions.payload;
+    },
+    changeVocScreenSetting: (
+      state,
+      action: PayloadAction<VocabScreenSettings>
+    ) => {
+      state.vocabScreenSettings = action.payload;
+    },
     changeVocScreenBoolSetting: (
       state,
       action: PayloadAction<{ name: VocScreenSetIdentifier; value: boolean }>
@@ -177,8 +191,10 @@ export const {
   changeVocCatFilter,
   keepScreenSettings,
   resetScreenSettings,
+  changeVocScreenSetting,
   changeVocScreenBoolSetting,
   changeVocScreenTimeRange,
+  changePageNumber,
 } = SettingsSlice.actions;
 
 export default SettingsSlice.reducer;

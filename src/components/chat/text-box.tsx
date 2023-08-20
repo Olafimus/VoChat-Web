@@ -36,7 +36,6 @@ const ChatTextBox = ({ matches }: { matches: boolean }) => {
   const loadOldMsgs = (ref: string, count: number) => {
     const oldMsgs = oldMessages.find((el) => el.ref === ref)?.msgs;
     const oldMsgArr: Message[] = [];
-    console.log(ref);
     if (oldMsgs) {
       let num = 1;
       if (count > 10) num = count - 10; // state einfügen mit thereIsMore = true

@@ -74,8 +74,8 @@ const ConversationLoader: React.FC<Prop> = ({ conversation }) => {
       leftUsers: value.data()?.leftUsers,
     };
     if (conv.leftUsers?.some((el) => el.user === id))
-      return console.log("left");
-    if (value.data()?.longTermRef) conv.longTermRef = value.data()?.longTermRef;
+      if (value.data()?.longTermRef)
+        conv.longTermRef = value.data()?.longTermRef;
     if (value.data()?.longTermCount)
       conv.longTermCount = value.data()?.longTermCount;
     const count = conv.longTermCount || 0;

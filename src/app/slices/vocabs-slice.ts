@@ -11,6 +11,8 @@ interface VocabState {
   lastUpdate: number;
   currentLang: string;
   nativeLang: string;
+  savedDbLangs: string[];
+  dataVocStore: Record<string, VocObj[]>; // später createEntityAdapter
 }
 
 const initialState: VocabState = {
@@ -22,6 +24,8 @@ const initialState: VocabState = {
   lastUpdate: 0,
   currentLang: "Farsi",
   nativeLang: "German",
+  savedDbLangs: [],
+  dataVocStore: {},
 };
 
 export const VocabSlice = createSlice({
@@ -78,6 +82,13 @@ export const VocabSlice = createSlice({
     changeNativeLang: (state, actions: PayloadAction<string>) => {
       state.nativeLang = actions.payload;
     },
+    addSavedLang: (
+      state,
+      actions: PayloadAction<{ lang: string; data: VocObj[] }>
+    ) => {
+      state.savedDbLangs.push(actions.payload.lang);
+      state.dataVocStore[actions.payload.lang] = actions.payload.data;
+    },
   },
 });
 
@@ -92,6 +103,7 @@ export const {
   removeWorkbook,
   changeCurLang,
   changeNativeLang,
+  addSavedLang,
 } = VocabSlice.actions;
 
 export default VocabSlice.reducer;
