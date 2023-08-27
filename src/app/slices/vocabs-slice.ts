@@ -1,6 +1,7 @@
 import { PayloadAction, createSlice } from "@reduxjs/toolkit";
 import { VocObj, WorkbookType } from "../../logic/types/vocab.types";
 import { addVocToDb, updateVocDb } from "../../utils/firebase/firebase-vocab";
+import { dbLangObj } from "../../assets/constants/db-lang-obj";
 
 interface VocabState {
   allUserVocabs: VocObj[];
@@ -13,6 +14,7 @@ interface VocabState {
   nativeLang: string;
   savedDbLangs: string[];
   dataVocStore: Record<string, VocObj[]>; // später createEntityAdapter
+  addedDataVocs: { [key: string]: string[] };
 }
 
 const initialState: VocabState = {
@@ -26,6 +28,7 @@ const initialState: VocabState = {
   nativeLang: "German",
   savedDbLangs: [],
   dataVocStore: {},
+  addedDataVocs: {},
 };
 
 export const VocabSlice = createSlice({
@@ -89,6 +92,34 @@ export const VocabSlice = createSlice({
       state.savedDbLangs.push(actions.payload.lang);
       state.dataVocStore[actions.payload.lang] = actions.payload.data;
     },
+    addVoctoAdded: (
+      s,
+      a: PayloadAction<{ lang: keyof typeof dbLangObj; vocId: string }>
+    ) => {
+      const { lang, vocId } = a.payload;
+
+      try {
+        s.addedDataVocs[lang].push(vocId);
+      } catch (error) {
+        s.addedDataVocs = { ...s.addedDataVocs, [lang]: [vocId] };
+      }
+    },
+    updateSavedVoc: (
+      s,
+      a: PayloadAction<{
+        lang: keyof typeof dbLangObj;
+        vocId: string;
+        val: boolean;
+      }>
+    ) => {
+      s.dataVocStore[a.payload.lang] = s.dataVocStore[a.payload.lang].map(
+        (voc) => {
+          if (voc.id === a.payload.vocId)
+            return { ...voc, added: a.payload.val };
+          else return voc;
+        }
+      );
+    },
   },
 });
 
@@ -104,6 +135,8 @@ export const {
   changeCurLang,
   changeNativeLang,
   addSavedLang,
+  addVoctoAdded,
+  updateSavedVoc,
 } = VocabSlice.actions;
 
 export default VocabSlice.reducer;

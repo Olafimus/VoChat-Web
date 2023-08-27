@@ -11,7 +11,7 @@ export type AppUser = {
   learnLanguages: string[];
   friends?: Friend[];
   deletedFriends?: Friend[];
-  allVocabs: VocObj[];
+  addedDataVocsRefs: { [key: string]: string };
 };
 
 export type OnlineUser = {

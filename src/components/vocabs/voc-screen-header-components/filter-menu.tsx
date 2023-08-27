@@ -16,6 +16,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import { useAppDispatch, useAppSelector } from "../../../app/hooks";
 import {
+  SortVariants,
   changeVocScreenBoolSetting,
   changeVocScreenSetting,
   changeVocScreenTimeRange,
@@ -134,6 +135,8 @@ const FilterMenu = (props: Props) => {
     dispatch(changeVocScreenTimeRange(time));
   };
 
+  const sortOptions: SortVariants[] = ["date", "importance", "none", "score"];
+
   return (
     <span>
       <IconButton
@@ -235,6 +238,33 @@ const FilterMenu = (props: Props) => {
               );
             }}
           />
+        </MenuItem>
+        <MenuItem>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            width="100%"
+            alignItems="center"
+          >
+            <Typography variant="body1">Sort by</Typography>
+            <Select
+              size="small"
+              sx={{ minWidth: 120 }}
+              value={vocabScreenSettings.sortBy || "none"}
+              onChange={(e) => {
+                const sortBy = e.target?.value as SortVariants;
+                dispatch(
+                  changeVocScreenSetting({ ...vocabScreenSettings, sortBy })
+                );
+              }}
+            >
+              {sortOptions.map((el) => (
+                <MenuItem key={el} value={el}>
+                  {el}
+                </MenuItem>
+              ))}
+            </Select>
+          </Box>
         </MenuItem>
         <MenuItem
           divider

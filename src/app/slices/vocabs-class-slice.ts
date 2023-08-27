@@ -32,11 +32,8 @@ const allVocabsSlice = createSlice({
       const categories = actions.payload.getCategories();
       state.dataCategories = categories;
     },
-    setDbLang: (
-      state,
-      actions: PayloadAction<keyof typeof dbLangObj | null>
-    ) => {
-      state.dbLang = actions.payload;
+    setDbLang: (s, a: PayloadAction<keyof typeof dbLangObj | null>) => {
+      s.dbLang = a.payload;
     },
   },
 });

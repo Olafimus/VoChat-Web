@@ -25,6 +25,7 @@ export type VocObj = {
     lastChecked: number;
   };
   receivedFrom?: string;
+  added?: boolean;
 };
 
 export type WorkbookType = {

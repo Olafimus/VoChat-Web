@@ -1,4 +1,4 @@
-import { useState, useLayoutEffect } from "react";
+import { useState, useEffect, useLayoutEffect } from "react";
 import { AllVocabsClass, Vocab } from "../../logic/classes/vocab.class";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { changePageNumber } from "../../app/slices/settings-slice";
@@ -21,6 +21,8 @@ export const useVocFilter = (
     onlyUnlearned,
     timeRange,
     maxVocs,
+    sortBy,
+    sortOrder,
   } = useAppSelector((state) => state.settings.vocabScreenSettings);
   const { friends, id: uid, name } = useAppSelector((state) => state.user);
 
@@ -97,6 +99,29 @@ export const useVocFilter = (
     filterByLang,
     maxVocs,
   ]);
+
+  useEffect(() => {
+    const newFilter = [...filter];
+
+    newFilter.sort((a, b) => {
+      if (sortBy === "date") {
+        if (a.getCreatedAt() > b.getCreatedAt()) return -1;
+        if (a.getCreatedAt() < b.getCreatedAt()) return 0;
+      }
+      if (sortBy === "importance") {
+        if (a.getCalcImp() > b.getCalcImp()) return -1;
+        if (a.getCalcImp() < b.getCalcImp()) return 0;
+      }
+      if (sortBy === "score") {
+        if (a.getScore() > b.getScore()) return -1;
+        if (a.getScore() < b.getScore()) return 0;
+      }
+
+      return 0;
+    });
+    console.log(newFilter.map((a) => a.getCreatedAt()));
+    setFilter(newFilter);
+  }, [sortBy, sortOrder]);
 
   return [filter, check];
 };

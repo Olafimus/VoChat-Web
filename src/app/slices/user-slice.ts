@@ -6,6 +6,7 @@ import {
   reAddFriendToDb,
   updateFriendsData,
 } from "../../utils/firebase";
+import { dbLangObj } from "../../assets/constants/db-lang-obj";
 
 interface UserState {
   currentUser: CurrentUser | null;
@@ -21,6 +22,7 @@ interface UserState {
   deletedFriends: Friend[];
   friendsSet: boolean;
   joinedAt?: Date;
+  addedDataVocsRefs: { [key: string]: string };
 }
 
 const initialState: UserState = {
@@ -36,6 +38,7 @@ const initialState: UserState = {
   friends: [],
   deletedFriends: [],
   friendsSet: false,
+  addedDataVocsRefs: {},
 };
 
 export const UserSlice = createSlice({
@@ -157,6 +160,16 @@ export const UserSlice = createSlice({
     resetUserState: (state) => {
       return initialState;
     },
+    addDataRef: (
+      state,
+      actions: PayloadAction<{ lang: keyof typeof dbLangObj; ref: string }>
+    ) => {
+      const key = actions.payload.lang;
+      state.addedDataVocsRefs = {
+        ...state.addedDataVocsRefs,
+        [key]: actions.payload.ref,
+      };
+    },
   },
 });
 
@@ -178,6 +191,7 @@ export const {
   resetUserState,
   changeLearnLangs,
   changeTeachLangs,
+  addDataRef,
 } = UserSlice.actions;
 
 export default UserSlice.reducer;

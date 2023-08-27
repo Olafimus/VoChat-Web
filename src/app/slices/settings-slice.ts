@@ -1,6 +1,8 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 type ScreenStrings = "" | "contacts" | "chat";
+export type SortVariants = "date" | "score" | "importance" | "none";
+export type SortOrders = "standard" | "reversed";
 type VocabSubSettings = {
   closeAfterAdd: boolean;
   closeAfterEdit: boolean;
@@ -24,8 +26,8 @@ type VocabScreenSettings = {
   onlyUnlearned: boolean;
   filterByLang: string[];
   filterByCreator: string[];
-  sortBy: "date" | "score" | "importance" | "none";
-  sortOrder: "standard" | "reversed";
+  sortBy: SortVariants;
+  sortOrder: SortOrders;
   timeRange: number;
 };
 

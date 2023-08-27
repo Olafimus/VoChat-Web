@@ -25,7 +25,8 @@ const rootPersistConfig = {
 const userPersistConfig = {
   key: "user",
   storage: storage,
-  blacklist: ["currentUser"],
+  whitelist: [],
+  // blacklist: ["currentUser", "addedDataVocsRefs"],
 };
 
 // const userConfig = {

@@ -59,10 +59,15 @@ const VocabCard = ({ vocab }: { vocab: Vocab }) => {
 
   const moreInfo = [
     { title: "Score", info: vocab.getScore() },
+    { title: "Importance", info: vocab.getCalcImp() },
     { title: "Pronunciation", info: vocab.getPronunc().join(", ") },
     { title: "Workbooks", info: vocab.getWorkbooksStr() },
     { title: "Categories", info: vocab.getCategoriesStr() },
     { title: "Hints", info: vocab.getHintsStr() },
+    {
+      title: "Created at:",
+      info: new Date(vocab.getCreatedAt()).toDateString(),
+    },
     // title: "learnHis", info: },
   ];
 
@@ -140,7 +145,11 @@ const VocabCard = ({ vocab }: { vocab: Vocab }) => {
               </Tooltip>
             </>
           )}
-          {dataVoc && (
+          {dataVoc && vocab.getAdded() ? (
+            <Tooltip title="vocab already added">
+              <Typography>✅</Typography>
+            </Tooltip>
+          ) : (
             <Tooltip title="Add Vocab" arrow>
               <IconButton
                 // size="small"

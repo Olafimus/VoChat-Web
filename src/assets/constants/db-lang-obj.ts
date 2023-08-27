@@ -45,3 +45,13 @@ const languages = [
   "Japanese",
   "Korean",
 ];
+
+export const dataLangIdSet = [
+  "preDataDutchInEnglish",
+  "preDataFarsiInEnglish",
+  "preDataFrenchInEnglish",
+  "preDataGermanInEnglish",
+  "preDataItalianInEnglish",
+  "preDataJapaneseInEnglish",
+  "preDataKoreanInEnglish",
+];

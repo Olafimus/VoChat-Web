@@ -45,28 +45,35 @@ const VocabCardList = ({
   );
 
   const loadVocs = async () => {
-    const vocs: VocObj[] = await getAllVocsDb(uid);
-    const newAllVocabs = new AllVocabsClass([]);
-    if (vocs.length < 1) return;
-    const wbs: WorkbookType[] = [];
-    const cats: string[] = [];
-    const wbIds: string[] = workbooks.map((wb) => wb.id);
-    vocs.forEach((voc) => {
-      newAllVocabs.addVocab(new Vocab(voc));
-      voc.workbooks.forEach((wb) => {
-        if (!wbIds.includes(wb.id)) {
-          wbIds.push(wb.id);
-          wbs.push(wb);
-        }
+    try {
+      const vocs: VocObj[] = await getAllVocsDb(uid);
+
+      const newAllVocabs = new AllVocabsClass([]);
+      if (vocs.length < 1) return;
+      console.log(vocs);
+      const wbs: WorkbookType[] = [];
+      const cats: string[] = [];
+      const wbIds: string[] = workbooks.map((wb) => wb.id);
+      vocs.forEach((voc) => {
+        if (!voc.workbooks) return;
+        newAllVocabs.addVocab(new Vocab(voc));
+        voc.workbooks.forEach((wb) => {
+          if (!wbIds.includes(wb.id)) {
+            wbIds.push(wb.id);
+            wbs.push(wb);
+          }
+        });
+        voc.categories.forEach((cat) => {
+          if (!categories.includes(cat) && !cats.includes(cat)) cats.push(cat);
+        });
+        dispatch(addVocab(voc));
       });
-      voc.categories.forEach((cat) => {
-        if (!categories.includes(cat) && !cats.includes(cat)) cats.push(cat);
-      });
-      dispatch(addVocab(voc));
-    });
-    wbs.forEach((wb) => dispatch(addWorkbook(wb)));
-    cats.forEach((cat) => dispatch(addCategory({ label: cat })));
-    dispatch(setAllVocabs(newAllVocabs));
+      wbs.forEach((wb) => dispatch(addWorkbook(wb)));
+      cats.forEach((cat) => dispatch(addCategory({ label: cat })));
+      dispatch(setAllVocabs(newAllVocabs));
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   useEffect(() => {
@@ -77,6 +84,8 @@ const VocabCardList = ({
     if (matchesThree) setColumnCount(4);
     setLoading(false);
   }, [matchesOne, matchesTwo, matchesThree]);
+
+  console.log(filteredVocs);
 
   return (
     <>

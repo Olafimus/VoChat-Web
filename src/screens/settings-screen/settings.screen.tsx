@@ -6,7 +6,7 @@ import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { AllVocabsClass } from "../../logic/classes/vocab.class";
 import { updateVocabLS } from "../../app/slices/vocabs-slice";
 import { loadPreVocs } from "../../utils/firebase/firebase-vocab";
-import { addVocToPre } from "../../utils/firebase/uploadPreData";
+import { addDicVocs, addVocToPre } from "../../utils/firebase/uploadPreData";
 
 const SettingsScreen = () => {
   const { allVocabs } = useAppSelector((state) => state.allVocabs);

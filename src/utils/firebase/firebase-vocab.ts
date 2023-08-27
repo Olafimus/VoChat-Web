@@ -1,7 +1,9 @@
 import {
+  arrayUnion,
   collection,
   deleteDoc,
   doc,
+  getDoc,
   getDocs,
   orderBy,
   query,
@@ -15,6 +17,7 @@ import { nanoid } from "@reduxjs/toolkit";
 
 const vocCol = collection(db, "vocabs");
 const preVocCol = collection(db, "preDataVocabs");
+const dicVocCol = collection(db, "dictionaryVocabs");
 
 export const addVocToDb = async (voc: VocObj) => {
   await setDoc(doc(vocCol), { ...voc });
@@ -89,7 +92,7 @@ export const loadPreVocs = async (
             vocLanguage: doc.data().vocLanguage,
             transLanguage: doc.data().transLanguage,
             score: 0,
-            createdAt: Date.now(),
+            createdAt: doc.data().createdAt || Date.now(),
             createdBy: uid,
             lastUpdated: Date.now(),
             lastLearned: 0,
@@ -121,4 +124,34 @@ export const loadPreVocs = async (
     vocs.push(voc);
   });
   return vocs;
+};
+
+export const updateAddedDataVocs = async (
+  uid: string,
+  lang: string,
+  vocId: string,
+  id: string
+) => {
+  const userDocRef = doc(db, "users", uid);
+
+  const userDoc = await getDoc(userDocRef);
+  const data = userDoc.data();
+  const addedDataVocsRefs = data?.hasOwnProperty("addedDataVocsRefs")
+    ? data.addedDataVocsRefs
+    : false;
+  if (data && addedDataVocsRefs && addedDataVocsRefs.hasOwnProperty(lang)) {
+    updateDoc(doc(vocCol, data.addedDataVocsRefs[lang]), {
+      vocIds: arrayUnion(vocId),
+    });
+  } else if (data) {
+    await setDoc(doc(vocCol, id), { owner: uid, vocIds: [vocId] });
+    if (addedDataVocsRefs)
+      updateDoc(userDocRef, {
+        addedDataVocsRefs: { ...data.addedDataVocsRefs, lang: id },
+      });
+    else
+      updateDoc(userDocRef, {
+        addedDataVocsRefs: { lang: id },
+      });
+  }
 };

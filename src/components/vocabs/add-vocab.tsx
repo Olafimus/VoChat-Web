@@ -13,14 +13,18 @@ import {
   Select,
   MenuItem,
   SelectChangeEvent,
-  NativeSelect,
 } from "@mui/material";
 import MultiSelect, { MySelectOptionType } from "../general/multi-select";
 import { VocObj, WorkbookType } from "../../logic/types/vocab.types";
 import { nanoid } from "@reduxjs/toolkit";
 import { AllVocabsClass, Vocab } from "../../logic/classes/vocab.class";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
-import { addVocab, updateVocabLS } from "../../app/slices/vocabs-slice";
+import {
+  addVocab,
+  addVoctoAdded,
+  updateSavedVoc,
+  updateVocabLS,
+} from "../../app/slices/vocabs-slice";
 import { createArrFromString } from "../../utils/vocab-scripts/conver-string-to-array";
 import ConfirmDialog from "../general/confirm-dialog";
 import Dialog, { DialogProps } from "@mui/material/Dialog";
@@ -28,7 +32,13 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import SwitchMenu from "../general/switchmenu";
 import ImportanceSlider from "./Importance-slider";
 import { supLangObj, supportedLanguages } from "../../utils/country-flags";
-import { addVocToDb, updateVocDb } from "../../utils/firebase/firebase-vocab";
+import {
+  addVocToDb,
+  updateAddedDataVocs,
+  updateVocDb,
+} from "../../utils/firebase/firebase-vocab";
+import { dataLangIdSet } from "../../assets/constants/db-lang-obj";
+import { addDataRef } from "../../app/slices/user-slice";
 
 let fullScreen = true;
 
@@ -55,8 +65,6 @@ export type EditProps = {
   vocId?: string;
   vocab?: Vocab;
 };
-
-const propObj = {};
 
 const AddVocab = ({
   type = "add",
@@ -106,7 +114,7 @@ const AddVocab = ({
     (state) => state.vocabs
   );
   const { id: uid } = useAppSelector((state) => state.user);
-  const { allVocabs } = useAppSelector((state) => state.allVocabs);
+  const { allVocabs, dbLang } = useAppSelector((state) => state.allVocabs);
   const { vocabSubSettings } = useAppSelector((state) => state.settings);
   const [vocLang, setVocLang] = React.useState(currentLang);
   const [transLang, setTransLang] = React.useState(nativeLang);
@@ -208,8 +216,24 @@ const AddVocab = ({
     if (type === "add" || type === "wbAdd") {
       const newVoc = new Vocab(newVocObj);
       allVocabs.addVocab(newVoc);
+
       dispatch(addVocab(newVocObj));
       addVocToDb(newVocObj);
+      if (vocab && dbLang && dataLangIdSet.includes(vocab.getOwner())) {
+        console.log("reached");
+        vocab.updateAdded(true);
+        dispatch(addVoctoAdded({ lang: dbLang, vocId: vocab.getId() }));
+        dispatch(
+          updateSavedVoc({ lang: dbLang, vocId: vocab.getId(), val: true })
+        );
+        try {
+          const id = nanoid();
+          updateAddedDataVocs(uid, dbLang, vocab.getId(), id);
+          dispatch(addDataRef({ lang: dbLang, ref: id }));
+        } catch (error) {
+          console.log(error);
+        }
+      }
       setVocs(vocs);
       setVocabTxt("");
       setTranslTxt("");

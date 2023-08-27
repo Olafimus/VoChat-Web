@@ -85,8 +85,8 @@ const LoadingContainer = () => {
         conversations: data.conversations,
         teachLanguages: data.teachLanguages,
         learnLanguages: data.learnLanguages,
-        allVocabs: data.allVocabs,
         deletedFriends: data?.deletedFriends || [],
+        addedDataVocsRefs: {},
       };
 
       dispatch(setFriends(friends));

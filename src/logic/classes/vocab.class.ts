@@ -241,6 +241,12 @@ export class Vocab {
     this.voc = { ...this.voc, workbooks: newWb };
     // console.log(newWb);
   }
+  updateAdded(val: boolean) {
+    this.voc = { ...this.voc, added: val };
+  }
+  getAdded() {
+    return this.voc.added;
+  }
   addWb(wb: WorkbookType) {
     this.voc = { ...this.voc, workbooks: [...this.voc.workbooks, wb] };
   }
