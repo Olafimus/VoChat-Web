@@ -1,10 +1,18 @@
 import { useState, useEffect } from "react";
-import { IconButton, Menu, MenuItem, Box, Typography } from "@mui/material";
+import {
+  IconButton,
+  Menu,
+  MenuItem,
+  Box,
+  Typography,
+  Tooltip,
+  CircularProgress,
+} from "@mui/material";
 import { loadPreVocs } from "../../../utils/firebase/firebase-vocab";
 import { AllVocabsClass, Vocab } from "../../../logic/classes/vocab.class";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import StorageIcon from "@mui/icons-material/Storage";
-
+import "./overlay.scss";
 import { useAppSelector } from "../../../app/hooks";
 import { dbLangObj } from "../../../assets/constants/db-lang-obj";
 import { useDbVocs } from "../../../utils/hooks/useDbVocs";
@@ -38,16 +46,18 @@ const DbLangMenu = ({
   return (
     <>
       {!matches ? (
-        <IconButton
-          aria-label="options-menu"
-          color="inherit"
-          aria-controls={openDbMen ? "basic-menu" : undefined}
-          aria-haspopup="true"
-          aria-expanded={openDbMen ? "true" : undefined}
-          onClick={(e) => handleClick(e)}
-        >
-          <StorageIcon />
-        </IconButton>
+        <Tooltip title="Select Database Vocabs" disableInteractive arrow>
+          <IconButton
+            aria-label="options-menu"
+            color="inherit"
+            aria-controls={openDbMen ? "basic-menu" : undefined}
+            aria-haspopup="true"
+            aria-expanded={openDbMen ? "true" : undefined}
+            onClick={(e) => handleClick(e)}
+          >
+            <StorageIcon />
+          </IconButton>
+        </Tooltip>
       ) : (
         <Box
           display="flex"
@@ -77,6 +87,7 @@ const DbLangMenu = ({
         }}
       >
         <MenuItem
+          divider
           onClick={() => {
             setDataVocs(null);
             setDbLang(null);
@@ -85,11 +96,18 @@ const DbLangMenu = ({
         >
           None
         </MenuItem>
-        {languages.map((lang) => (
+        <MenuItem divider>
+          <Typography>3000 most common words</Typography>
+        </MenuItem>
+        {languages.map((lang, i) => (
           <MenuItem
             key={lang}
             sx={{ display: "flex", justifyContent: "space-between" }}
-            onClick={() => setDbLang(lang)}
+            onClick={() => {
+              setDbLang(lang);
+              handleClose();
+            }}
+            divider={i === languages.length - 1 ? true : false}
           >
             <Typography sx={{ pr: 2 }}>{lang}</Typography>
 
@@ -98,10 +116,30 @@ const DbLangMenu = ({
               srcSet={dbLangObj[lang].srcset}
               width="16"
               height="12"
-              alt="Ukraine"
+              alt={`${lang} Flag`}
             ></img>
           </MenuItem>
         ))}
+        <MenuItem divider sx={{ display: "flex", justifyContent: "center" }}>
+          Dictionaries
+        </MenuItem>
+        <MenuItem
+          sx={{ display: "flex", justifyContent: "space-between" }}
+          onClick={() => {
+            setDbLang("FarsiDic");
+            handleClose();
+          }}
+        >
+          <Typography sx={{ pr: 2 }}>Farsi</Typography>
+
+          <img
+            src={dbLangObj["Farsi"].src}
+            srcSet={dbLangObj["Farsi"].srcset}
+            width="16"
+            height="12"
+            alt="Farsi Flag"
+          ></img>
+        </MenuItem>
       </Menu>
     </>
   );

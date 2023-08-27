@@ -126,6 +126,42 @@ export const loadPreVocs = async (
   return vocs;
 };
 
+export const loadDicVocs = async (str: string) => {
+  const searchString = str.replace("iDic", "InGermanDictionary");
+  console.log(searchString);
+  const q = query(dicVocCol, where("owner", "==", searchString));
+  const snap = await getDocs(q);
+  const vocs: VocObj[] = [];
+  console.log("snap: ", snap);
+  snap.forEach((doc) => {
+    const workbooks: WorkbookType[] = [];
+
+    const voc: VocObj = {
+      owner: doc.data().owner,
+      id: doc.data().id,
+      createdAt: doc.data().createdAt,
+      vocLanguage: doc.data().vocLanguage,
+      transLanguage: doc.data().transLanguage,
+      vocab: doc.data().translation,
+      translation: doc.data().vocab,
+      pronunciation: doc.data().pronunciation || [],
+      hints: doc.data().hints || [],
+      categories: doc.data().categories,
+      workbooks,
+      setImportance: doc.data().setImportance,
+      calcImportance: doc.data().calcImportance,
+      learnHistory: doc.data().learnHistory,
+      score: doc.data().score,
+      favored: doc.data().favored,
+      favoredAt: doc.data().favoredAt,
+      lastUpdated: doc.data().lastUpdated,
+      checkStatus: doc.data().checkStatus,
+    };
+    vocs.push(voc);
+  });
+  return vocs;
+};
+
 export const updateAddedDataVocs = async (
   uid: string,
   lang: string,

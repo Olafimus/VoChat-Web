@@ -99,20 +99,15 @@ const VocabCardList = ({
         </>
       )}
       <div id="all-vocs-container" className="vocab-card-list-container">
-        {!loading ? (
-          columnArr
-            .slice(0, columnCount)
-            .map((colNum) => (
-              <VocabColumnSection
-                num={colNum + columnCount * (page - 1)}
-                max={columnCount}
-                vocabs={filteredVocs}
-                key={colNum}
-              />
-            ))
-        ) : (
-          <div>loading</div>
-        )}
+        {columnArr.slice(0, columnCount).map((colNum) => (
+          <VocabColumnSection
+            num={colNum + columnCount * (page - 1)}
+            max={columnCount}
+            vocabs={filteredVocs}
+            key={colNum}
+            loading={loading}
+          />
+        ))}
       </div>
     </>
   );

@@ -246,7 +246,7 @@ const FilterMenu = (props: Props) => {
             width="100%"
             alignItems="center"
           >
-            <Typography variant="body1">Sort by</Typography>
+            <Typography variant="body1">Sort by</Typography>B
             <Select
               size="small"
               sx={{ minWidth: 120 }}

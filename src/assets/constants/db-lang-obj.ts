@@ -9,6 +9,11 @@ export const dbLangObj = {
     srcset:
       "https://flagcdn.com/32x24/ir.png 2x, https://flagcdn.com/48x36/ir.png 3x",
   },
+  FarsiDic: {
+    src: "https://flagcdn.com/16x12/ir.png",
+    srcset:
+      "https://flagcdn.com/32x24/ir.png 2x, https://flagcdn.com/48x36/ir.png 3x",
+  },
   French: {
     src: "https://flagcdn.com/16x12/fr.png",
     srcset:

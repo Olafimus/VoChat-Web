@@ -29,6 +29,7 @@ type VocabScreenSettings = {
   sortBy: SortVariants;
   sortOrder: SortOrders;
   timeRange: number;
+  loading: boolean;
 };
 
 interface Settings {
@@ -61,6 +62,7 @@ const initalVocabScreenSettings: VocabScreenSettings = {
   sortBy: "none",
   sortOrder: "standard",
   timeRange: 3600000,
+  loading: false,
 };
 
 const initalVocabSubSettings = {

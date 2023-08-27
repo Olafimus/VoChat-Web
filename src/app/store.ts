@@ -19,7 +19,7 @@ import NoteReducer from "./slices/notes-slice";
 const rootPersistConfig = {
   key: "root",
   storage: localforage,
-  blacklist: ["user", "allVocabs"],
+  blacklist: ["user", "allVocabs", "settings"],
 };
 
 const userPersistConfig = {
