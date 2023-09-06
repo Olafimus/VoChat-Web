@@ -12,6 +12,7 @@ export type AppUser = {
   friends?: Friend[];
   deletedFriends?: Friend[];
   addedDataVocsRefs: { [key: string]: string };
+  imageURL: string | null;
 };
 
 export type OnlineUser = {
@@ -25,6 +26,7 @@ export type Friend = {
   lastInteraction: number;
   conversation: string;
   name?: string;
+  imageURL?: string | null;
   lastMessage: string;
 };
 

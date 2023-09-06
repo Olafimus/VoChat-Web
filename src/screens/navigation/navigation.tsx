@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import "./navigation.styles.scss";
 import { Outlet, Link, useNavigate } from "react-router-dom";
 import { styled, useTheme, Theme, CSSObject } from "@mui/material/styles";
@@ -31,8 +31,11 @@ import SchoolIcon from "@mui/icons-material/School";
 import { resetConversations } from "../../app/slices/conversation-slice";
 import AutoStoriesRoundedIcon from "@mui/icons-material/AutoStoriesRounded";
 import SpeakerNotesOutlinedIcon from "@mui/icons-material/SpeakerNotesOutlined";
+import { useMediaQuery } from "@mui/material";
 
 const drawerWidth = 240;
+let closedDrawerWidthOne = "50px";
+let closedDrawerWidthTwo = "65px";
 
 const openedMixin = (theme: Theme): CSSObject => ({
   width: drawerWidth,
@@ -49,9 +52,9 @@ const closedMixin = (theme: Theme): CSSObject => ({
     duration: theme.transitions.duration.leavingScreen,
   }),
   overflowX: "hidden",
-  width: `calc(${theme.spacing(7)} + 1px)`,
+  width: closedDrawerWidthOne,
   [theme.breakpoints.up("sm")]: {
-    width: `calc(${theme.spacing(8)} + 1px)`,
+    width: closedDrawerWidthTwo,
   },
 });
 
@@ -109,6 +112,20 @@ const Navigation = () => {
   const dispatch = useAppDispatch();
   const navigation = useNavigate();
   const [open, setOpen] = React.useState(false);
+
+  // const matches = useMediaQuery("(min-width:600px)");
+
+  // useEffect(() => {
+  //   console.log(matches);
+  //   if (matches) {
+  //     closedDrawerWidthOne = "0px";
+  //     closedDrawerWidthTwo = "0px";
+  //   }
+  //   if (!matches) {
+  //     closedDrawerWidthOne = "50px";
+  //     closedDrawerWidthTwo = "65px";
+  //   }
+  // }, [matches]);
 
   const handleDrawerOpen = () => {
     setOpen(true);

@@ -21,6 +21,7 @@ interface UserState {
   friends: Friend[];
   deletedFriends: Friend[];
   friendsSet: boolean;
+  imageURL: string | null;
   joinedAt?: Date;
   addedDataVocsRefs: { [key: string]: string };
 }
@@ -32,6 +33,7 @@ const initialState: UserState = {
   id: "",
   lastActive: 0,
   createdAt: 0,
+  imageURL: null,
   conversations: [],
   teachLanguages: [],
   learnLanguages: [],
@@ -59,7 +61,7 @@ export const UserSlice = createSlice({
       state.conversations = action.payload.conversations;
       state.name = action.payload.name;
       state.email = action.payload.email;
-
+      state.imageURL = action.payload.imageURL;
       state.lastActive = action.payload.lastActive;
       state.createdAt = action.payload.createdAt;
       state.teachLanguages = action.payload.teachLanguages;
@@ -160,6 +162,9 @@ export const UserSlice = createSlice({
     resetUserState: (state) => {
       return initialState;
     },
+    setUserImageURL: (state, a: PayloadAction<string>) => {
+      state.imageURL = a.payload;
+    },
     addDataRef: (
       state,
       actions: PayloadAction<{ lang: keyof typeof dbLangObj; ref: string }>
@@ -192,6 +197,7 @@ export const {
   changeLearnLangs,
   changeTeachLangs,
   addDataRef,
+  setUserImageURL,
 } = UserSlice.actions;
 
 export default UserSlice.reducer;

@@ -23,6 +23,7 @@ import {
   addDoc,
   arrayRemove,
 } from "firebase/firestore";
+import { getDownloadURL, getStorage, ref, uploadBytes } from "firebase/storage";
 import { Conversation } from "../logic/classes/conversation.class";
 import { Message } from "../logic/types/message.types";
 import { Contact, Friend } from "../logic/types/user.types";
@@ -41,6 +42,27 @@ const firebaseConfig = {
 };
 
 const firebaseApp = initializeApp(firebaseConfig);
+export const storage = getStorage();
+
+export const uploadFile = async (file: File, uid: string) => {
+  const path = `user-images/${uid}`;
+  const storageRef = ref(storage, path);
+  try {
+    await uploadBytes(storageRef, file);
+    const userDocRef = doc(db, "users", uid);
+    const url = await loadUserImage(uid);
+    console.log(url);
+    updateDoc(userDocRef, { imageURL: url });
+  } catch (error) {
+    // throw new Error(error.message as string);
+    console.log(error);
+  }
+};
+
+export const loadUserImage = async (uid: string) => {
+  const url = await getDownloadURL(ref(storage, `user-images/${uid}`));
+  return url;
+};
 
 const googleProvider = new GoogleAuthProvider();
 

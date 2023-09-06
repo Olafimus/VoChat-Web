@@ -1,13 +1,11 @@
-import React from "react";
+import { useState } from "react";
 import {
   Box,
   Avatar,
   Typography,
   Divider,
   Grid,
-  FormControl,
   Stack,
-  Paper,
   Tooltip,
 } from "@mui/material";
 import useMediaQuery from "@mui/material/useMediaQuery";
@@ -17,9 +15,13 @@ import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { Link } from "react-router-dom";
 import { resetUserState } from "../../app/slices/user-slice";
 import { resetConversations } from "../../app/slices/conversation-slice";
+import ProfileImageUpload from "../../components/profile/profile-image-upload";
 
 const ProfilePage = () => {
-  const { name, email, joinedAt } = useAppSelector((state) => state.user);
+  const [open, setOpen] = useState(false);
+  const { name, email, joinedAt, imageURL } = useAppSelector(
+    (state) => state.user
+  );
   const matches = useMediaQuery("(min-width:600px)");
   const dispatch = useAppDispatch();
 
@@ -46,8 +48,14 @@ const ProfilePage = () => {
             flexDirection="column"
             alignItems="center"
             gap="0.3rem"
+            mt={2}
           >
-            <Avatar sx={{ height: 100, width: 100 }} />
+            <span onClick={() => setOpen(true)}>
+              <Avatar
+                src={imageURL ? imageURL : ""}
+                sx={{ height: 150, width: 150 }}
+              />
+            </span>
             <Typography variant="h6">{name}</Typography>
             <Typography variant="h6">{email}</Typography>
             <Divider sx={{ width: "100%" }} />
@@ -166,6 +174,7 @@ const ProfilePage = () => {
           </Stack>
         </section>
       </Box>
+      {open && <ProfileImageUpload open={open} setOpen={setOpen} />}
     </Box>
   );
 };
