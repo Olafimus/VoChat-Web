@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Push from "push.js";
 import {
   Box,
   Avatar,
@@ -16,6 +17,8 @@ import { Link } from "react-router-dom";
 import { resetUserState } from "../../app/slices/user-slice";
 import { resetConversations } from "../../app/slices/conversation-slice";
 import ProfileImageUpload from "../../components/profile/profile-image-upload";
+import { resetVocabSlice } from "../../app/slices/vocabs-slice";
+import { resetVocClassSlice } from "../../app/slices/vocabs-class-slice";
 
 const ProfilePage = () => {
   const [open, setOpen] = useState(false);
@@ -72,6 +75,8 @@ const ProfilePage = () => {
               onClick={() => {
                 dispatch(resetUserState());
                 dispatch(resetConversations());
+                dispatch(resetVocabSlice());
+                dispatch(resetVocClassSlice());
               }}
             >
               <Typography
@@ -82,6 +87,15 @@ const ProfilePage = () => {
                 Log-Out
               </Typography>
             </Link>
+            <span onClick={() => Push.create("Hey there")}>
+              <Typography
+                variant="body1"
+                color="primary"
+                sx={{ ":hover": { cursor: "pointer" } }}
+              >
+                Allow Notifications
+              </Typography>
+            </span>
           </Box>
         </section>
 

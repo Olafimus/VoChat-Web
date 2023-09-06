@@ -1,10 +1,14 @@
 import { doc } from "firebase/firestore";
 import React, { useEffect } from "react";
 import { useDocument } from "react-firebase-hooks/firestore";
-import { useAppDispatch } from "../../app/hooks";
+import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { setFriends, setUserData } from "../../app/slices/user-slice";
 import { db } from "../../utils/firebase";
 import { AppUser } from "../types/user.types";
+import {
+  loadLastUpdated,
+  updateLastUpdated,
+} from "../../utils/firebase/firebase-vocab";
 
 const UserDataLoader: React.FC<{ id: string }> = ({ id }) => {
   const dispatch = useAppDispatch();

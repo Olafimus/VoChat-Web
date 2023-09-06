@@ -185,7 +185,9 @@ const AddVocab = ({
       workbooks.push(newWb);
     });
     let id = nanoid();
+    let dataId = vocab?.getId();
     if (vocId) id = vocId;
+
     const newVocObj: VocObj = {
       owner: uid,
       id,
@@ -213,6 +215,7 @@ const AddVocab = ({
         lastChecked: 0,
       },
     };
+    if (dataId) newVocObj.dataId = dataId;
     if (type === "add" || type === "wbAdd") {
       const newVoc = new Vocab(newVocObj);
       allVocabs.addVocab(newVoc);

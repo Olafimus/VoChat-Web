@@ -91,6 +91,7 @@ export const VocabSlice = createSlice({
     ) => {
       state.savedDbLangs.push(actions.payload.lang);
       state.dataVocStore[actions.payload.lang] = actions.payload.data;
+      state.lastUpdate = Date.now();
     },
     addVoctoAdded: (
       s,
@@ -100,9 +101,13 @@ export const VocabSlice = createSlice({
 
       try {
         s.addedDataVocs[lang].push(vocId);
+        s.lastUpdate = Date.now();
       } catch (error) {
         s.addedDataVocs = { ...s.addedDataVocs, [lang]: [vocId] };
       }
+    },
+    resetVocabSlice: (s) => {
+      s = initialState;
     },
     updateSavedVoc: (
       s,
@@ -132,6 +137,7 @@ export const {
   addCategory,
   removeCategory,
   removeWorkbook,
+  resetVocabSlice,
   changeCurLang,
   changeNativeLang,
   addSavedLang,

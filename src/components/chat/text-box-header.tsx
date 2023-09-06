@@ -26,6 +26,7 @@ import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { switchActiveConv } from "../../app/slices/conversation-slice";
 import { useNavigate } from "react-router-dom";
 import { MsgHisTypes } from "../../logic/types/message.types";
+import { stringAvatar } from "../contacts/contact-item";
 
 const ChatBoxHeader = ({
   names,
@@ -34,11 +35,13 @@ const ChatBoxHeader = ({
   cIds,
   filterSet,
   setFilterSet,
+  imageURLS,
 }: {
   names: string;
   searchFunc: (val: string) => void;
   resetSearch: () => void;
   cIds: string[];
+  imageURLS: string[];
   filterSet: {
     lang: string;
     msgTypes: MsgHisTypes[];
@@ -226,7 +229,11 @@ const ChatBoxHeader = ({
           </MenuItem>
         </Menu>
         <span onClick={handleAvatarClick}>
-          <Avatar src="/broken-image.jpg" />
+          {imageURLS.length > 0 ? (
+            <Avatar alt="Profile Avatar" src={imageURLS[0]} />
+          ) : (
+            <Avatar alt="Profile Avatar" {...stringAvatar(names ?? "")} />
+          )}
         </span>
         <Menu
           id="basic-menu"

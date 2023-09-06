@@ -191,3 +191,23 @@ export const updateAddedDataVocs = async (
       });
   }
 };
+
+export const updateLastUpdated = async (uid: string, lastUpdate: number) => {
+  const userVocRef = doc(vocCol, "UpRef" + uid);
+  const snap = await getDoc(userVocRef);
+  if (snap.exists())
+    await updateDoc(userVocRef, {
+      lastUpdate,
+    });
+  else
+    await setDoc(userVocRef, {
+      owner: "UpRef" + uid,
+      lastUpdate,
+    });
+};
+
+export const loadLastUpdated = async (uid: string) => {
+  const userVocRef = doc(vocCol, "UpRef" + uid);
+  const data = await getDoc(userVocRef);
+  return data.data()?.lastUpdate;
+};

@@ -71,10 +71,15 @@ export const UserSlice = createSlice({
     },
     changeFriendName: (
       state,
-      action: PayloadAction<{ frId: string; name: string }>
+      action: PayloadAction<{
+        frId: string;
+        name: string;
+        imageURL: string | null;
+      }>
     ) => {
       const i = state.friends.findIndex((fr) => fr.id === action.payload.frId);
       state.friends[i].name = action.payload.name;
+      state.friends[i].imageURL = action.payload.imageURL;
     },
     changeFrLastMsg: (
       state,

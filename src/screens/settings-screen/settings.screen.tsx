@@ -5,7 +5,10 @@ import { notifyUser } from "../../utils/notification";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { AllVocabsClass } from "../../logic/classes/vocab.class";
 import { updateVocabLS } from "../../app/slices/vocabs-slice";
-import { loadPreVocs } from "../../utils/firebase/firebase-vocab";
+import {
+  loadLastUpdated,
+  loadPreVocs,
+} from "../../utils/firebase/firebase-vocab";
 import { addDicVocs, addVocToPre } from "../../utils/firebase/uploadPreData";
 
 const SettingsScreen = () => {
@@ -20,7 +23,8 @@ const SettingsScreen = () => {
   };
 
   const loading = async () => {
-    const data = await loadPreVocs("German", workbooks, uid);
+    // const data = await loadPreVocs("German", workbooks, uid);
+    loadLastUpdated(uid);
   };
 
   // useEffect(() => {

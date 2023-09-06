@@ -35,9 +35,13 @@ const allVocabsSlice = createSlice({
     setDbLang: (s, a: PayloadAction<keyof typeof dbLangObj | null>) => {
       s.dbLang = a.payload;
     },
+    resetVocClassSlice: (s) => {
+      s = initialState;
+    },
   },
 });
 
-export const { setAllVocabs, setDataVocs, setDbLang } = allVocabsSlice.actions;
+export const { setAllVocabs, setDataVocs, setDbLang, resetVocClassSlice } =
+  allVocabsSlice.actions;
 
 export default allVocabsSlice.reducer;

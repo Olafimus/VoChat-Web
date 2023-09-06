@@ -28,6 +28,7 @@ const ChatTextBox = ({ matches }: { matches: boolean }) => {
     msgTypes: MsgHisTypes[];
   }>({ lang: "all", msgTypes: ["answer", "edit", "vocab", "wb", "standard"] });
   const [contacts, setContacts] = useState<string[]>([]);
+  const [imageURLS, setimageURLS] = useState<string[]>([]);
   const [newMsg, setNewMsg] = useState(false);
   const { id } = useAppSelector((state) => state.user);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -75,9 +76,14 @@ const ChatTextBox = ({ matches }: { matches: boolean }) => {
   useEffect(() => {
     if (!conv) return;
     const contactNames: string[] = [];
+    const contactURLs: string[] = [];
     friends.forEach((fr) => {
-      if (cIds.includes(fr.id) && fr.name) contactNames.push(fr.name);
+      if (cIds.includes(fr.id) && fr.name) {
+        contactNames.push(fr.name);
+        if (typeof fr.imageURL === "string") contactURLs.push(fr.imageURL);
+      }
     });
+    setimageURLS(contactURLs);
     setContacts(contactNames);
 
     setFirstLoad(false);
@@ -166,6 +172,7 @@ const ChatTextBox = ({ matches }: { matches: boolean }) => {
         cIds={cIds}
         setFilterSet={setFilterSet}
         filterSet={filterSet}
+        imageURLS={imageURLS}
       />
       <div
         style={

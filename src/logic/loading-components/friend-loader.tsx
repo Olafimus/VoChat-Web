@@ -17,11 +17,13 @@ const FriendLoader: React.FC<{ friend: Friend }> = ({ friend }) => {
     if (!value) return;
     const data = {
       name: value.data()?.displayName ?? "",
+      imageURL: value.data()?.imageURL ?? null,
     };
     // if ((friend.name = data.name)) return;
     const payload = {
       frId: friend.id,
       name: data.name,
+      imageURL: data.imageURL,
     };
 
     dispatch(changeFriendName(payload));

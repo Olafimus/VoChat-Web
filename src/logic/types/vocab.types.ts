@@ -1,6 +1,7 @@
 export type VocObj = {
   owner: string;
   id: string;
+  dataId?: string;
   createdAt: number;
   vocLanguage: string;
   transLanguage: string;

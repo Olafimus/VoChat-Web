@@ -76,6 +76,8 @@ const VocabCardList = ({
     }
   };
 
+  if (dataVocs === null && allVocs.getVocCount() < 1) loadVocs();
+
   useEffect(() => {
     // setLoading(true);
     if (!matchesOne) setColumnCount(1);
@@ -84,8 +86,6 @@ const VocabCardList = ({
     if (matchesThree) setColumnCount(4);
     setLoading(false);
   }, [matchesOne, matchesTwo, matchesThree]);
-
-  console.log(filteredVocs);
 
   return (
     <>

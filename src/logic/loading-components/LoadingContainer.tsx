@@ -16,17 +16,35 @@ import ConversationLoader from "./../../logic/loading-components/conversation-lo
 import { AppUser, CurrentUser, Friend } from "./../../logic/types/user.types";
 import FriendLoader from "./../../logic/loading-components/friend-loader";
 import { useAppDispatch, useAppSelector } from "./../../app/hooks";
-import { changeCurLang } from "../../app/slices/vocabs-slice";
+import {
+  addCategory,
+  addVocab,
+  addWorkbook,
+  changeCurLang,
+} from "../../app/slices/vocabs-slice";
+import {
+  getAllVocsDb,
+  loadLastUpdated,
+  updateLastUpdated,
+} from "../../utils/firebase/firebase-vocab";
+import { AllVocabsClass, Vocab } from "../classes/vocab.class";
+import { VocObj, WorkbookType } from "../types/vocab.types";
+import { setAllVocabs } from "../../app/slices/vocabs-class-slice";
 
 const LoadingContainer = () => {
-  const { currentUser, conversations, friends, friendsSet } = useAppSelector(
-    (state) => state.user
-  );
+  const {
+    currentUser,
+    conversations,
+    friends,
+    friendsSet,
+    id: uid,
+  } = useAppSelector((state) => state.user);
   const { unreadMsgs } = useAppSelector((state) => state.conversations);
   const [loading, setLoading] = useState(true);
   const [friendLoads, setFriendLoads] = useState<Friend[]>([]);
   const [conversationLoads, setConversationLoads] = useState<string[]>([]);
   const dispatch = useAppDispatch();
+  const { lastUpdate, workbooks, categories } = useAppSelector((s) => s.vocabs);
 
   useEffect(() => {
     if (unreadMsgs > 0) document.title = `(${unreadMsgs}) VoChat`;
@@ -97,6 +115,52 @@ const LoadingContainer = () => {
     };
     getFriends();
   }, [currentUser]);
+
+  const activityUpdater = async () => {
+    await updateLastUpdated(uid, lastUpdate);
+  };
+
+  useEffect(() => {
+    activityUpdater();
+  }, [lastUpdate]);
+
+  const loadVocabs = async () => {
+    const updated = await loadLastUpdated(uid);
+    if (updated === lastUpdate) return;
+    try {
+      const vocs: VocObj[] = await getAllVocsDb(uid);
+
+      const newAllVocabs = new AllVocabsClass([]);
+      if (vocs.length < 1) return;
+      console.log(vocs);
+      const wbs: WorkbookType[] = [];
+      const cats: string[] = [];
+      const wbIds: string[] = workbooks.map((wb) => wb.id);
+      vocs.forEach((voc) => {
+        if (!voc.workbooks) return;
+        newAllVocabs.addVocab(new Vocab(voc));
+        voc.workbooks.forEach((wb) => {
+          if (!wbIds.includes(wb.id)) {
+            wbIds.push(wb.id);
+            wbs.push(wb);
+          }
+        });
+        voc.categories.forEach((cat) => {
+          if (!categories.includes(cat) && !cats.includes(cat)) cats.push(cat);
+        });
+        dispatch(addVocab(voc));
+      });
+      wbs.forEach((wb) => dispatch(addWorkbook(wb)));
+      cats.forEach((cat) => dispatch(addCategory({ label: cat })));
+      dispatch(setAllVocabs(newAllVocabs));
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  useEffect(() => {
+    loadVocabs();
+  }, []);
 
   useEffect(() => {
     setLoading(true);

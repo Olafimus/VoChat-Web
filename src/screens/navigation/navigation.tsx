@@ -31,7 +31,8 @@ import SchoolIcon from "@mui/icons-material/School";
 import { resetConversations } from "../../app/slices/conversation-slice";
 import AutoStoriesRoundedIcon from "@mui/icons-material/AutoStoriesRounded";
 import SpeakerNotesOutlinedIcon from "@mui/icons-material/SpeakerNotesOutlined";
-import { useMediaQuery } from "@mui/material";
+import { Avatar, Tooltip, useMediaQuery } from "@mui/material";
+import { stringAvatar } from "../../components/contacts/contact-item";
 
 const drawerWidth = 240;
 let closedDrawerWidthOne = "50px";
@@ -108,7 +109,7 @@ const Drawer = styled(MuiDrawer, {
 
 const Navigation = () => {
   const { theme } = useAppSelector((state) => state.settings);
-  const { currentUser, name } = useAppSelector((state) => state.user);
+  const { currentUser, name, imageURL } = useAppSelector((state) => state.user);
   const dispatch = useAppDispatch();
   const navigation = useNavigate();
   const [open, setOpen] = React.useState(false);
@@ -164,11 +165,18 @@ const Navigation = () => {
               VoChat
             </Typography>
             {currentUser ? (
-              <Link to="/profile">
-                <Typography variant="h6" noWrap color="white">
-                  {name}
-                </Typography>
-              </Link>
+              <Tooltip arrow title="Go to profile page">
+                <Link to="/profile">
+                  {imageURL ? (
+                    <Avatar alt="Profile Avatar" src={imageURL} />
+                  ) : (
+                    <Avatar
+                      alt="Profile Avatar"
+                      {...stringAvatar(name ?? "")}
+                    />
+                  )}
+                </Link>
+              </Tooltip>
             ) : (
               <Link to="login">Log In</Link>
             )}
