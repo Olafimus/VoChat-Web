@@ -1,6 +1,5 @@
 import { PayloadAction, createSlice } from "@reduxjs/toolkit";
 import { VocObj, WorkbookType } from "../../logic/types/vocab.types";
-import { addVocToDb, updateVocDb } from "../../utils/firebase/firebase-vocab";
 import { dbLangObj } from "../../assets/constants/db-lang-obj";
 
 interface VocabState {
@@ -48,7 +47,7 @@ export const VocabSlice = createSlice({
           return actions.payload;
         } else return voc;
       });
-      state.lastUpdate = Date.now();
+      // state.lastUpdate = Date.now();
     },
     removeVocFromLS: (state, actions: PayloadAction<string>) => {
       const newArr = state.allUserVocabs.filter(

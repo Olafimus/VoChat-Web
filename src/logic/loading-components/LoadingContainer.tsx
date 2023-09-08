@@ -21,6 +21,7 @@ import {
   addVocab,
   addWorkbook,
   changeCurLang,
+  changeNativeLang,
 } from "../../app/slices/vocabs-slice";
 import {
   getAllVocsDb,
@@ -111,7 +112,7 @@ const LoadingContainer = () => {
       dispatch(setFriends(friends));
       dispatch(setUserData(userData));
       if (data.currentLang) dispatch(changeCurLang(data.currentLang));
-      if (data.nativeLang) dispatch(changeCurLang(data.nativeLang));
+      if (data.nativeLang) dispatch(changeNativeLang(data.nativeLang));
     };
     getFriends();
   }, [currentUser]);

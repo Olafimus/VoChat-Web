@@ -20,6 +20,7 @@ import { useMediaQuery } from "@mui/material";
 
 import StyledGridItem from "../../components/general/styled-grid-item";
 import { changeDefaultVocCount } from "../../app/slices/settings-slice";
+import { useNavigate } from "react-router-dom";
 
 export type RouteTypes =
   | "default"
@@ -31,6 +32,8 @@ export type RouteTypes =
 const LearningScreen = () => {
   // const { allVocabs } = useAppSelector((state) => state.allVocabs);
   const { vocabLearnSettings } = useAppSelector((state) => state.settings);
+  const { started, route } = useAppSelector((state) => state.learning);
+  const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const [open, setOpen] = useState(false);
   const anchorRef = React.useRef<HTMLButtonElement>(null);
@@ -55,6 +58,8 @@ const LearningScreen = () => {
       setOpen(false);
     }
   }
+
+  if (started) navigate(`/vocab/learning/${route}`);
 
   return (
     <Box>

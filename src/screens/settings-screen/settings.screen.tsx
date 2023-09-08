@@ -19,7 +19,7 @@ const SettingsScreen = () => {
   const dispatch = useAppDispatch();
 
   const testing = async () => {
-    await addVocToPre();
+    console.log(allVocabs.getDefaultVocs(5));
   };
 
   const loading = async () => {

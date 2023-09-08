@@ -110,6 +110,7 @@ const Drawer = styled(MuiDrawer, {
 const Navigation = () => {
   const { theme } = useAppSelector((state) => state.settings);
   const { currentUser, name, imageURL } = useAppSelector((state) => state.user);
+  const { started, route } = useAppSelector((s) => s.learning);
   const dispatch = useAppDispatch();
   const navigation = useNavigate();
   const [open, setOpen] = React.useState(false);
@@ -279,7 +280,11 @@ const Navigation = () => {
 
         <List>
           <ListItem
-            onClick={() => navigation("/vocab/learning")}
+            onClick={() => {
+              started
+                ? navigation(`/vocab/learning/${route}`)
+                : navigation("/vocab/learning");
+            }}
             disablePadding
             sx={{ display: "block" }}
           >

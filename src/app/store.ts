@@ -15,11 +15,12 @@ import vocabsReducer from "./slices/vocabs-slice";
 import conversationReducer from "./slices/conversation-slice";
 import AllVocabsReducer from "./slices/vocabs-class-slice";
 import NoteReducer from "./slices/notes-slice";
+import learningReducer from "./slices/learning-slice";
 
 const rootPersistConfig = {
   key: "root",
   storage: localforage,
-  blacklist: ["user", "allVocabs", "settings"],
+  blacklist: ["user", "allVocabs", "settings", "learning"],
 };
 
 const userPersistConfig = {
@@ -42,6 +43,7 @@ const appReducer = combineReducers({
   allVocabs: AllVocabsReducer,
   conversations: conversationReducer,
   notes: NoteReducer,
+  learning: learningReducer,
 });
 
 const persistedReducer = persistReducer(rootPersistConfig, appReducer);

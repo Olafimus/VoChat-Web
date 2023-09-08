@@ -93,12 +93,13 @@ export class AllVocabsClass {
     const sortedVocs = this.vocs
       .sort((a, b) => b.getCalcImp() - a.getCalcImp())
       .slice(0, num * 2 + 10);
+
     sortedVocs.forEach((voc) => console.log(voc.getCalcImp()));
     const newDefaultVocs: Vocab[] = [];
     sortedVocs.forEach((voc) => {
       const learnHis = voc.getRecentHis(timeRef);
       if (learnHis.length === 0) newDefaultVocs.push(voc);
-      if (!reThrowMistakes) return;
+      // if (!reThrowMistakes) return;
 
       const recentResults = learnHis.map((his) => his.result);
       if (!recentResults.every((res) => res === true)) newDefaultVocs.push(voc);

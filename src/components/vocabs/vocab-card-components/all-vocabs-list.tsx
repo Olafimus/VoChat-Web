@@ -50,7 +50,7 @@ const VocabCardList = ({
 
       const newAllVocabs = new AllVocabsClass([]);
       if (vocs.length < 1) return;
-      console.log(vocs);
+      // console.log(vocs);
       const wbs: WorkbookType[] = [];
       const cats: string[] = [];
       const wbIds: string[] = workbooks.map((wb) => wb.id);
@@ -76,7 +76,9 @@ const VocabCardList = ({
     }
   };
 
-  if (dataVocs === null && allVocs.getVocCount() < 1) loadVocs();
+  useEffect(() => {
+    if (dataVocs === null && allVocs.getVocCount() < 1) loadVocs();
+  }, []);
 
   useEffect(() => {
     // setLoading(true);

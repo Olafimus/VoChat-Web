@@ -1,35 +1,75 @@
 import React, { useState, useEffect } from "react";
-import { Box, List, ListItem, ListItemText, Typography } from "@mui/material";
-import { useParams } from "react-router-dom";
-import { useAppSelector } from "../../app/hooks";
+import {
+  Box,
+  List,
+  ListItem,
+  ListItemText,
+  Typography,
+  Button,
+} from "@mui/material";
+import { useNavigate, useParams } from "react-router-dom";
+import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { Vocab } from "../../logic/classes/vocab.class";
 import LearnTabs from "../../components/vocabs/learning/learning-tabbar";
 import SearchField from "../../components/general/search-field";
 import { WorkbookType } from "../../logic/types/vocab.types";
+import {
+  setCurLearnVocabs,
+  setLearnStart,
+  setLearnVocabs,
+  setRoute,
+} from "../../app/slices/learning-slice";
+
+export type LearnRoutes = "default" | "workbook" | "random" | "mistakes" | null;
 
 const LearningRoute = () => {
   const { route } = useParams();
+  const dispatch = useAppDispatch();
   const { allVocabs } = useAppSelector((state) => state.allVocabs);
   const { vocabLearnSettings } = useAppSelector((state) => state.settings);
   const { workbooks } = useAppSelector((state) => state.vocabs);
-  const [learnVocs, setLearnVocs] = useState<Vocab[]>([]);
+  const { started } = useAppSelector((state) => state.learning);
+  // const [learnVocs, setLearnVocs] = useState<Vocab[]>([]);
   const [workbook, setWorkbook] = useState<null | string>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (route === "default")
-      setLearnVocs(
-        allVocabs.getDefaultVocs(vocabLearnSettings.defaultVocCount, 5)
+    console.log("fired");
+    if (started) return;
+    if (route === "default") {
+      // setLearnVocs(
+      //   allVocabs.getDefaultVocs(vocabLearnSettings.defaultVocCount, 5)
+      // );
+      const vocs = allVocabs.getDefaultVocs(
+        vocabLearnSettings.defaultVocCount,
+        5
       );
-    if (route === "workbook" && workbook)
-      setLearnVocs(allVocabs.getWbVocs(workbook));
+      dispatch(setLearnVocabs(vocs));
+      dispatch(setCurLearnVocabs(vocs));
+      dispatch(setRoute("default"));
+      dispatch(setLearnStart(true));
+    }
+    if (route === "workbook" && workbook) {
+      const vocs = allVocabs.getWbVocs(workbook);
+      dispatch(setCurLearnVocabs(vocs));
+      dispatch(setLearnVocabs(vocs));
+      dispatch(setRoute("workbook"));
+    }
+    // dispatch(setLearnStart(true));
   }, [route, workbook]);
 
   const DefaultRoute = () => {
     return (
       <Box display={"flex"} justifyContent="center">
-        <LearnTabs vocabs={learnVocs}></LearnTabs>
+        <LearnTabs />
       </Box>
     );
+  };
+
+  const reset = () => {
+    dispatch(setLearnStart(false));
+    dispatch(setRoute(null));
+    navigate("/vocab/learning");
   };
 
   const WorkbookRoute = () => {
@@ -46,6 +86,7 @@ const LearningRoute = () => {
         {!workbook && (
           <Box>
             Test
+            <Button onClick={reset}>Go Back</Button>
             <SearchField
               setSearchTerm={setSearchTerm}
               label="Search Workbook"
@@ -73,7 +114,7 @@ const LearningRoute = () => {
         )}
         {workbook && (
           <Box display={"flex"} justifyContent="center">
-            <LearnTabs vocabs={learnVocs}></LearnTabs>
+            <LearnTabs />
           </Box>
         )}
       </>
@@ -81,7 +122,6 @@ const LearningRoute = () => {
   };
   return (
     <>
-      <Typography>2 / 4</Typography>
       {route === "default" && <DefaultRoute />}
       {route === "workbook" && <WorkbookRoute />}
     </>
