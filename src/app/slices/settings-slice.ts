@@ -3,6 +3,8 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 type ScreenStrings = "" | "contacts" | "chat";
 export type SortVariants = "date" | "score" | "importance" | "none";
 export type SortOrders = "standard" | "reversed";
+export type VocCheckingMode = "strict" | "normal" | "loose";
+
 type VocabSubSettings = {
   closeAfterAdd: boolean;
   closeAfterEdit: boolean;
@@ -16,6 +18,7 @@ type VocabSubSettings = {
   showHints: boolean;
   showPronunc: boolean;
 };
+
 type VocabScreenSettings = {
   keepSettings: boolean;
   maxVocs: number;
@@ -32,15 +35,20 @@ type VocabScreenSettings = {
   loading: boolean;
 };
 
+type VocabLearnSettings = {
+  defaultVocCount: number;
+  maxWbVocs: number;
+  vocabTimeOut: number;
+  rethrowMistakes: boolean;
+  checkingConditions: VocCheckingMode;
+};
+
 interface Settings {
   theme: "dark" | "light";
   activeScreen: ScreenStrings;
   vocabScreenSettings: VocabScreenSettings;
   vocabSubSettings: VocabSubSettings;
-  vocabLearnSettings: {
-    defaultVocCount: number;
-    checkingConditions: "strict" | "loose";
-  };
+  vocabLearnSettings: VocabLearnSettings;
   notebookFilterSet: {
     showChecked: boolean;
     filterBy: "none" | "language" | "sender";
@@ -79,15 +87,20 @@ const initalVocabSubSettings = {
   showPronunc: true,
 };
 
+const initalVocabLearnSettings: VocabLearnSettings = {
+  maxWbVocs: 200,
+  vocabTimeOut: 20,
+  rethrowMistakes: true,
+  defaultVocCount: 20,
+  checkingConditions: "normal",
+};
+
 const initialState: Settings = {
   theme: "dark",
   activeScreen: "",
   vocabScreenSettings: initalVocabScreenSettings,
   vocabSubSettings: initalVocabSubSettings,
-  vocabLearnSettings: {
-    defaultVocCount: 20,
-    checkingConditions: "strict",
-  },
+  vocabLearnSettings: initalVocabLearnSettings,
   notebookFilterSet: {
     showChecked: true,
     filterBy: "none",
@@ -129,6 +142,18 @@ export const SettingsSlice = createSlice({
     },
     changeDefaultVocCount: (state, action: PayloadAction<number>) => {
       state.vocabLearnSettings.defaultVocCount = action.payload;
+    },
+    changeMaxWbVocCount: (state, action: PayloadAction<number>) => {
+      state.vocabLearnSettings.maxWbVocs = action.payload;
+    },
+    changeVocTimeout: (state, action: PayloadAction<number>) => {
+      state.vocabLearnSettings.vocabTimeOut = action.payload;
+    },
+    setRethrowMistakes: (state, action: PayloadAction<boolean>) => {
+      state.vocabLearnSettings.rethrowMistakes = action.payload;
+    },
+    setVocCheckingMode: (state, action: PayloadAction<VocCheckingMode>) => {
+      state.vocabLearnSettings.checkingConditions = action.payload;
     },
     changeNoteShowChecked: (state, action: PayloadAction<boolean>) => {
       state.notebookFilterSet.showChecked = action.payload;
@@ -190,6 +215,10 @@ export const {
   changeNoteShowChecked,
   changeVocBoolSetting,
   changeDefaultVocCount,
+  changeMaxWbVocCount,
+  changeVocTimeout,
+  setRethrowMistakes,
+  setVocCheckingMode,
   changeNoteFilter,
   changeMaxShownVocs,
   changeVocCatFilter,

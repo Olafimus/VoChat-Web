@@ -23,7 +23,8 @@ export default function TabPanel(props: TabPanelProps) {
       {value === index && (
         <Box
           sx={{
-            p: 3,
+            px: 3,
+            py: 0,
             display: "flex",
             flex: "1",
             minWidth: "15rem",

@@ -7,4 +7,6 @@ export const globalColors = {
   lightBgThird: "#c8c8c8",
   ligthTextMain: "black",
   darkTextMain: "white",
+  successGreen: "#4BB543",
+  errorRed: "#f14336",
 };

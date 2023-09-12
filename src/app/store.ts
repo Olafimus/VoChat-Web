@@ -20,7 +20,7 @@ import learningReducer from "./slices/learning-slice";
 const rootPersistConfig = {
   key: "root",
   storage: localforage,
-  blacklist: ["user", "allVocabs", "settings", "learning"],
+  blacklist: ["user", "allVocabs", "learning"],
 };
 
 const userPersistConfig = {

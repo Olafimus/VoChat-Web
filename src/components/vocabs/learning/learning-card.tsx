@@ -17,18 +17,26 @@ import SentimentSatisfiedAltIcon from "@mui/icons-material/SentimentSatisfiedAlt
 import SentimentVeryDissatisfiedIcon from "@mui/icons-material/SentimentVeryDissatisfied";
 import { useAppDispatch } from "../../../app/hooks";
 import { checkVoc } from "../../../app/slices/learning-slice";
+import { updateVocabLS } from "../../../app/slices/vocabs-slice";
+import { updateVocDb } from "../../../utils/firebase/firebase-vocab";
+import { VocCheckingMode } from "../../../app/slices/settings-slice";
+import { isTypo } from "../../../utils/general-scripts/isTypo";
 
 const LearnCard = ({
   vocab,
   vocabs,
   index,
   last,
+  uid,
   goNext,
+  checkMode,
 }: {
   vocab: Vocab;
   vocabs: Vocab[];
   index: number;
   last: number;
+  uid: string;
+  checkMode: VocCheckingMode;
   goNext: (val: number) => void;
 }) => {
   const dispatch = useAppDispatch();
@@ -37,7 +45,6 @@ const LearnCard = ({
   const [answer, setAnswer] = React.useState("");
   const [hintsShown, setHintsShown] = React.useState(false);
   React.useEffect(() => {
-    console.log("fired");
     setChecked(vocab.getChecked());
     setResult(vocab.getResult());
     setAnswer(vocab.getLastAnswer());
@@ -48,20 +55,30 @@ const LearnCard = ({
 
   const handleCeck = () => {
     if (answer === "") return;
-    let result = false;
-    if (vocab.getTranslArr().includes(answer.trim())) result = true;
-    // vocab.setChecked(true);
-    // vocab.setResult(result);
-    // vocab.setlastAnswer(answer);
-    // setChecked(true);
-    // setResult(result);
-    // setAnswer(answer);
+    let result = vocab.getTranslArr().includes(answer.trim());
+    if (checkMode === "normal") {
+      const results: boolean[] = vocab
+        .getTranslArr()
+        .map((trans) => trans.toLowerCase() === answer.trim().toLowerCase());
+      result = results.some((el) => el === true);
+    }
+    if (checkMode === "loose") {
+      vocab.getTranslArr().forEach((trans) => {
+        if (isTypo(answer.toLowerCase(), trans.toLowerCase(), 2)) result = true;
+      });
+    }
+    const vocObj = vocab.getVocObj();
     dispatch(checkVoc({ id: vocab.getId(), result, answer, index }));
+    dispatch(updateVocabLS(vocObj));
+    vocab.addLearnHis(result).calcScore(result).calcImp(5);
+    updateVocDb(vocObj, uid);
   };
-  console.log(checked);
 
   return (
-    <Card sx={{ minWidth: 275, flex: "1" }}>
+    <Card
+      className="learn-card"
+      sx={{ minWidth: 275, flex: "1", py: 0, my: 0 }}
+    >
       <CardHeader
         sx={{ textAlign: "center" }}
         title={vocab.getVocArr()[0]}

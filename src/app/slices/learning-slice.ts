@@ -33,8 +33,17 @@ export const LearningSlice = createSlice({
   initialState,
   reducers: {
     setLearnVocabs: (s, a: PayloadAction<Vocab[]>) => {
+      if (s.started) return;
       s.vocabs = a.payload;
     },
+    setCurLearnVocabs: (
+      s,
+      a: PayloadAction<{ vocs: Vocab[]; withStarted: boolean }>
+    ) => {
+      if (s.started && !a.payload.withStarted) return;
+      s.currentVocabs = a.payload.vocs;
+    },
+
     setRoute: (s, a: PayloadAction<LearnRoutes>) => {
       s.route = a.payload;
     },
@@ -54,6 +63,7 @@ export const LearningSlice = createSlice({
       s.currentIndex = 0;
     },
     resetLearnSlice: (s) => {
+      s.currentVocabs.forEach((voc) => voc.resetStatus());
       s.vocabs = [];
       s.currentVocabs = [];
       s.round = 1;
@@ -63,9 +73,6 @@ export const LearningSlice = createSlice({
       s.completed = false;
       s.checkedCount = 0;
       s.currentResults = [];
-    },
-    setCurLearnVocabs: (s, a: PayloadAction<Vocab[]>) => {
-      s.currentVocabs = a.payload;
     },
     checkVoc: (
       s,

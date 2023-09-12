@@ -38,15 +38,25 @@ export const VocabSlice = createSlice({
       state.allUserVocabs = actions.payload;
     },
     addVocab: (state, actions: PayloadAction<VocObj>) => {
+      const voc = state.allUserVocabs.find(
+        (voc) => voc.id === actions.payload.id
+      );
+      if (voc) return;
       state.allUserVocabs.push(actions.payload);
       state.lastUpdate = Date.now();
     },
     updateVocabLS: (state, actions: PayloadAction<VocObj>) => {
-      state.allUserVocabs = state.allUserVocabs.map((voc) => {
-        if (voc.id === actions.payload.id) {
-          return actions.payload;
-        } else return voc;
-      });
+      const i = state.allUserVocabs.findIndex(
+        (el) => el.id === actions.payload.id
+      );
+      // state.allUserVocabs = state.allUserVocabs.map((voc) => {
+      //   if (voc.id === actions.payload.id) {
+      //     return actions.payload;
+      //   } else return voc;
+      // });
+      console.log("index: ", i);
+      if (!i) return;
+      // state.allUserVocabs[i] = actions.payload;
       // state.lastUpdate = Date.now();
     },
     removeVocFromLS: (state, actions: PayloadAction<string>) => {

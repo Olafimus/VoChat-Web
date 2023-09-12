@@ -11,11 +11,13 @@ import { updateVocabLS } from "../../../app/slices/vocabs-slice";
 import { updateVocDb } from "../../../utils/firebase/firebase-vocab";
 import LearnHeader from "./learning-header";
 import {
+  resetLearnSlice,
   setCompleted,
   setCurLearnVocabs,
   setRoundFinished,
 } from "../../../app/slices/learning-slice";
 import { useVocFunctions } from "../../../utils/hooks/useVocFunctions";
+import { globalColors } from "../../../assets/constants/colors";
 
 function a11yProps(index: number) {
   return {
@@ -27,14 +29,14 @@ function a11yProps(index: number) {
 export default function LearnTabs() {
   const { currentIndex, roundFinished, completed, currentVocabs, vocabs } =
     useAppSelector((s) => s.learning);
-  const [value, setValue] = useState(currentIndex);
-  // const [finished, setFinished] = useState(false);
-  // const [completed, setCompleted] = useState(false);
-  // const [filteredVocabs, setFilteredVocabs] = useState<Vocab[]>([]);
+  const [value, setValue] = useState(0);
   const dispatch = useAppDispatch();
+  const { theme, vocabLearnSettings } = useAppSelector(
+    (state) => state.settings
+  );
   const { id: uid } = useAppSelector((state) => state.user);
-  const { theme } = useAppSelector((state) => state.settings);
-  const { startAgain, retryMistakes, updateVocabs } = useVocFunctions();
+  const { startAgain, retryMistakes, updateVocabs, startNewDefault } =
+    useVocFunctions(setValue);
 
   const handleChange = (event: React.SyntheticEvent, newValue: number) => {
     setValue(newValue);
@@ -127,6 +129,7 @@ export default function LearnTabs() {
       <LearnHeader theme={theme} />
       <Box
         id="test"
+        mt="4em"
         sx={{
           flexGrow: 1,
           bgcolor: "background.paper",
@@ -143,10 +146,13 @@ export default function LearnTabs() {
               Congrats you answered every vocab correctly!
             </Typography>
             <Box display={"flex"} flexDirection={"column"}>
-              <Link to="/vocab/learning">
+              <Link
+                to="/vocab/learning"
+                onClick={() => dispatch(resetLearnSlice())}
+              >
                 <Button>Choose a new Method</Button>
               </Link>
-              <Link to="/vocab/learning/default">
+              <Link to="/vocab/learning/default" onClick={startNewDefault}>
                 <Button>Next Default Method</Button>
               </Link>
               <Button onClick={startAgain}>Again with the same vocabs</Button>
@@ -171,8 +177,8 @@ export default function LearnTabs() {
                   sx={
                     voc.getChecked()
                       ? voc.getResult()
-                        ? { color: "#4BB543" }
-                        : { color: "#f14336" }
+                        ? { color: globalColors.successGreen }
+                        : { color: globalColors.errorRed }
                       : {}
                   }
                 /> // je 1 style für korrekt und falsch
@@ -192,6 +198,8 @@ export default function LearnTabs() {
                     goNext={goToNext}
                     index={i}
                     last={vocabs.length - 1}
+                    uid={uid}
+                    checkMode={vocabLearnSettings.checkingConditions}
                   />
                 </TabPanel>
               ))}
@@ -199,7 +207,10 @@ export default function LearnTabs() {
               {roundFinished && (
                 <Box>
                   <Typography>You answered every Vocab!</Typography>
-                  <Link to="/vocab/learning/">
+                  <Link
+                    to="/vocab/learning/"
+                    onClick={() => dispatch(resetLearnSlice())}
+                  >
                     <Button sx={{ color: grey[500], m: 1 }}>
                       Back to Route Selection
                     </Button>

@@ -21,6 +21,7 @@ import { useAppDispatch, useAppSelector } from "../../../app/hooks";
 import { firstToUpper } from "../../../utils/text-scripts/firstToUpper";
 import { useNavigate } from "react-router-dom";
 import { resetLearnSlice } from "../../../app/slices/learning-slice";
+import { globalColors } from "../../../assets/constants/colors";
 
 type HeaderProps = {
   theme: string;
@@ -55,7 +56,11 @@ const LearnHeader = ({ theme }: HeaderProps) => {
   // const matches2 = useMediaQuery("(min-width:850px)");
   const matches3 = useMediaQuery("(min-width:600px)");
   const bgcolor = theme === "dark" ? "#3f51b5" : "#81d4fa";
-
+  const rightAnswers = currentResults.reduce((acc, cur) => {
+    if (cur === true) return acc + 1;
+    else return acc;
+  }, 0);
+  const wrongAnswers = checkedCount - rightAnswers;
   const rightSide = (
     <>
       <IconButton
@@ -86,21 +91,62 @@ const LearnHeader = ({ theme }: HeaderProps) => {
               }}
               variant="body1"
               color="inherit"
+              fontWeight="bold"
               component="div"
             >
               {route && firstToUpper(route as string)} learning
             </Typography>
             <Box sx={{ flexGrow: 1 }} />
-            <Tooltip
-              title={"Learning status"}
-              placement="top"
-              disableInteractive
-              arrow
-            >
-              <Typography variant="body1" color="inherit" component="div">
-                {checkedCount} / {currentVocabs.length} finished
-              </Typography>
-            </Tooltip>
+
+            <Box display="flex" flexDirection="row" gap="0.5em">
+              {" "}
+              <Tooltip
+                title={"Learning status"}
+                // placement="top"
+                disableInteractive
+                arrow
+              >
+                <Typography
+                  variant="body1"
+                  fontWeight="bold"
+                  color="inherit"
+                  component="div"
+                >
+                  {checkedCount} / {currentVocabs.length} answered
+                </Typography>
+              </Tooltip>
+              <Tooltip title="right / wrong" disableInteractive arrow>
+                <Box display="flex" flexDirection="row">
+                  <Typography
+                    variant="body1"
+                    color="inherit"
+                    component="div"
+                    fontWeight="bold"
+                  >
+                    <span style={{ color: globalColors.successGreen }}>
+                      {rightAnswers}
+                    </span>{" "}
+                    /{" "}
+                    <span style={{ color: globalColors.errorRed }}>
+                      {wrongAnswers}
+                    </span>{" "}
+                    {currentResults.length > 0 &&
+                      (rightAnswers / currentResults.length) * 100 + " %"}
+                  </Typography>
+                </Box>
+              </Tooltip>
+              {/* <Typography
+                  px={0.4}
+                  variant="body1"
+                  color="inherit"
+                  component="div"
+                >
+                  <span style={{ color: globalColors.successGreen }}>
+                    right
+                  </span>{" "}
+                  / <span style={{ color: globalColors.errorRed }}>wrong</span>
+                </Typography> */}
+            </Box>
 
             <Box sx={{ flexGrow: 1 }} />
             {rightSide}

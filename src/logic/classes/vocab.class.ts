@@ -1,6 +1,7 @@
 import { useAppDispatch } from "../../app/hooks";
 import { MySelectOptionType } from "../../components/general/multi-select";
 import { EditProps } from "../../components/vocabs/add-vocab";
+import { getRndArr } from "../../utils/general-scripts/getRndArr";
 
 import { VocObj, WorkbookType } from "../types/vocab.types";
 
@@ -87,24 +88,56 @@ export class AllVocabsClass {
     }, []);
   }
 
-  getDefaultVocs(num: number, timeRef = 10, reThrowMistakes = false) {
+  getDefaultVocs(num: number, timeRef = 10, reThrowMistakes = true) {
     // timeRef describes the threshold in minutes for vocabs to be excluded in the next learn run. If timeRef = 10, than all vocabs which were learned in the last 10 minutes will be excluded
     // reThrowMistakes deaktiviert die timeRef für Vokabeln die zuletzt falsch beantwortet wurden
     const sortedVocs = this.vocs
       .sort((a, b) => b.getCalcImp() - a.getCalcImp())
       .slice(0, num * 2 + 10);
-
+    console.log(sortedVocs);
     sortedVocs.forEach((voc) => console.log(voc.getCalcImp()));
     const newDefaultVocs: Vocab[] = [];
+    const notIncluded: Vocab[] = [];
     sortedVocs.forEach((voc) => {
       const learnHis = voc.getRecentHis(timeRef);
-      if (learnHis.length === 0) newDefaultVocs.push(voc);
+      console.log(learnHis);
+      if (learnHis.length === 0) return newDefaultVocs.push(voc);
       // if (!reThrowMistakes) return;
 
       const recentResults = learnHis.map((his) => his.result);
-      if (!recentResults.every((res) => res === true)) newDefaultVocs.push(voc);
+      if (!recentResults.every((res) => res === true) && reThrowMistakes)
+        return newDefaultVocs.push(voc);
+      notIncluded.push(voc);
     });
+    if (newDefaultVocs.length < num) {
+      const addedDefaultVocs = [
+        ...newDefaultVocs,
+        ...notIncluded.slice(0, num - newDefaultVocs.length),
+      ];
+      return addedDefaultVocs;
+    }
     return newDefaultVocs.slice(0, num);
+  }
+
+  getWbLearnVocs(id: string, max: number, part: number) {
+    const start = max * (part - 1);
+    const end = max * part;
+    return this.getWbVocs(id).slice(start, end);
+  }
+
+  getLastMistakes(num: number) {
+    return this.vocs
+      .filter((voc) => {
+        if (voc.getLastLearnStamp() === undefined) return false;
+        if (voc.getLastResult()) return false;
+        return true;
+      })
+      .sort((a, b) => b.getLastLearnStamp() || 0 - (a.getLastLearnStamp() || 0))
+      .slice(0, num);
+  }
+
+  getRndVocs(num: number) {
+    return getRndArr(num, this.vocs);
   }
 }
 
@@ -340,5 +373,14 @@ export class Vocab {
       } else break;
     }
     return recentHis;
+  }
+  getLastLearnStamp() {
+    return this.voc.learnHistory.at(-1)?.timeStamp;
+  }
+  getLastResult() {
+    const learnHis = this.voc.learnHistory;
+    const recentHis = learnHis.slice(learnHis.length - 2, learnHis.length);
+    const recentResults = recentHis.map((his) => his.result);
+    return recentResults.every((res) => res === true);
   }
 }
