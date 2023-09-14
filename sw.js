@@ -1,19 +1,19 @@
 const CACHE_NAME = "my-pwa-cache";
 
-self.addEventListener("install", (event) => {
-  try {
-    event.waitUntil(
-      caches.open(CACHE_NAME).then((cache) => {
-        return cache.addAll([
-          "/",
-          "/index.html",
-          "/styles.css",
-          // Hier weitere Ressourcen hinzufügen, die du cachen möchtest
-        ]);
-      })
-    );
-  } catch (error) {}
-});
+// self.addEventListener("install", (event) => {
+//   try {
+//     event.waitUntil(
+//       caches.open(CACHE_NAME).then((cache) => {
+//         return cache.addAll([
+//           "/",
+//           "/index.html",
+//           "/styles.css",
+//           // Hier weitere Ressourcen hinzufügen, die du cachen möchtest
+//         ]);
+//       })
+//     );
+//   } catch (error) {}
+// });
 
 self.addEventListener("fetch", (event) => {
   event.respondWith(
