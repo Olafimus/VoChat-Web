@@ -79,7 +79,6 @@ const MultiSelect = ({
           setFunc([...selection, newOption]);
         }}
         onChange={(e) => {
-          console.log(e);
           const newOption = {
             label: input,
             value: nanoid(),
