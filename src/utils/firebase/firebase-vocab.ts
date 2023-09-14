@@ -20,7 +20,13 @@ const preVocCol = collection(db, "preDataVocabs");
 const dicVocCol = collection(db, "dictionaryVocabs");
 
 export const addVocToDb = async (voc: VocObj) => {
-  await setDoc(doc(vocCol), { ...voc });
+  try {
+    await setDoc(doc(vocCol), { ...voc });
+  } catch (error) {
+    console.log("catched");
+    throw new Error();
+  }
+  // return setDoc(doc(vocCol), { ...voc });
 };
 export const getAllVocsDb = async (id: string) => {
   const q = query(vocCol, where("owner", "==", id));
@@ -57,14 +63,14 @@ export const deleteVocDb = async (id: string, uid: string) => {
   const q = query(vocCol, where("id", "==", id), where("owner", "==", uid));
   const snap = await getDocs(q);
   let ref: string | undefined = snap.docs[0].ref.id;
-  if (ref) deleteDoc(doc(vocCol, ref));
+  if (ref) return deleteDoc(doc(vocCol, ref));
 };
 
 export const updateVocDb = async (voc: VocObj, uid: string) => {
   const q = query(vocCol, where("id", "==", voc.id), where("owner", "==", uid));
   const snap = await getDocs(q);
   let ref: string | undefined = snap.docs[0].ref.id;
-  if (ref) updateDoc(doc(vocCol, ref), { ...voc });
+  if (ref) return updateDoc(doc(vocCol, ref), { ...voc });
 };
 
 export const loadPreVocs = async (
@@ -128,11 +134,9 @@ export const loadPreVocs = async (
 
 export const loadDicVocs = async (str: string) => {
   const searchString = str.replace("iDic", "InGermanDictionary");
-  console.log(searchString);
   const q = query(dicVocCol, where("owner", "==", searchString));
   const snap = await getDocs(q);
   const vocs: VocObj[] = [];
-  console.log("snap: ", snap);
   snap.forEach((doc) => {
     const workbooks: WorkbookType[] = [];
 

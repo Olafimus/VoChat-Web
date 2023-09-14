@@ -20,6 +20,7 @@ import {
   reformatHTMLtoTxt,
 } from "../../utils/text-scripts/html-formating";
 import { VocObj, WorkbookType } from "../../logic/types/vocab.types";
+import { ToastContainer, toast } from "react-toastify";
 
 type InputProps = {
   type: "newMsg" | "answer" | "edit";
@@ -75,6 +76,7 @@ const InputDiv: React.FC<InputProps> = ({
   const [msgTxt, setMsgTxt] = useState(msgInput);
   const [innerHtml, setInnerHtml] = useState("");
   const [active, setActive] = useState(false);
+  const { theme } = useAppSelector((state) => state.settings);
   const { id } = useAppSelector((state) => state.user);
   const { conversations, activeConv, newMsg } = useAppSelector(
     (state) => state.conversations
@@ -113,6 +115,18 @@ const InputDiv: React.FC<InputProps> = ({
     );
   };
 
+  const failedSending = () =>
+    toast.error("Failed to send message", {
+      position: "bottom-right",
+      autoClose: 5000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      theme: "colored",
+    });
+
   const sendNewMsgHandler = (newMsg = msgTxt) => {
     const msg = createMsgObj(id);
     addMsgHis(msg, msgTxt, "standard");
@@ -123,7 +137,7 @@ const InputDiv: React.FC<InputProps> = ({
     const contactIds = conv.users.filter((usr) => usr !== id);
 
     dispatch(updateFriendInteraction({ ids: contactIds, stamp: now }));
-    sendNewMessage(activeConv, msg);
+    sendNewMessage(activeConv, msg).catch(() => failedSending());
 
     setMsgTxt("");
     const textfeld = document.getElementById(divId);
@@ -142,7 +156,7 @@ const InputDiv: React.FC<InputProps> = ({
     newMsg.time = Date.now();
     newMsg.sender = id;
 
-    sendNewMessage(activeConv, newMsg);
+    sendNewMessage(activeConv, newMsg).catch(() => failedSending());
     // setMsgTxt("");
   };
   const sendEditHandler = (oldMsg: Message, edit: string) => {};
@@ -151,29 +165,33 @@ const InputDiv: React.FC<InputProps> = ({
     if (msgTxt === "") return;
     if (id === "") return;
     if (!ref.current) return;
-
-    switch (type) {
-      case "newMsg":
-        sendNewMsgHandler();
-        setMsgTxt("");
-        ref.current.innerHTML = "";
-        break;
-      case "answer":
-        if (!oldMsg) return;
-        sendAnswerHandler(oldMsg, msgTxt);
-        setMsgTxt("");
-        ref.current.innerHTML = "";
-        break;
-      case "edit":
-        if (!oldMsg) return;
-        sendAnswerHandler(oldMsg, msgTxt, "edit");
-        setMsgTxt("");
-        ref.current.innerHTML = "";
-        break;
-      default:
-        return;
-        setMsgTxt("");
+    try {
+      switch (type) {
+        case "newMsg":
+          sendNewMsgHandler();
+          setMsgTxt("");
+          ref.current.innerHTML = "";
+          break;
+        case "answer":
+          if (!oldMsg) return;
+          sendAnswerHandler(oldMsg, msgTxt);
+          setMsgTxt("");
+          ref.current.innerHTML = "";
+          break;
+        case "edit":
+          if (!oldMsg) return;
+          sendAnswerHandler(oldMsg, msgTxt, "edit");
+          setMsgTxt("");
+          ref.current.innerHTML = "";
+          break;
+        default:
+          return;
+          setMsgTxt("");
+      }
+    } catch (error) {
+      failedSending();
     }
+
     // sendNewMsgHandler();
   };
 
@@ -238,7 +256,7 @@ const InputDiv: React.FC<InputProps> = ({
       >
         {/* {type === "edit" && oldMsg?.messageHis.at(-1)?.message} */}
       </div>
-
+      <ToastContainer />
       <IconButton onClick={() => setOpen(true)}>
         <EmojiEmotionsIcon />
       </IconButton>

@@ -36,7 +36,7 @@ const WorkbookRoute = () => {
   useEffect(() => {
     if (workbook) {
       const vocs = allVocabs.getWbVocs(workbook);
-      dispatch(setCurLearnVocabs(vocs));
+      dispatch(setCurLearnVocabs({ vocs, withStarted: false }));
       dispatch(setLearnVocabs(vocs));
       dispatch(setRoute("workbook"));
     }

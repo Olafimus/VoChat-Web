@@ -92,9 +92,9 @@ const VocMsgBox = ({ vocab, msgHTML }: VocMsgProps) => {
           </Tooltip>
         </Box>
       </Box>
-      <Typography variant="body1" style={{ fontSize: "16px" }}>
+      <Box style={{ fontSize: "16px" }}>
         <Interweave content={msgHTML} />
-      </Typography>
+      </Box>
     </Box>
   );
 };

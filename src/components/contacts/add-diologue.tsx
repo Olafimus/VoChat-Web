@@ -82,6 +82,7 @@ function AddDialog(props: SimpleDialogProps) {
       lastMessage: "",
       conversation: "",
       name: user.name,
+      imageURL: user.imageURL,
     };
 
     dispatch(addFriend(newFriend));
@@ -89,9 +90,10 @@ function AddDialog(props: SimpleDialogProps) {
   };
 
   return (
-    <Dialog onClose={handleClose} open={open}>
+    <Dialog sx={{ minWidth: 250, p: 3 }} onClose={handleClose} open={open}>
       <DialogTitle>Find a Friend</DialogTitle>
       <TextField
+        sx={{ px: 2 }}
         value={searchField}
         onChange={(e) => {
           setSearchField(e.currentTarget.value);
@@ -105,9 +107,13 @@ function AddDialog(props: SimpleDialogProps) {
               key={user.id}
             >
               <ListItemAvatar>
-                <Avatar sx={{ bgcolor: blue[100], color: blue[600] }}>
-                  <PersonIcon />
-                </Avatar>
+                {user.imageURL ? (
+                  <Avatar src={user.imageURL}></Avatar>
+                ) : (
+                  <Avatar sx={{ bgcolor: blue[100], color: blue[600] }}>
+                    <PersonIcon />
+                  </Avatar>
+                )}
               </ListItemAvatar>
               <ListItemText primary={user.name} />
             </ListItemButton>

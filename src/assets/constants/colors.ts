@@ -9,4 +9,5 @@ export const globalColors = {
   darkTextMain: "white",
   successGreen: "#4BB543",
   errorRed: "#f14336",
+  blue: "#3d5afe",
 };

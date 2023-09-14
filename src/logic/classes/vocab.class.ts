@@ -94,13 +94,11 @@ export class AllVocabsClass {
     const sortedVocs = this.vocs
       .sort((a, b) => b.getCalcImp() - a.getCalcImp())
       .slice(0, num * 2 + 10);
-    console.log(sortedVocs);
     sortedVocs.forEach((voc) => console.log(voc.getCalcImp()));
     const newDefaultVocs: Vocab[] = [];
     const notIncluded: Vocab[] = [];
     sortedVocs.forEach((voc) => {
       const learnHis = voc.getRecentHis(timeRef);
-      console.log(learnHis);
       if (learnHis.length === 0) return newDefaultVocs.push(voc);
       // if (!reThrowMistakes) return;
 

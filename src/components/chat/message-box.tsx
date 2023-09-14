@@ -255,10 +255,7 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
       >
         <Box sx={style}>
           <span className="answer-edit-wrapper">
-            <Typography
-              id="modal-modal-title"
-              variant="h6"
-              component="h2"
+            <Box
               style={{
                 border: "solid 0.15rem #2756ef",
                 padding: "0.5rem",
@@ -268,8 +265,22 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
                 borderRadius: "5px",
               }}
             >
+              {/* <Typography
+                id="modal-modal-title"
+                variant="h6"
+                component="h2"
+                style={{
+                  border: "solid 0.15rem #2756ef",
+                  padding: "0.5rem",
+                  // paddingLeft: "0.5rem",
+                  minWidth: "200px",
+                  marginBottom: "8px",
+                  borderRadius: "5px",
+                }}
+              >
+              </Typography> */}
               <Interweave content={text} />
-            </Typography>
+            </Box>
             <span className="msg-sender">{name}</span>
           </span>
 

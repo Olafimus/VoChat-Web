@@ -22,10 +22,14 @@ import ProfilePage from "./screens/profile/profile-page";
 import SignUpStepper from "./screens/auth-screens/signup/signup-screen";
 import LogInScreen from "./screens/auth-screens/login.screen";
 import NotebookScreen from "./screens/notebook-screen/notebook-screen";
+import Aboutscreen from "./screens/about/about-screen";
+import WelcomePage from "./screens/welcome/welcome-page";
+import PageNotFound from "./screens/404-page/page-not-found";
 
 function App() {
   const { theme } = useAppSelector((state) => state.settings);
   const { allUserVocabs } = useAppSelector((state) => state.vocabs);
+  const { currentUser } = useAppSelector((s) => s.user);
   const dispatch = useAppDispatch();
   const chosenTheme = createTheme({
     palette: {
@@ -46,19 +50,35 @@ function App() {
       <ThemeProvider theme={chosenTheme}>
         <Routes>
           <Route path="/" element={<Navigation />}>
-            <Route index element={<HomeScreen />} />
-            <Route path="notebook" element={<NotebookScreen />} />
-            <Route path="profile" element={<ProfilePage />} />
-            <Route path="contacts" element={<ContacChatScreen />} />
-            <Route path="chat" element={<ContacChatScreen />} />
-            <Route path="settings" element={<SettingsScreen />} />
+            {currentUser ? (
+              <>
+                <Route index element={<HomeScreen />} />
+                <Route path="notebook" element={<NotebookScreen />} />
+                <Route path="profile" element={<ProfilePage />} />
+
+                <Route path="contacts" element={<ContacChatScreen />} />
+                <Route path="chat" element={<ContacChatScreen />} />
+                {/* <Route path="settings" element={<SettingsScreen />} /> */}
+
+                <Route path="delete" element={<DeleteFriend />} />
+                <Route path="vocab" element={<AllVocabs />}></Route>
+                <Route path="vocab/workbooks" element={<WorkbooksScreen />} />
+                <Route path="vocab/learning" element={<LearningScreen />} />
+                <Route
+                  path="vocab/learning/:route"
+                  element={<LearningRoute />}
+                />
+                <Route path="*" element={<PageNotFound />} />
+              </>
+            ) : (
+              <>
+                <Route index element={<WelcomePage />} />
+                <Route path="*" element={<WelcomePage />} />
+              </>
+            )}
+            <Route path="about" element={<Aboutscreen />} />
             <Route path="login" element={<LogInScreen />} />
             <Route path="signup" element={<SignUpStepper />} />
-            <Route path="delete" element={<DeleteFriend />} />
-            <Route path="vocab" element={<AllVocabs />}></Route>
-            <Route path="vocab/workbooks" element={<WorkbooksScreen />} />
-            <Route path="vocab/learning" element={<LearningScreen />} />
-            <Route path="vocab/learning/:route" element={<LearningRoute />} />
           </Route>
         </Routes>
       </ThemeProvider>

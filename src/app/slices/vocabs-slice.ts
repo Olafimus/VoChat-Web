@@ -54,10 +54,9 @@ export const VocabSlice = createSlice({
       //     return actions.payload;
       //   } else return voc;
       // });
-      console.log("index: ", i);
       if (!i) return;
-      // state.allUserVocabs[i] = actions.payload;
-      // state.lastUpdate = Date.now();
+      state.allUserVocabs[i] = actions.payload;
+      state.lastUpdate = Date.now();
     },
     removeVocFromLS: (state, actions: PayloadAction<string>) => {
       const newArr = state.allUserVocabs.filter(

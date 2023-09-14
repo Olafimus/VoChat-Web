@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Push from "push.js";
-
+import "react-toastify/dist/ReactToastify.css";
+import { ToastContainer, toast } from "react-toastify";
 import { notifyUser } from "../../utils/notification";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { AllVocabsClass } from "../../logic/classes/vocab.class";
@@ -31,20 +32,45 @@ const SettingsScreen = () => {
   //   setVocs(allVocabs);
   // }, [allVocabs]);
   // console.log(vocs.getDefaultVocs(5)[0].calcImp(5));
-  const handleClick = async () => {
-    Push.create("a push");
+  const handleClick = () => {
+    // Push.create("a push");
+
+    toast("so easy", {
+      position: "top-right",
+      autoClose: 5000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      theme: "light",
+    });
   };
   return (
-    <div>
-      SettingsScreen
-      <p>teest</p>
-      <p>teest</p>
-      <p>teest</p>
-      <p>teest</p>
-      <button onClick={loading}>load</button>
-      <button onClick={testing}>upload</button>
-      <button onClick={handleClick}>push</button>
-    </div>
+    <>
+      <div>
+        SettingsScreen
+        <p>teest</p>
+        <p>teest</p>
+        <p>teest</p>
+        <p>teest</p>
+        <button onClick={loading}>load</button>
+        <button onClick={testing}>upload</button>
+        <button onClick={handleClick}>toast</button>
+      </div>
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      ></ToastContainer>
+    </>
   );
 };
 

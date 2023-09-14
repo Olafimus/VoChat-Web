@@ -119,7 +119,6 @@ export const useVocFilter = (
 
       return 0;
     });
-    console.log(newFilter.map((a) => a.getCreatedAt()));
     setFilter(newFilter);
   }, [sortBy, sortOrder]);
 

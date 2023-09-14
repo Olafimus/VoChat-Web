@@ -1,4 +1,4 @@
-import { Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { getFormatedDate } from "../../../utils/getFormDate";
 import { Message } from "../../../logic/types/message.types";
 import { Interweave } from "interweave";
@@ -20,9 +20,11 @@ export const StandardMsgBox = ({
         gap: "1rem",
       }}
     >
-      <Typography variant="body1" style={{ fontSize: "16px" }}>
+      {/* <Typography variant="body1" style={{ fontSize: "16px" }}>
+      </Typography> */}
+      <Box fontSize={16}>
         <Interweave content={msgHTML} />
-      </Typography>
+      </Box>
       <Typography variant="caption">{getFormatedDate(msg.time)}</Typography>
     </div>
   );

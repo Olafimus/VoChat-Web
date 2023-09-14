@@ -36,7 +36,6 @@ const UserDataLoader: React.FC<{ id: string }> = ({ id }) => {
     };
 
     dispatch(setFriends(friends));
-    console.log(userData);
     dispatch(setUserData(userData));
   }, [value]);
 

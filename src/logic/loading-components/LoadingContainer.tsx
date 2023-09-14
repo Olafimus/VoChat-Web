@@ -133,7 +133,6 @@ const LoadingContainer = () => {
 
       const newAllVocabs = new AllVocabsClass([]);
       if (vocs.length < 1) return;
-      console.log(vocs);
       const wbs: WorkbookType[] = [];
       const cats: string[] = [];
       const wbIds: string[] = workbooks.map((wb) => wb.id);

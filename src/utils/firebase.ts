@@ -51,7 +51,6 @@ export const uploadFile = async (file: File, uid: string) => {
     await uploadBytes(storageRef, file);
     const userDocRef = doc(db, "users", uid);
     const url = await loadUserImage(uid);
-    console.log(url);
     updateDoc(userDocRef, { imageURL: url });
   } catch (error) {
     // throw new Error(error.message as string);
@@ -217,6 +216,7 @@ export const getUsers = async () => {
     id: doc.data().id,
     name: doc.data().displayName,
     email: doc.data().email,
+    imageURL: doc.data().imageURL,
   }));
 };
 
@@ -316,50 +316,56 @@ export const setLongTermRef = async (convId: string) => {
 export const sendNewMessage = async (convId: string, msg: Message) => {
   const convRef = doc(db, "conversations", convId);
   const longRef = doc(db, "oldmessages", "LT" + convId);
-  const d = await getDoc(convRef);
-  const messages = d.data()?.messages || null;
 
-  if (messages.length > 250) {
-    const oldMsgs = messages.splice(0, 200);
-    console.log("msgs", oldMsgs);
-    messages.push(msg);
-    if (!d.data()?.longTermRef) {
-      await setLongTermRef("LT" + convId);
+  try {
+    const d = await getDoc(convRef);
+    const messages = d.data()?.messages || null;
+
+    if (messages.length > 250) {
+      const oldMsgs = messages.splice(0, 200);
+      messages.push(msg);
+      try {
+      } catch (error) {}
+      if (!d.data()?.longTermRef) {
+        await setLongTermRef("LT" + convId);
+        await updateDoc(convRef, {
+          longTermRef: "LT" + convId,
+          longTermCount: 1,
+        });
+      }
+      const count = d.data()?.longTermCount || 1;
+      let archCount = d.data()?.messageArchiveCount || 1;
+      const oldDoc = await getDoc(longRef);
+      const oldData = oldDoc.data() || {};
+      const keys = Object.keys(oldData);
+      if (keys.length > 15) {
+        const archRef = `AR${archCount}${convId}`;
+        await setDoc(doc(db, "messageArchive", archRef), {
+          messages: oldData,
+        });
+        archCount = archCount + 1;
+        const deleteObj: { [key: string]: "deleteField()" } = {};
+        keys.forEach((key) => (deleteObj[key] = "deleteField()"));
+        await setDoc(longRef, { [count]: oldMsgs });
+      } else {
+        await updateDoc(longRef, {
+          [count]: oldMsgs,
+        });
+      }
       await updateDoc(convRef, {
-        longTermRef: "LT" + convId,
-        longTermCount: 1,
+        messages,
+        longTermCount: count + 1,
+        messageArchiveCount: archCount,
+        lastInteraction: Date.now(),
       });
-    }
-    const count = d.data()?.longTermCount || 1;
-    let archCount = d.data()?.messageArchiveCount || 1;
-    const oldDoc = await getDoc(longRef);
-    const oldData = oldDoc.data() || {};
-    const keys = Object.keys(oldData);
-    if (keys.length > 15) {
-      const archRef = `AR${archCount}${convId}`;
-      await setDoc(doc(db, "messageArchive", archRef), {
-        messages: oldData,
-      });
-      archCount = archCount + 1;
-      const deleteObj: { [key: string]: "deleteField()" } = {};
-      keys.forEach((key) => (deleteObj[key] = "deleteField()"));
-      await setDoc(longRef, { [count]: oldMsgs });
     } else {
-      await updateDoc(longRef, {
-        [count]: oldMsgs,
+      await updateDoc(convRef, {
+        messages: arrayUnion(msg),
+        lastInteraction: Date.now(),
       });
     }
-    await updateDoc(convRef, {
-      messages,
-      longTermCount: count + 1,
-      messageArchiveCount: archCount,
-      lastInteraction: Date.now(),
-    });
-  } else {
-    await updateDoc(convRef, {
-      messages: arrayUnion(msg),
-      lastInteraction: Date.now(),
-    });
+  } catch (error) {
+    throw new Error();
   }
 };
 

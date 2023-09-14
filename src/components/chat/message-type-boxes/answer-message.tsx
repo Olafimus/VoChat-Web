@@ -82,9 +82,9 @@ const AnsweredMsgBox = ({
           gap: "1rem",
         }}
       >
-        <Typography variant="body1" style={{ fontSize: "16px" }}>
+        <Box style={{ fontSize: "16px" }}>
           <Interweave content={msgHTML} />
-        </Typography>
+        </Box>
         <Typography variant="caption">{getFormatedDate(msg.time)}</Typography>
       </div>
     </>

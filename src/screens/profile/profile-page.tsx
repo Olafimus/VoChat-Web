@@ -19,6 +19,7 @@ import { resetConversations } from "../../app/slices/conversation-slice";
 import ProfileImageUpload from "../../components/profile/profile-image-upload";
 import { resetVocabSlice } from "../../app/slices/vocabs-slice";
 import { resetVocClassSlice } from "../../app/slices/vocabs-class-slice";
+import { notifyUser } from "../../utils/notification";
 
 const ProfilePage = () => {
   const [open, setOpen] = useState(false);
@@ -63,12 +64,14 @@ const ProfilePage = () => {
             <Typography variant="h6">{email}</Typography>
             <Divider sx={{ width: "100%" }} />
             <Tooltip title="work in progress (change name, pw etc)">
-              <Typography
-                variant="body1"
-                sx={{ ":hover": { cursor: "pointer" } }}
-              >
-                Edit Profile
-              </Typography>
+              <span onClick={() => notifyUser("test", "test-message")}>
+                <Typography
+                  variant="body1"
+                  sx={{ ":hover": { cursor: "pointer" } }}
+                >
+                  Edit Profile
+                </Typography>
+              </span>
             </Tooltip>
             <Link
               to="/login"

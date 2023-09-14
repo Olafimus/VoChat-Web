@@ -4,8 +4,8 @@ import {
   ListItem,
   ListItemAvatar,
   ListItemText,
+  Box,
   Typography,
-  useMediaQuery,
 } from "@mui/material";
 import React from "react";
 import { useNavigate } from "react-router-dom";
@@ -127,21 +127,18 @@ const ContactItem: React.FC<PropTypes> = ({ friend }) => {
       <ListItemText
         primary={friend.name}
         secondary={
-          <React.Fragment>
-            <Typography
-              sx={{
-                whiteSpace: "nowrap",
-                textOverflow: "ellipsis",
-                overflow: "hidden",
-              }}
-              // component="span"
-              variant="body2"
-              color="text.primary"
-              id={`previewText--${friend.id}`}
-            >
-              <Interweave content={lastMsg} />
-            </Typography>
-          </React.Fragment>
+          <Interweave content={lastMsg} />
+          // <Typography
+          //   sx={{
+          //     whiteSpace: "nowrap",
+          //     textOverflow: "ellipsis",
+          //     overflow: "hidden",
+          //   }}
+          //   // component="span"
+          //   color="text.primary"
+          //   id={`previewText--${friend.id}`}
+          // >
+          // </Typography>
         }
       />
       <ListItemText

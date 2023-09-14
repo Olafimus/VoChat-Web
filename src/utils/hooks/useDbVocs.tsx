@@ -36,7 +36,6 @@ export const useDbVocs = (
   const handleDbLoad = async (lang: string) => {
     setLoading(true);
     try {
-      console.log(lang);
       const data = lang.includes("Dic")
         ? await loadDicVocs(lang)
         : await loadPreVocs(lang, workbooks, uid);
@@ -65,7 +64,6 @@ export const useDbVocs = (
   useEffect(() => {
     if (!dbLang) return;
     setLoading(true);
-    console.log(savedDbLangs.includes(dbLang));
     savedDbLangs.includes(dbLang)
       ? handleLocalLoad(dbLang)
       : handleDbLoad(dbLang);

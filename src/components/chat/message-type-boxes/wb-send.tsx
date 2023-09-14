@@ -88,9 +88,9 @@ const WbMsgBox = ({
             </Tooltip>
           </Box>
         </Box>
-        <Typography variant="body1" style={{ fontSize: "16px" }}>
+        <Box style={{ fontSize: "16px" }}>
           <Interweave content={msgHTML} />
-        </Typography>
+        </Box>
       </Box>
       <WorkbookView wb={wb} wbVocRef={wb.id} open={open} setOpen={setOpen} />
     </>

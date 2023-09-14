@@ -1,4 +1,5 @@
-import * as React from "react";
+import { useEffect, useState, useRef, MouseEvent } from "react";
+import "react-toastify/dist/ReactToastify.css";
 import {
   Box,
   Divider,
@@ -39,6 +40,7 @@ import {
 } from "../../utils/firebase/firebase-vocab";
 import { dataLangIdSet } from "../../assets/constants/db-lang-obj";
 import { addDataRef } from "../../app/slices/user-slice";
+import { ToastContainer, toast } from "react-toastify";
 
 let fullScreen = true;
 
@@ -82,32 +84,28 @@ const AddVocab = ({
   vocId,
   vocab,
 }: EditProps) => {
-  const [scroll, setScroll] = React.useState<DialogProps["scroll"]>("paper");
-  const vocFieldRef = React.useRef<HTMLDivElement>(null);
+  const [scroll, setScroll] = useState<DialogProps["scroll"]>("paper");
+  const vocFieldRef = useRef<HTMLDivElement>(null);
   const dispatch = useAppDispatch();
-  const [importance, setImportance] = React.useState(imp); // nachher als prop
-  const [openConfirm, setOpenConfirm] = React.useState(false);
-  // const [openSet, setOpenSet] = React.useState(false);
-  const [confirmed, setConfirmed] = React.useState(false);
+  const [importance, setImportance] = useState(imp); // nachher als prop
+  const [openConfirm, setOpenConfirm] = useState(false);
+  // const [openSet, setOpenSet] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
   const handleClose = () => setOpen(false);
-  const [wbOptions, setWbOptions] = React.useState<MySelectOptionType[]>([]);
-  const [catOptions, setCatOptions] = React.useState<MySelectOptionType[]>([]);
-  const [wbSelection, setWbSelection] =
-    React.useState<MySelectOptionType[]>(wbs);
-  const [catSelection, setCatSelection] =
-    React.useState<MySelectOptionType[]>(cats);
-  const [vocabErr, setVocabErr] = React.useState(false);
-  const [translErr, setTranslErr] = React.useState(false);
-  const [vocabTxt, setVocabTxt] = React.useState(voc);
-  const [translTxt, setTranslTxt] = React.useState(tra);
-  const [pronounceTxt, setPronounceTxt] = React.useState(pronunc);
-  const [hintsTxt, setHintsTxt] = React.useState(hints);
-  const [vocs, setVocs] = React.useState<AllVocabsClass>(
-    new AllVocabsClass([])
-  );
-  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+  const [wbOptions, setWbOptions] = useState<MySelectOptionType[]>([]);
+  const [catOptions, setCatOptions] = useState<MySelectOptionType[]>([]);
+  const [wbSelection, setWbSelection] = useState<MySelectOptionType[]>(wbs);
+  const [catSelection, setCatSelection] = useState<MySelectOptionType[]>(cats);
+  const [vocabErr, setVocabErr] = useState(false);
+  const [translErr, setTranslErr] = useState(false);
+  const [vocabTxt, setVocabTxt] = useState(voc);
+  const [translTxt, setTranslTxt] = useState(tra);
+  const [pronounceTxt, setPronounceTxt] = useState(pronunc);
+  const [hintsTxt, setHintsTxt] = useState(hints);
+  const [vocs, setVocs] = useState<AllVocabsClass>(new AllVocabsClass([]));
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const openSet = Boolean(anchorEl);
-  const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
+  const handleMenuClick = (event: MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   };
   const { currentLang, nativeLang, workbooks, categories } = useAppSelector(
@@ -116,8 +114,20 @@ const AddVocab = ({
   const { id: uid } = useAppSelector((state) => state.user);
   const { allVocabs, dbLang } = useAppSelector((state) => state.allVocabs);
   const { vocabSubSettings } = useAppSelector((state) => state.settings);
-  const [vocLang, setVocLang] = React.useState(currentLang);
-  const [transLang, setTransLang] = React.useState(nativeLang);
+  const [vocLang, setVocLang] = useState(currentLang);
+  const [transLang, setTransLang] = useState(nativeLang);
+
+  const failedSending = () =>
+    toast.error("Failed to send vocab to DB", {
+      position: "bottom-right",
+      autoClose: 5000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      theme: "colored",
+    });
 
   const handleVocLang = (event: SelectChangeEvent) => {
     // setVocLang("FA");
@@ -127,8 +137,8 @@ const AddVocab = ({
   const handleTransLang = (event: SelectChangeEvent) => {
     setTransLang(event.target.value as string);
   };
-  let [transLangDisabler, setTransLangDisabler] = React.useState(true);
-  let [vocLangDisabler, setVocLangDisabler] = React.useState(true);
+  let [transLangDisabler, setTransLangDisabler] = useState(true);
+  let [vocLangDisabler, setVocLangDisabler] = useState(true);
   let disable = true;
   if (vocabTxt !== "" && translTxt !== "") disable = false;
   // const dummyOptions = [
@@ -136,7 +146,7 @@ const AddVocab = ({
   //   { label: "Animals", value: "s3a#4" },
   // ];
 
-  React.useEffect(() => {
+  useEffect(() => {
     const newWbOptions: MySelectOptionType[] = [];
     const newCatOptions: MySelectOptionType[] = [];
     workbooks.forEach((wb) =>
@@ -153,7 +163,7 @@ const AddVocab = ({
 
   const defaultVal = importance;
 
-  // React.useEffect(() => {
+  // useEffect(() => {
   //   setVocLang(currentLang);
   // }, []);
 
@@ -221,9 +231,10 @@ const AddVocab = ({
       allVocabs.addVocab(newVoc);
 
       dispatch(addVocab(newVocObj));
+
       addVocToDb(newVocObj);
+
       if (vocab && dbLang && dataLangIdSet.includes(vocab.getOwner())) {
-        console.log("reached");
         vocab.updateAdded(true);
         dispatch(addVoctoAdded({ lang: dbLang, vocId: vocab.getId() }));
         dispatch(
@@ -260,14 +271,14 @@ const AddVocab = ({
   };
   // console.log(dummyVocabs);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!confirmed) return;
     handleSubmit();
     setConfirmed(false);
   }, [confirmed]);
 
-  const descriptionElementRef = React.useRef<HTMLElement>(null);
-  React.useEffect(() => {
+  const descriptionElementRef = useRef<HTMLElement>(null);
+  useEffect(() => {
     if (open) {
       const { current: descriptionElement } = descriptionElementRef;
       if (descriptionElement !== null) {
@@ -278,6 +289,18 @@ const AddVocab = ({
 
   return (
     <div>
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      ></ToastContainer>
       <Dialog
         open={open}
         onClose={handleClose}
@@ -293,7 +316,12 @@ const AddVocab = ({
           bgcolor="background.paper"
           id="scroll-dialog-title"
         >
-          <span style={{ flex: "1", textAlign: "center" }}>Add Vocab</span>
+          <span
+            onClick={() => toast("so easy")}
+            style={{ flex: "1", textAlign: "center" }}
+          >
+            Add Vocab
+          </span>
           <IconButton
             aria-controls={openSet ? "demo-customized-menu" : undefined}
             aria-haspopup="true"

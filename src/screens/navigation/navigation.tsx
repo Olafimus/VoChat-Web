@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import "./navigation.styles.scss";
+import Logo from "../../assets/images/logo.svg";
 import { Outlet, Link, useNavigate } from "react-router-dom";
 import { styled, useTheme, Theme, CSSObject } from "@mui/material/styles";
 import Box from "@mui/material/Box";
@@ -18,8 +19,7 @@ import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
-import InboxIcon from "@mui/icons-material/MoveToInbox";
-import MailIcon from "@mui/icons-material/Mail";
+import InfoIcon from "@mui/icons-material/Info";
 import ContactsRoundedIcon from "@mui/icons-material/ContactsRounded";
 import SettingsApplicationsOutlinedIcon from "@mui/icons-material/SettingsApplicationsOutlined";
 import Brightness3Icon from "@mui/icons-material/Brightness3";
@@ -28,11 +28,12 @@ import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { setTheme, switchScreen } from "../../app/slices/settings-slice";
 import { resetUserState, setCurrentUser } from "../../app/slices/user-slice";
 import SchoolIcon from "@mui/icons-material/School";
-import { resetConversations } from "../../app/slices/conversation-slice";
+import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 import AutoStoriesRoundedIcon from "@mui/icons-material/AutoStoriesRounded";
 import SpeakerNotesOutlinedIcon from "@mui/icons-material/SpeakerNotesOutlined";
 import { Avatar, Tooltip, useMediaQuery } from "@mui/material";
 import { stringAvatar } from "../../components/contacts/contact-item";
+import { ToastContainer } from "react-toastify";
 
 const drawerWidth = 240;
 let closedDrawerWidthOne = "50px";
@@ -155,13 +156,20 @@ const Navigation = () => {
             <MenuIcon />
           </IconButton>
           <span className="nav-toolbar-components">
+            <img
+              src={Logo}
+              height={35}
+              width={35}
+              alt="Logo"
+              onClick={() => navigation("/")}
+              className="pointer-cursor"
+            ></img>
             <Typography
-              variant="h6"
+              variant="h5"
               noWrap
               overflow="hidden"
               textOverflow="ellipsis"
               component="div"
-              onClick={() => navigation("/")}
             >
               VoChat
             </Typography>
@@ -193,7 +201,7 @@ const Navigation = () => {
         <Divider />
         <List>
           <ListItem
-            onClick={() => navigation("settings")}
+            onClick={() => navigation("profile")}
             disablePadding
             sx={{ display: "block" }}
           >
@@ -211,9 +219,33 @@ const Navigation = () => {
                   justifyContent: "center",
                 }}
               >
-                <SettingsApplicationsOutlinedIcon />
+                <ManageAccountsIcon />
               </ListItemIcon>
-              <ListItemText primary="Settings" sx={{ opacity: open ? 1 : 0 }} />
+              <ListItemText primary="Profile" sx={{ opacity: open ? 1 : 0 }} />
+            </ListItemButton>
+          </ListItem>
+          <ListItem
+            onClick={() => navigation("about")}
+            disablePadding
+            sx={{ display: "block" }}
+          >
+            <ListItemButton
+              sx={{
+                minHeight: 48,
+                justifyContent: open ? "initial" : "center",
+                px: 2.5,
+              }}
+            >
+              <ListItemIcon
+                sx={{
+                  minWidth: 0,
+                  mr: open ? 3 : "auto",
+                  justifyContent: "center",
+                }}
+              >
+                <InfoIcon />
+              </ListItemIcon>
+              <ListItemText primary="About" sx={{ opacity: open ? 1 : 0 }} />
             </ListItemButton>
           </ListItem>
 
@@ -277,8 +309,8 @@ const Navigation = () => {
             />
           </ListItemButton>
         </ListItem>
-
         <List>
+          <Divider />
           <ListItem
             onClick={() => {
               started
@@ -400,6 +432,7 @@ const Navigation = () => {
         }}
       >
         <Outlet />
+        <ToastContainer />
       </Box>
     </Box>
   );

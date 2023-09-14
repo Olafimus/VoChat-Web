@@ -26,6 +26,10 @@ a {
   text-decoration: inherit;
 }
 
+.pointer-cursor:hover {
+  cursor: pointer;
+}
+
 body {
   margin: 0;
   /* display: flex;

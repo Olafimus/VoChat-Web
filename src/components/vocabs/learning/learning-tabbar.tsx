@@ -29,7 +29,7 @@ function a11yProps(index: number) {
 export default function LearnTabs() {
   const { currentIndex, roundFinished, completed, currentVocabs, vocabs } =
     useAppSelector((s) => s.learning);
-  const [value, setValue] = useState(0);
+  const [value, setValue] = useState(currentIndex);
   const dispatch = useAppDispatch();
   const { theme, vocabLearnSettings } = useAppSelector(
     (state) => state.settings
@@ -46,7 +46,6 @@ export default function LearnTabs() {
     setValue(val);
   };
 
-  console.log("rerenderd");
   // const startAgain = () => {
   //   vocabs.forEach((voc) => voc.resetStatus());
   //   dispatch(setCurLearnVocabs(vocabs));

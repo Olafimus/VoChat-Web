@@ -61,7 +61,6 @@ export const useVocFunctions = (setValue: Dispatch<SetStateAction<number>>) => {
       dispatch(updateVocabLS(vocObj));
       updateVocDb(vocObj, uid);
     });
-    console.log("updated");
   };
 
   const retryMistakes = () => {

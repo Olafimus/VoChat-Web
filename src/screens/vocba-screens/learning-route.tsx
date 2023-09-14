@@ -23,10 +23,7 @@ const LearningRoute = () => {
   // const { started } = useAppSelector((state) => state.learning);
   // const [learnVocs, setLearnVocs] = useState<Vocab[]>([]);
 
-  console.log("root route rendered: ", route);
-
   useEffect(() => {
-    console.log("root useEffect fired");
     // if (started) return;
     if (allVocabs.getVocCount() === 0) return navigate("/vocab/learning");
     let vocs: Vocab[] = [];

@@ -19,6 +19,7 @@ export type OnlineUser = {
   id: string;
   name: string;
   email: string;
+  imageURL: null | string;
 };
 
 export type Friend = {

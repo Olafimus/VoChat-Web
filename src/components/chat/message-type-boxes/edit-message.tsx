@@ -49,12 +49,9 @@ const EditedMsgBox = ({
           paddingTop: "5px",
         }}
       >
-        <Typography
-          variant="body1"
-          style={{ fontSize: "16px", paddingLeft: "0.3rem" }}
-        >
+        <Box style={{ fontSize: "16px", paddingLeft: "0.3rem" }}>
           <Interweave content={oldText} />
-        </Typography>
+        </Box>
         <Typography variant="caption" sx={{ paddingTop: "0.2rem" }}>
           {getFormatedDate(oldTime)}
         </Typography>
