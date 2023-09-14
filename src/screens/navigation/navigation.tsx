@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useEffect } from "react";
 import "./navigation.styles.scss";
+import Logo from "../../assets/images/logo.svg";
 import { Outlet, Link, useNavigate } from "react-router-dom";
 import { styled, useTheme, Theme, CSSObject } from "@mui/material/styles";
 import Box from "@mui/material/Box";
@@ -13,13 +14,12 @@ import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
 import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import ListAltRoundedIcon from "@mui/icons-material/ListAltRounded";
 import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
-import InboxIcon from "@mui/icons-material/MoveToInbox";
-import MailIcon from "@mui/icons-material/Mail";
+import InfoIcon from "@mui/icons-material/Info";
 import ContactsRoundedIcon from "@mui/icons-material/ContactsRounded";
 import SettingsApplicationsOutlinedIcon from "@mui/icons-material/SettingsApplicationsOutlined";
 import Brightness3Icon from "@mui/icons-material/Brightness3";
@@ -27,10 +27,17 @@ import LightModeIcon from "@mui/icons-material/LightMode";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { setTheme, switchScreen } from "../../app/slices/settings-slice";
 import { resetUserState, setCurrentUser } from "../../app/slices/user-slice";
-import { Container } from "@mui/system";
-import { resetConversations } from "../../app/slices/conversation-slice";
+import SchoolIcon from "@mui/icons-material/School";
+import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
+import AutoStoriesRoundedIcon from "@mui/icons-material/AutoStoriesRounded";
+import SpeakerNotesOutlinedIcon from "@mui/icons-material/SpeakerNotesOutlined";
+import { Avatar, Tooltip, useMediaQuery } from "@mui/material";
+import { stringAvatar } from "../../components/contacts/contact-item";
+import { ToastContainer } from "react-toastify";
 
 const drawerWidth = 240;
+let closedDrawerWidthOne = "50px";
+let closedDrawerWidthTwo = "65px";
 
 const openedMixin = (theme: Theme): CSSObject => ({
   width: drawerWidth,
@@ -47,9 +54,9 @@ const closedMixin = (theme: Theme): CSSObject => ({
     duration: theme.transitions.duration.leavingScreen,
   }),
   overflowX: "hidden",
-  width: `calc(${theme.spacing(7)} + 1px)`,
+  width: closedDrawerWidthOne,
   [theme.breakpoints.up("sm")]: {
-    width: `calc(${theme.spacing(8)} + 1px)`,
+    width: closedDrawerWidthTwo,
   },
 });
 
@@ -103,10 +110,25 @@ const Drawer = styled(MuiDrawer, {
 
 const Navigation = () => {
   const { theme } = useAppSelector((state) => state.settings);
-  const { currentUser } = useAppSelector((state) => state.user);
+  const { currentUser, name, imageURL } = useAppSelector((state) => state.user);
+  const { started, route } = useAppSelector((s) => s.learning);
   const dispatch = useAppDispatch();
   const navigation = useNavigate();
   const [open, setOpen] = React.useState(false);
+
+  // const matches = useMediaQuery("(min-width:600px)");
+
+  // useEffect(() => {
+  //   console.log(matches);
+  //   if (matches) {
+  //     closedDrawerWidthOne = "0px";
+  //     closedDrawerWidthTwo = "0px";
+  //   }
+  //   if (!matches) {
+  //     closedDrawerWidthOne = "50px";
+  //     closedDrawerWidthTwo = "65px";
+  //   }
+  // }, [matches]);
 
   const handleDrawerOpen = () => {
     setOpen(true);
@@ -134,19 +156,36 @@ const Navigation = () => {
             <MenuIcon />
           </IconButton>
           <span className="nav-toolbar-components">
-            <Typography variant="h6" noWrap component="div">
+            <img
+              src={Logo}
+              height={35}
+              width={35}
+              alt="Logo"
+              onClick={() => navigation("/")}
+              className="pointer-cursor"
+            ></img>
+            <Typography
+              variant="h5"
+              noWrap
+              overflow="hidden"
+              textOverflow="ellipsis"
+              component="div"
+            >
               VoChat
             </Typography>
             {currentUser ? (
-              <Link
-                to="/login"
-                onClick={() => {
-                  dispatch(resetUserState());
-                  dispatch(resetConversations());
-                }}
-              >
-                Log Out
-              </Link>
+              <Tooltip arrow title="Go to profile page">
+                <Link to="/profile">
+                  {imageURL ? (
+                    <Avatar alt="Profile Avatar" src={imageURL} />
+                  ) : (
+                    <Avatar
+                      alt="Profile Avatar"
+                      {...stringAvatar(name ?? "")}
+                    />
+                  )}
+                </Link>
+              </Tooltip>
             ) : (
               <Link to="login">Log In</Link>
             )}
@@ -162,7 +201,7 @@ const Navigation = () => {
         <Divider />
         <List>
           <ListItem
-            onClick={() => navigation("settings")}
+            onClick={() => navigation("profile")}
             disablePadding
             sx={{ display: "block" }}
           >
@@ -180,9 +219,33 @@ const Navigation = () => {
                   justifyContent: "center",
                 }}
               >
-                <SettingsApplicationsOutlinedIcon />
+                <ManageAccountsIcon />
               </ListItemIcon>
-              <ListItemText primary="Settings" sx={{ opacity: open ? 1 : 0 }} />
+              <ListItemText primary="Profile" sx={{ opacity: open ? 1 : 0 }} />
+            </ListItemButton>
+          </ListItem>
+          <ListItem
+            onClick={() => navigation("about")}
+            disablePadding
+            sx={{ display: "block" }}
+          >
+            <ListItemButton
+              sx={{
+                minHeight: 48,
+                justifyContent: open ? "initial" : "center",
+                px: 2.5,
+              }}
+            >
+              <ListItemIcon
+                sx={{
+                  minWidth: 0,
+                  mr: open ? 3 : "auto",
+                  justifyContent: "center",
+                }}
+              >
+                <InfoIcon />
+              </ListItemIcon>
+              <ListItemText primary="About" sx={{ opacity: open ? 1 : 0 }} />
             </ListItemButton>
           </ListItem>
 
@@ -246,8 +309,36 @@ const Navigation = () => {
             />
           </ListItemButton>
         </ListItem>
-
         <List>
+          <Divider />
+          <ListItem
+            onClick={() => {
+              started
+                ? navigation(`/vocab/learning/${route}`)
+                : navigation("/vocab/learning");
+            }}
+            disablePadding
+            sx={{ display: "block" }}
+          >
+            <ListItemButton
+              sx={{
+                minHeight: 48,
+                justifyContent: open ? "initial" : "center",
+                px: 2.5,
+              }}
+            >
+              <ListItemIcon
+                sx={{
+                  minWidth: 0,
+                  mr: open ? 3 : "auto",
+                  justifyContent: "center",
+                }}
+              >
+                <SchoolIcon />
+              </ListItemIcon>
+              <ListItemText primary="Learn" sx={{ opacity: open ? 1 : 0 }} />
+            </ListItemButton>
+          </ListItem>
           <ListItem
             onClick={() => navigation("/vocab")}
             disablePadding
@@ -267,12 +358,63 @@ const Navigation = () => {
                   justifyContent: "center",
                 }}
               >
-                <MailIcon />
+                <ListAltRoundedIcon />
               </ListItemIcon>
               <ListItemText
                 primary="All Vocabs"
                 sx={{ opacity: open ? 1 : 0 }}
               />
+            </ListItemButton>
+          </ListItem>
+          <ListItem
+            onClick={() => navigation("/vocab/workbooks")}
+            disablePadding
+            sx={{ display: "block" }}
+          >
+            <ListItemButton
+              sx={{
+                minHeight: 48,
+                justifyContent: open ? "initial" : "center",
+                px: 2.5,
+              }}
+            >
+              <ListItemIcon
+                sx={{
+                  minWidth: 0,
+                  mr: open ? 3 : "auto",
+                  justifyContent: "center",
+                }}
+              >
+                <AutoStoriesRoundedIcon />
+              </ListItemIcon>
+              <ListItemText
+                primary="Workbooks"
+                sx={{ opacity: open ? 1 : 0 }}
+              />
+            </ListItemButton>
+          </ListItem>
+          <ListItem
+            onClick={() => navigation("/notebook")}
+            disablePadding
+            sx={{ display: "block" }}
+          >
+            <ListItemButton
+              sx={{
+                minHeight: 48,
+                justifyContent: open ? "initial" : "center",
+                px: 2.5,
+              }}
+            >
+              <ListItemIcon
+                sx={{
+                  minWidth: 0,
+                  mr: open ? 3 : "auto",
+                  justifyContent: "center",
+                }}
+              >
+                <SpeakerNotesOutlinedIcon />
+              </ListItemIcon>
+              <ListItemText primary="Notebook" sx={{ opacity: open ? 1 : 0 }} />
             </ListItemButton>
           </ListItem>
         </List>
@@ -283,13 +425,14 @@ const Navigation = () => {
         sx={{
           flexGrow: 1,
           p: 3,
-          height: "90vh",
+
           marginTop: "2.0rem",
           alignSelf: "center",
           padding: "0.2rem",
         }}
       >
         <Outlet />
+        <ToastContainer />
       </Box>
     </Box>
   );

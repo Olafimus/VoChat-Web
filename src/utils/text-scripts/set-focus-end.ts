@@ -4,13 +4,11 @@ export const setEndFocus = (id: string) => {
   const range = document.createRange();
   const sel = window.getSelection();
   if (!sel) return;
-  console.log(el.lastChild);
   if (!el.lastChild) return;
   let textI = el.lastChild?.textContent?.length || 1;
   try {
     range.setStart(el.lastChild, textI);
   } catch {
-    console.log("catched nodes: ", el.childNodes.length);
     range.setStart(el.lastChild, 0);
   }
   range.collapse(true);

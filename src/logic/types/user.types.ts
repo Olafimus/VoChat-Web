@@ -10,13 +10,16 @@ export type AppUser = {
   teachLanguages: string[];
   learnLanguages: string[];
   friends?: Friend[];
-  allVocabs: VocObj[];
+  deletedFriends?: Friend[];
+  addedDataVocsRefs: { [key: string]: string };
+  imageURL: string | null;
 };
 
 export type OnlineUser = {
   id: string;
   name: string;
   email: string;
+  imageURL: null | string;
 };
 
 export type Friend = {
@@ -24,6 +27,7 @@ export type Friend = {
   lastInteraction: number;
   conversation: string;
   name?: string;
+  imageURL?: string | null;
   lastMessage: string;
 };
 

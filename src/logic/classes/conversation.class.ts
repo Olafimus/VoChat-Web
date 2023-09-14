@@ -35,6 +35,9 @@ export type Conversation = {
   corrections: Correction[];
   vocabs: ConVoc[];
   unreadMsgs: number;
+  longTermRef?: string;
+  longTermCount?: number;
+  leftUsers?: { user: string; time: number }[];
 };
 
 export const newConversation: Conversation = {

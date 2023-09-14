@@ -8,6 +8,7 @@ import { useAppDispatch } from "../../app/hooks";
 import { setCurrentUser, setUserId } from "../../app/slices/user-slice";
 import { CurrentUser } from "../../logic/types/user.types";
 import { AuthErrorCodes, ErrorFn } from "firebase/auth";
+import { useNavigate } from "react-router-dom";
 
 const LogInScreen = () => {
   const dispatch = useAppDispatch();
@@ -15,6 +16,7 @@ const LogInScreen = () => {
   const [mailCheck, setMailCheck] = useState(true);
   const [mail, setMail] = useState("");
   const [password, setPassword] = useState("");
+  const nav = useNavigate();
 
   const handleLogIn = async () => {
     if (!password.length) setPasswordCheck(false);
@@ -47,6 +49,7 @@ const LogInScreen = () => {
 
       dispatch(setCurrentUser(currentUser));
       dispatch(setUserId(userCred.user.uid));
+      nav("/");
     } catch (error: any) {
       console.log(error);
       if (error.code === "auth/wrong-password") setPasswordCheck(false);
@@ -68,7 +71,7 @@ const LogInScreen = () => {
         <div>
           <TextField
             error={!mailCheck}
-            id="outlined-error-helper-text"
+            id="mail--input"
             label="E-Mail"
             type="text"
             helperText={mailCheck ? "" : "E-Mail not found"}
@@ -78,7 +81,7 @@ const LogInScreen = () => {
           />
           <TextField
             error={!passwordCheck}
-            id="outlined-error-helper-text"
+            id="password--input"
             type="password"
             label="password"
             helperText={passwordCheck ? "" : "Password is wrong!"}
@@ -91,6 +94,10 @@ const LogInScreen = () => {
           Log In
         </Button>
       </Box>
+      <Typography variant="body1" mt={3}>
+        Not registered yet?
+      </Typography>
+      <Button onClick={() => nav("/signup")}>Go to Sign-Up!</Button>
     </section>
   );
 };

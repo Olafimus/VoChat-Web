@@ -21,7 +21,9 @@ import {
   getDocs,
   collection,
   addDoc,
+  arrayRemove,
 } from "firebase/firestore";
+import { getDownloadURL, getStorage, ref, uploadBytes } from "firebase/storage";
 import { Conversation } from "../logic/classes/conversation.class";
 import { Message } from "../logic/types/message.types";
 import { Contact, Friend } from "../logic/types/user.types";
@@ -40,6 +42,26 @@ const firebaseConfig = {
 };
 
 const firebaseApp = initializeApp(firebaseConfig);
+export const storage = getStorage();
+
+export const uploadFile = async (file: File, uid: string) => {
+  const path = `user-images/${uid}`;
+  const storageRef = ref(storage, path);
+  try {
+    await uploadBytes(storageRef, file);
+    const userDocRef = doc(db, "users", uid);
+    const url = await loadUserImage(uid);
+    updateDoc(userDocRef, { imageURL: url });
+  } catch (error) {
+    // throw new Error(error.message as string);
+    console.log(error);
+  }
+};
+
+export const loadUserImage = async (uid: string) => {
+  const url = await getDownloadURL(ref(storage, `user-images/${uid}`));
+  return url;
+};
 
 const googleProvider = new GoogleAuthProvider();
 
@@ -57,7 +79,11 @@ export const db = getFirestore();
 
 export const createUserDocumentFromAuth = async (
   userAuth: User,
-  additionalInformation = {}
+  displayName?: string,
+  currentLang?: string,
+  nativeLang?: string,
+  teachLanguages?: string[],
+  learnLanguages?: string[]
 ) => {
   if (!userAuth) return;
 
@@ -66,12 +92,11 @@ export const createUserDocumentFromAuth = async (
   const userSnapshot = await getDoc(userDocRef);
 
   if (!userSnapshot.exists()) {
-    const { displayName, email, uid } = userAuth;
+    const { email, uid } = userAuth;
     const lastActive = Date.now();
     const createdAt = Date.now();
     const conversations: string[] = [];
-    const teachLanguages: string[] = [];
-    const learnLanguages: string[] = [];
+
     const friends: Friend[] = [];
     const allVocabs: VocObj[] = [];
 
@@ -87,7 +112,9 @@ export const createUserDocumentFromAuth = async (
         learnLanguages,
         friends,
         allVocabs,
-        ...additionalInformation,
+        currentLang,
+        nativeLang,
+        displayName,
       });
     } catch (error) {
       console.log("error creating the user", error);
@@ -135,6 +162,51 @@ export const addFriendToDb = async (uid: string, friend: Friend) => {
   if (frIdArr.includes(friend.id)) return;
   updateDoc(userDocRef, { friends: arrayUnion(friend) });
 };
+export const reAddFriendToDb = async (
+  uid: string,
+  friend: Friend,
+  deletedFriends: Friend[]
+) => {
+  const userDocRef = doc(db, "users", uid);
+  const convRef = doc(db, "conversations", friend.conversation);
+
+  updateDoc(userDocRef, {
+    friends: arrayUnion(friend),
+    deletedFriends,
+    conversations: arrayUnion(friend.conversation),
+  });
+  const snap = await getDoc(convRef);
+  const delUser: { user: string; time: number }[] = snap.data()?.leftUsers;
+  if (!delUser) return;
+  const leftUsers = delUser.filter((el) => el.user !== uid);
+  updateDoc(convRef, {
+    leftUsers,
+  });
+};
+
+export const deleteContact = async (
+  uid: string,
+  friend: Friend,
+  newFriends: Friend[],
+  convId: string,
+  multiChat = false
+) => {
+  const userDocRef = doc(db, "users", uid);
+  const conversationDocRef = doc(db, "conversations", convId);
+
+  // friends hier filtern
+  await updateDoc(userDocRef, {
+    friends: newFriends,
+    deletedFriends: arrayUnion(friend),
+    conversations: arrayRemove(convId),
+    leftConversations: arrayUnion({ id: convId, contact: friend.id }),
+  });
+
+  await updateDoc(conversationDocRef, {
+    leftUsers: arrayUnion({ user: uid, time: Date.now() }),
+    inactive: !multiChat,
+  });
+};
 
 export const usersCollectionRef = collection(db, "users");
 
@@ -144,6 +216,7 @@ export const getUsers = async () => {
     id: doc.data().id,
     name: doc.data().displayName,
     email: doc.data().email,
+    imageURL: doc.data().imageURL,
   }));
 };
 
@@ -187,14 +260,6 @@ export const addConvToFriend = async (
   await updateDoc(userRef, { conversations: arrayUnion(convId) });
 };
 
-export const sendNewMessage = async (convId: string, msg: Message) => {
-  const convRef = doc(db, "conversations", convId);
-  await updateDoc(convRef, {
-    messages: arrayUnion(msg),
-    lastInteraction: Date.now(),
-  });
-};
-
 export const updateFriendsData = async (uid: string, friends: Friend[]) => {
   const userDocRef = doc(db, "users", uid);
   updateDoc(userDocRef, { friends: friends });
@@ -223,4 +288,108 @@ export const sendResponse = async (
   });
 };
 
+export const sendSharedWb = async (id: string, vocabs: VocObj[]) => {
+  await setDoc(doc(db, "sharedWorkbooks", id), { vocabs });
+};
+
+export const getSharedWb = async (id: string) => {
+  const wbRef = doc(db, "sharedWorkbooks", id);
+  const data = await getDoc(wbRef);
+  const vocs = data.data()?.vocabs;
+
+  return vocs;
+};
+
 export const checkConvInDb = () => {};
+
+// "Langzeitspeiche" für jede Conversation
+// Document "oldmessages"
+// im Conversationsdocument "longtermref: string" Feld einfügen
+
+//longtermn dann für alle 300 Nachrichten ein neues Feld " 1: (Arr mit 300 Nachrichten), 2: (Arr mir 300 Nachrichten)"
+// in Conversation Document dann einen Marker bei welcher Zahl mit aktuell ist: "longTermCount: 3
+
+export const setLongTermRef = async (convId: string) => {
+  await setDoc(doc(db, "oldmessages", convId), { 1: [] });
+};
+
+export const sendNewMessage = async (convId: string, msg: Message) => {
+  const convRef = doc(db, "conversations", convId);
+  const longRef = doc(db, "oldmessages", "LT" + convId);
+
+  try {
+    const d = await getDoc(convRef);
+    const messages = d.data()?.messages || null;
+
+    if (messages.length > 250) {
+      const oldMsgs = messages.splice(0, 200);
+      messages.push(msg);
+      try {
+      } catch (error) {}
+      if (!d.data()?.longTermRef) {
+        await setLongTermRef("LT" + convId);
+        await updateDoc(convRef, {
+          longTermRef: "LT" + convId,
+          longTermCount: 1,
+        });
+      }
+      const count = d.data()?.longTermCount || 1;
+      let archCount = d.data()?.messageArchiveCount || 1;
+      const oldDoc = await getDoc(longRef);
+      const oldData = oldDoc.data() || {};
+      const keys = Object.keys(oldData);
+      if (keys.length > 15) {
+        const archRef = `AR${archCount}${convId}`;
+        await setDoc(doc(db, "messageArchive", archRef), {
+          messages: oldData,
+        });
+        archCount = archCount + 1;
+        const deleteObj: { [key: string]: "deleteField()" } = {};
+        keys.forEach((key) => (deleteObj[key] = "deleteField()"));
+        await setDoc(longRef, { [count]: oldMsgs });
+      } else {
+        await updateDoc(longRef, {
+          [count]: oldMsgs,
+        });
+      }
+      await updateDoc(convRef, {
+        messages,
+        longTermCount: count + 1,
+        messageArchiveCount: archCount,
+        lastInteraction: Date.now(),
+      });
+    } else {
+      await updateDoc(convRef, {
+        messages: arrayUnion(msg),
+        lastInteraction: Date.now(),
+      });
+    }
+  } catch (error) {
+    throw new Error();
+  }
+};
+
+type OldMessage = { [key: string]: Message[] };
+
+export const getOldMessages = async (id: string) => {
+  const msgRef = doc(db, "oldmessages", id);
+  const d = await getDoc(msgRef);
+  const msgs = d.data() as OldMessage;
+  return msgs;
+};
+
+export const changeDbLangs = async (
+  uid: string,
+  currentLang: string,
+  nativeLang: string,
+  teachLanguages: string[],
+  learnLanguages: string[]
+) => {
+  const userDocRef = doc(db, "users", uid);
+  await updateDoc(userDocRef, {
+    currentLang,
+    nativeLang,
+    teachLanguages,
+    learnLanguages,
+  });
+};

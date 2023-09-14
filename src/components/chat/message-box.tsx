@@ -1,17 +1,23 @@
 import { Typography } from "@mui/material";
 import Box from "@mui/material/Box";
 import Modal from "@mui/material/Modal";
-import React, { useEffect, useState, useRef } from "react";
+import { Interweave } from "interweave";
+import React, { useEffect, useState } from "react";
 import { Message, MsgHisTypes } from "../../logic/types/message.types";
 import { useAppSelector } from "../../app/hooks";
-import { getFormatedDate } from "../../utils/getFormDate";
 import "./message-box.style.scss";
 import { sendResponse } from "../../utils/firebase";
 import InputDiv from "./editable-input-div";
 import { IconButton } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
-import { urlRegex } from "../../utils/text-scripts/add-url";
 import { formatInnerHTML } from "../../utils/text-scripts/html-formating";
+import { formatMsg } from "../../utils/text-scripts/fortmat-message";
+import AnsweredMsgBox from "./message-type-boxes/answer-message";
+import { StandardMsgBox } from "./message-type-boxes/standard-message";
+import EditedMsgBox from "./message-type-boxes/edit-message";
+import VocMsgBox from "./message-type-boxes/vocab-send-msg";
+import WbMsgBox from "./message-type-boxes/wb-send";
+import NoteAddDialog from "../notes/note-add-dialog";
 
 type MsgProp = {
   msg: Message;
@@ -41,9 +47,13 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
   const { id, name } = useAppSelector((state) => state.user);
   const { activeConv } = useAppSelector((state) => state.conversations);
   const [trigger, setTrigger] = useState(false);
-  const [answered, setAnswered] = useState(false);
-  const [edited, setEdited] = useState(false);
-  const [open, setOpen] = React.useState(false);
+  // const [answered, setAnswered] = useState(false);
+  // const [edited, setEdited] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [openNote, setOpenNote] = useState(false);
+  const [note, setNote] = useState<null | string>(null);
+  const [type, setType] = useState<"answer" | "edit">("answer");
+
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
   // const [msgType, setMsgType] = useState<MsgHisTypes>("standard");
@@ -61,25 +71,11 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
   let msgType = "standard";
   if (msg.messageHis.at(-1)?.type === "answer") msgType = "answer";
   if (msg.messageHis.at(-1)?.type === "edit") msgType = "edit";
+  if (msg.messageHis.at(-1)?.type === "vocab") msgType = "vocab";
+  if (msg.messageHis.at(-1)?.type === "wb") msgType = "wb";
 
   // formating URLs and too long words
   const text = msg.messageHis.at(-1)?.message || "";
-  const formatMsg = (txt: string) => {
-    const wordArr = txt.split(" ");
-    wordArr.forEach((word, i) => {
-      if (word.match(urlRegex)) {
-        const url = word;
-        let txt = word;
-        if (word.length > 30) txt = txt.slice(8, 27) + "..."; // TODO usemedia query
-        if (word.startsWith("www"))
-          wordArr[i] = `<a href="https://${url}" target='_blank' >${txt}</a>`;
-        else wordArr[i] = `<a href="${url}" target='_blank' >${txt}</a>`;
-      } else if (word.length > 30) wordArr[i] = word.slice(0, 27) + "...";
-      if (word.length > 40) wordArr[i] = word.slice(0, 23) + "...";
-    });
-    return wordArr.join(" ");
-  };
-
   const msgText = formatMsg(text);
   const msgHTML = formatInnerHTML(msgText) || msgText;
 
@@ -127,18 +123,20 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
   };
 
   const editHandler = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
-    setEdited(true);
-    setAnswered(false);
+    // setEdited(true);
+    // setAnswered(false);
     // setMsgType("answered");
+    setType("edit");
     resetToolTip(e);
     handleOpen();
   };
   const answerHandler = (
     e: React.MouseEvent<HTMLButtonElement, MouseEvent>
   ) => {
-    setEdited(false);
-    setAnswered(true);
+    // setEdited(false);
+    // setAnswered(true);
     // setMsgType("answered");
+    setType("answer");
     resetToolTip(e);
     handleOpen();
   };
@@ -151,104 +149,6 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
     response.responses.forEach((res) => newResponses.push(res.response));
     if (newResponses.length) setResponses(newResponses);
   }, [msg.response]);
-
-  const StandardMsgBox = () => {
-    return (
-      <div
-        className="chat-textbox-msg"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "auto auto",
-          gap: "1rem",
-        }}
-      >
-        <Typography
-          dangerouslySetInnerHTML={{ __html: msgHTML }}
-          variant="body1"
-          style={{ fontSize: "16px" }}
-        ></Typography>
-        <Typography variant="caption">{getFormatedDate(msg.time)}</Typography>
-      </div>
-    );
-  };
-
-  const AnsweredMsgBox = () => {
-    const oldText = msg.messageHis.at(-2)?.message || "";
-    const oldMsgtxt = formatMsg(oldText);
-    let senderName = contactName;
-    if (msg.messageHis.at(-2)?.editor === id) senderName = "you";
-    const oldTime = msg.messageHis.at(-2)?.time || msg.time;
-
-    const captionStyles = {
-      fontSize: "12px",
-      position: "absolute",
-      top: "-1px",
-      left: "20px",
-
-      paddingLeft: "2px",
-      paddingRight: "2px",
-    };
-    return (
-      <>
-        <div
-          className="chat-textbox-msg"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "auto 40px",
-            gap: "1rem",
-            marginBottom: "0.5rem",
-            borderStyle: "solid",
-            borderRadius: "0.2rem",
-            borderWidth: "2px",
-            paddingTop: "5px",
-          }}
-        >
-          <Typography
-            dangerouslySetInnerHTML={{ __html: oldText }}
-            variant="body1"
-            style={{ fontSize: "16px", paddingLeft: "0.3rem" }}
-          ></Typography>
-          <Typography variant="caption" sx={{ paddingTop: "0.2rem" }}>
-            {getFormatedDate(oldTime)}
-          </Typography>
-          <span
-            className="sender-name-caption"
-            style={{
-              fontSize: "12px",
-              position: "absolute",
-              top: "-1px",
-              left: "20px",
-              backgroundColor: "#2c8a3c",
-              paddingLeft: "2px",
-              paddingRight: "2px",
-            }}
-          >
-            {senderName}
-          </span>
-        </div>
-        <span className="message-box-divider"></span>
-        <div
-          className="chat-textbox-msg"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "auto 30px",
-            gap: "1rem",
-          }}
-        >
-          <Typography
-            dangerouslySetInnerHTML={{ __html: msgHTML }}
-            variant="body1"
-            style={{ fontSize: "16px" }}
-          ></Typography>
-          <Typography variant="caption">{getFormatedDate(msg.time)}</Typography>
-        </div>
-      </>
-    );
-  };
-
-  const EditedMsgBox = () => {
-    return <div>Edited</div>;
-  };
 
   return (
     <>
@@ -273,9 +173,35 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
               : { backgroundColor: "#2c8a3c" }
           }
         >
-          {msgType === "standard" && <StandardMsgBox />}
-          {msgType === "answer" && <AnsweredMsgBox />}
-          {msgType === "edit" && <EditedMsgBox />}
+          {msgType === "standard" && (
+            <StandardMsgBox msg={msg} msgHTML={msgHTML} />
+          )}
+          {msgType === "answer" && (
+            <AnsweredMsgBox
+              msg={msg}
+              msgHTML={msgHTML}
+              contactName={contactName}
+              id={id}
+            />
+          )}
+          {msgType === "edit" && (
+            <EditedMsgBox
+              msg={msg}
+              msgHTML={msgHTML}
+              contactName={contactName}
+              id={id}
+            />
+          )}
+          {msgType === "vocab" && (
+            <VocMsgBox vocab={msg.messageHis.at(-1)?.vocab} msgHTML={msgHTML} />
+          )}
+          {msgType === "wb" && (
+            <WbMsgBox
+              wb={msg.messageHis.at(-1)?.wb}
+              wbCount={msg.messageHis.at(-1)?.wbCount}
+              msgHTML={msgHTML}
+            />
+          )}
           <span
             className={
               msg.sender !== id
@@ -294,6 +220,15 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
               </button>
             ))}
             <div className="response-divider"></div>
+            <button
+              className="response-emoji-btn"
+              onClick={() => {
+                setNote(msg.messageHis.at(-1)?.message || null);
+                setOpenNote(true);
+              }}
+            >
+              🗒️
+            </button>
             <button onClick={editHandler} className="response-emoji-btn">
               🖊️
             </button>
@@ -320,11 +255,7 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
       >
         <Box sx={style}>
           <span className="answer-edit-wrapper">
-            <Typography
-              id="modal-modal-title"
-              variant="h6"
-              component="h2"
-              dangerouslySetInnerHTML={{ __html: text }}
+            <Box
               style={{
                 border: "solid 0.15rem #2756ef",
                 padding: "0.5rem",
@@ -333,7 +264,23 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
                 marginBottom: "8px",
                 borderRadius: "5px",
               }}
-            ></Typography>
+            >
+              {/* <Typography
+                id="modal-modal-title"
+                variant="h6"
+                component="h2"
+                style={{
+                  border: "solid 0.15rem #2756ef",
+                  padding: "0.5rem",
+                  // paddingLeft: "0.5rem",
+                  minWidth: "200px",
+                  marginBottom: "8px",
+                  borderRadius: "5px",
+                }}
+              >
+              </Typography> */}
+              <Interweave content={text} />
+            </Box>
             <span className="msg-sender">{name}</span>
           </span>
 
@@ -344,7 +291,7 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
             >
               <InputDiv
                 focus={true}
-                type="answer"
+                type={type}
                 trigger={trigger}
                 oldMsg={msg}
               />
@@ -359,6 +306,13 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
           </div>
         </Box>
       </Modal>
+      <NoteAddDialog
+        openAdd={openNote}
+        setOpenAdd={setOpenNote}
+        text={note}
+        creatorId={msg.sender}
+        language={msg.language}
+      />
     </>
   );
 };

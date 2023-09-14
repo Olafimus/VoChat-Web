@@ -1,4 +1,5 @@
-import { AllVocabs, Vocab } from "./classes/vocab.class";
+import { Vocab } from "./classes/vocab.class";
+import { WorkbookType } from "./types/vocab.types";
 
 // const user = new User("Horst", "AfjeiA2", 2321, ["german"], ["english"]);
 const voc = {
@@ -48,13 +49,3 @@ const convVoc = [
     vocab: "vocObj",
   },
 ];
-
-class Test {
-  constructor(public obj: { name: string; id: string }) {}
-}
-const horst = {
-  name: "Horst",
-  id: "Da2D",
-};
-
-const test = new Test(horst);

@@ -1,10 +1,14 @@
 import { doc } from "firebase/firestore";
 import React, { useEffect } from "react";
 import { useDocument } from "react-firebase-hooks/firestore";
-import { useAppDispatch } from "../../app/hooks";
+import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { setFriends, setUserData } from "../../app/slices/user-slice";
 import { db } from "../../utils/firebase";
 import { AppUser } from "../types/user.types";
+import {
+  loadLastUpdated,
+  updateLastUpdated,
+} from "../../utils/firebase/firebase-vocab";
 
 const UserDataLoader: React.FC<{ id: string }> = ({ id }) => {
   const dispatch = useAppDispatch();
@@ -13,6 +17,7 @@ const UserDataLoader: React.FC<{ id: string }> = ({ id }) => {
   });
 
   useEffect(() => {
+    // console.log("fired")
     if (!value) return;
     const data = value.data();
     if (!data) return;
@@ -25,8 +30,11 @@ const UserDataLoader: React.FC<{ id: string }> = ({ id }) => {
       conversations: data.conversations,
       teachLanguages: data.teachLanguages,
       learnLanguages: data.learnLanguages,
-      allVocabs: data.allVocabs,
+      addedDataVocsRefs: data.addedDataVocsRefs,
+      deletedFriends: data?.deletedFriends || [],
+      imageURL: data.imageURL || null,
     };
+
     dispatch(setFriends(friends));
     dispatch(setUserData(userData));
   }, [value]);

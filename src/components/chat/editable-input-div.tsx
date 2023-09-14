@@ -1,6 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
-import { Message, MsgHisTypes } from "../../logic/types/message.types";
+import {
+  Message,
+  MessageHisItem,
+  MsgHisTypes,
+} from "../../logic/types/message.types";
 import { nanoid } from "@reduxjs/toolkit";
 
 import { updateFriendInteraction } from "../../app/slices/user-slice";
@@ -15,6 +19,8 @@ import {
   formatInnerHTML,
   reformatHTMLtoTxt,
 } from "../../utils/text-scripts/html-formating";
+import { VocObj, WorkbookType } from "../../logic/types/vocab.types";
+import { ToastContainer, toast } from "react-toastify";
 
 type InputProps = {
   type: "newMsg" | "answer" | "edit";
@@ -22,6 +28,42 @@ type InputProps = {
   msgInput?: string;
   focus?: boolean;
   oldMsg?: Message;
+};
+
+export const createMsgObj = (sender: string) => {
+  const msgObj: Message = {
+    time: Date.now(),
+    sender,
+    id,
+    language: "farsi",
+    read: false,
+    messageHis: [],
+  };
+
+  return msgObj;
+};
+const id = nanoid();
+export const addMsgHis = (
+  msgObj: Message,
+  message: string,
+  type: MsgHisTypes,
+  vocab?: VocObj,
+  wb?: WorkbookType,
+  wbCount?: number
+) => {
+  const HisItem: MessageHisItem = {
+    time: Date.now(),
+    editor: id,
+    message,
+    read: false,
+    type,
+  };
+  if (type === "vocab") HisItem.vocab = vocab;
+  if (type === "wb") {
+    HisItem.wb = wb;
+    HisItem.wbCount = wbCount;
+  }
+  msgObj.messageHis.push(HisItem);
 };
 
 const InputDiv: React.FC<InputProps> = ({
@@ -34,6 +76,7 @@ const InputDiv: React.FC<InputProps> = ({
   const [msgTxt, setMsgTxt] = useState(msgInput);
   const [innerHtml, setInnerHtml] = useState("");
   const [active, setActive] = useState(false);
+  const { theme } = useAppSelector((state) => state.settings);
   const { id } = useAppSelector((state) => state.user);
   const { conversations, activeConv, newMsg } = useAppSelector(
     (state) => state.conversations
@@ -49,18 +92,20 @@ const InputDiv: React.FC<InputProps> = ({
       ref.current.focus();
       // setEndFocus(divId);
     }
+    if (type === "edit" && ref.current)
+      ref.current.textContent = oldMsg?.messageHis.at(-1)?.message || "";
   }, [ref]);
 
   const emojiHandler = async (e: EmojiClickData) => {
     const textfeld = document.getElementById(divId);
     setOpen(false);
-    console.log(textfeld);
     if (!textfeld) return;
     textfeld.innerHTML = msgTxt + e.emoji;
     setMsgTxt(msgTxt + e.emoji);
     await new Promise((resolve) =>
       setTimeout(() => {
         textfeld.focus();
+        setEndFocus(divId);
       }, 1)
     );
     await new Promise((resolve) =>
@@ -70,28 +115,17 @@ const InputDiv: React.FC<InputProps> = ({
     );
   };
 
-  const createMsgObj = (sender = userId, id = nanoid()) => {
-    const msgObj: Message = {
-      time: Date.now(),
-      sender,
-      id,
-      language: "farsi",
-      read: false,
-      messageHis: [],
-    };
-
-    return msgObj;
-  };
-
-  const addMsgHis = (msgObj: Message, message: string, type: MsgHisTypes) => {
-    msgObj.messageHis.push({
-      time: Date.now(),
-      editor: id,
-      message,
-      read: false,
-      type,
+  const failedSending = () =>
+    toast.error("Failed to send message", {
+      position: "bottom-right",
+      autoClose: 5000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      theme: "colored",
     });
-  };
 
   const sendNewMsgHandler = (newMsg = msgTxt) => {
     const msg = createMsgObj(id);
@@ -103,7 +137,7 @@ const InputDiv: React.FC<InputProps> = ({
     const contactIds = conv.users.filter((usr) => usr !== id);
 
     dispatch(updateFriendInteraction({ ids: contactIds, stamp: now }));
-    sendNewMessage(activeConv, msg);
+    sendNewMessage(activeConv, msg).catch(() => failedSending());
 
     setMsgTxt("");
     const textfeld = document.getElementById(divId);
@@ -111,44 +145,53 @@ const InputDiv: React.FC<InputProps> = ({
     textfeld.focus();
   };
 
-  const sendAnswerHandler = (oldMsg: Message, answer: string) => {
+  const sendAnswerHandler = (
+    oldMsg: Message,
+    answer: string,
+    type: MsgHisTypes = "answer"
+  ) => {
     const newMsg = createMsgObj(userId);
     oldMsg.messageHis.forEach((msg) => newMsg.messageHis.push({ ...msg }));
-    addMsgHis(newMsg, answer, "answer");
+    addMsgHis(newMsg, answer, type);
     newMsg.time = Date.now();
     newMsg.sender = id;
 
-    sendNewMessage(activeConv, newMsg);
+    sendNewMessage(activeConv, newMsg).catch(() => failedSending());
     // setMsgTxt("");
   };
-  const sendEditHandler = () => {};
+  const sendEditHandler = (oldMsg: Message, edit: string) => {};
 
   const handleSubmit = () => {
     if (msgTxt === "") return;
     if (id === "") return;
     if (!ref.current) return;
-
-    switch (type) {
-      case "newMsg":
-        sendNewMsgHandler();
-        setMsgTxt("");
-        ref.current.innerHTML = "";
-        break;
-      case "answer":
-        if (!oldMsg) return;
-        sendAnswerHandler(oldMsg, msgTxt);
-        setMsgTxt("");
-        ref.current.innerHTML = "";
-        break;
-      case "edit":
-        sendEditHandler();
-        setMsgTxt("");
-        ref.current.innerHTML = "";
-        break;
-      default:
-        return;
-        setMsgTxt("");
+    try {
+      switch (type) {
+        case "newMsg":
+          sendNewMsgHandler();
+          setMsgTxt("");
+          ref.current.innerHTML = "";
+          break;
+        case "answer":
+          if (!oldMsg) return;
+          sendAnswerHandler(oldMsg, msgTxt);
+          setMsgTxt("");
+          ref.current.innerHTML = "";
+          break;
+        case "edit":
+          if (!oldMsg) return;
+          sendAnswerHandler(oldMsg, msgTxt, "edit");
+          setMsgTxt("");
+          ref.current.innerHTML = "";
+          break;
+        default:
+          return;
+          setMsgTxt("");
+      }
+    } catch (error) {
+      failedSending();
     }
+
     // sendNewMsgHandler();
   };
 
@@ -168,8 +211,6 @@ const InputDiv: React.FC<InputProps> = ({
     const newInnerHTML = formatInnerHTML(curHTML);
     let newMsgTxt: string | undefined;
     if (newInnerHTML) newMsgTxt = reformatHTMLtoTxt(newInnerHTML);
-    console.log(curHTML, "w");
-    console.log("new: ", newInnerHTML);
 
     if (newMsgTxt) {
       setMsgTxt(newMsgTxt);
@@ -187,14 +228,12 @@ const InputDiv: React.FC<InputProps> = ({
     if (!editDiv?.textContent) return;
     if (e.key === "Backspace" && editDiv.textContent.length <= 1) {
       editDiv.innerHTML = "";
-      console.log(editDiv);
     }
 
     if (e.key === "Enter" && !e.ctrlKey) {
       e.preventDefault();
     }
     if (e.ctrlKey && e.key === "Enter") {
-      console.log(e.key);
       editDiv.innerHTML = editDiv.innerHTML + "<br>";
       setEndFocus(divId);
     }
@@ -214,8 +253,10 @@ const InputDiv: React.FC<InputProps> = ({
         onKeyDown={handleKeyDown}
         onInput={editFormating}
         contentEditable={true}
-      ></div>
-
+      >
+        {/* {type === "edit" && oldMsg?.messageHis.at(-1)?.message} */}
+      </div>
+      <ToastContainer />
       <IconButton onClick={() => setOpen(true)}>
         <EmojiEmotionsIcon />
       </IconButton>

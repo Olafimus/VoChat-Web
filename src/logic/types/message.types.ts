@@ -1,6 +1,6 @@
 import { Id } from "@reduxjs/toolkit/dist/tsHelpers";
 import { Response } from "../../components/chat/message-box";
-import { VocObj } from "./vocab.types";
+import { VocObj, WorkbookType } from "./vocab.types";
 
 export type Message = {
   id: string;
@@ -29,9 +29,18 @@ export type MessageHisItem = {
   message: string;
   type: MsgHisTypes;
   response?: Response;
+  vocab?: VocObj;
+  wb?: WorkbookType;
+  wbCount?: number;
 };
 
-export type MsgHisTypes = "answer" | "standard" | "edit" | "vocab" | null;
+export type MsgHisTypes =
+  | "answer"
+  | "standard"
+  | "edit"
+  | "vocab"
+  | "wb"
+  | null;
 
 export type ConVoc = {
   time: number;

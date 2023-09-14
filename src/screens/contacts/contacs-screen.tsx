@@ -6,13 +6,7 @@ import ContactsList from "../../components/contacts/contacts-list";
 import AddDialog from "../../components/contacts/add-diologue";
 import { useAppSelector } from "../../app/hooks";
 
-const ContactScreen = ({
-  matches,
-  type,
-}: {
-  matches: boolean;
-  type: "small" | "big";
-}) => {
+const ContactScreen = ({ matches }: { matches: boolean }) => {
   const [open, setOpen] = React.useState(false);
   const [selectedValue, setSelectedValue] = React.useState("");
   // const matches = useMediaQuery("(min-width:800px)");
@@ -33,13 +27,17 @@ const ContactScreen = ({
           className="contacts-container"
           style={{
             display: "grid",
+            // maxHeight: "70dvh",
             marginTop: "2rem",
-            height: "80vh",
-            gridTemplateRows: "20% 70% 10%",
+            gridTemplateRows: "10% 80% 10%",
+            width: "100%",
+            // overflow: "auto",
           }}
         >
-          <Typography variant="h6">Contacts</Typography>
-          <div>
+          <Typography mt={0} variant="h6">
+            Contacts
+          </Typography>
+          <div style={{ maxWidth: "100%", overflow: "hidden" }}>
             <ContactsList />
           </div>
           <div className="flex-container">

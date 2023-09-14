@@ -37,11 +37,11 @@ const SignUpScreen = () => {
       return;
 
     try {
-      const user = await createAuthUserWithEmailAndPassword(mail, password);
+      // const user = await createAuthUserWithEmailAndPassword(mail, password);
       const displayName: string = name;
-      if (!user) throw new Error("fail");
-      await createUserDocumentFromAuth(user.user, { displayName });
-      dispatch(setCurrentUser(user.user));
+      // if (!user) throw new Error("fail");
+      // await createUserDocumentFromAuth(user.user, Credential.name, );
+      // dispatch(setCurrentUser(user.user));
     } catch (err) {
       console.log(err);
     }
@@ -55,6 +55,7 @@ const SignUpScreen = () => {
           "& .MuiTextField-root": { m: 1, width: "25ch" },
         }}
         noValidate
+        height="100%"
         autoComplete="off"
       >
         <Typography variant="h6">Create an Account</Typography>
@@ -69,7 +70,7 @@ const SignUpScreen = () => {
           />
           <TextField
             error={!mailCheck}
-            id="outlined-error-helper-text"
+            id="mail--signup--input"
             label="E-Mail"
             type="text"
             helperText={mailCheck ? "" : "This is no E-Mail!"}
@@ -81,7 +82,7 @@ const SignUpScreen = () => {
         <div>
           <TextField
             error={!passwordCheck}
-            id="outlined-error-helper-text"
+            id="password--confirmation--input"
             type="password"
             label="password"
             helperText={passwordCheck ? "" : "Password too short!"}
@@ -91,7 +92,7 @@ const SignUpScreen = () => {
           />
           <TextField
             error={!passwordConfirmCheck}
-            id="outlined-error-helper-text"
+            id="password--confirm--input"
             type="password"
             label="confirm password"
             helperText={passwordConfirmCheck ? "" : "Not the same password!"}
