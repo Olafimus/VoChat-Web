@@ -89,7 +89,7 @@ const ProfilePage = () => {
             <span
               onClick={() =>
                 Push.create("You have now activated Notifications", {
-                  body: "send from VocChat",
+                  body: "Send from VocChat",
                   icon: Logo,
                 })
               }

@@ -3,6 +3,7 @@ import * as React from "react";
 import { styled } from "@mui/material/styles";
 import FolderIcon from "@mui/icons-material/Folder";
 import PictureUploadButton from "./upload-button";
+import { useAppSelector } from "../../app/hooks";
 
 const VisuallyHiddenInput = styled("input")({
   clip: "rect(0 0 0 0)",
