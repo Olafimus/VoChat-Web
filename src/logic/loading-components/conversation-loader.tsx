@@ -21,6 +21,7 @@ import { notifyUser } from "../../utils/notification";
 import { Conversation } from "../classes/conversation.class";
 import { Friend } from "../types/user.types";
 import { VocObj } from "../types/vocab.types";
+import Logo from "../../assets/images/logo.svg";
 
 type Prop = {
   conversation: string;
@@ -125,7 +126,11 @@ const ConversationLoader: React.FC<Prop> = ({ conversation }) => {
       dispatch(setUnreadMsgConv({ id: conversation, count: unreadMsgs }));
       dispatch(newMsgReceived());
       dispatch(countUnreadMsgs());
-      notifyUser(friend?.name, lastMsg);
+      // notifyUser(friend?.name, lastMsg);
+      Push.create(friend?.name || "user", {
+        body: lastMsg || "New Message",
+        icon: Logo,
+      });
     }
     if (newInteraction) {
       const stamp = Date.now();

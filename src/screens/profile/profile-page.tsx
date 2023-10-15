@@ -20,21 +20,17 @@ import ProfileImageUpload from "../../components/profile/profile-image-upload";
 import { resetVocabSlice } from "../../app/slices/vocabs-slice";
 import { resetVocClassSlice } from "../../app/slices/vocabs-class-slice";
 import { notifyUser } from "../../utils/notification";
+import Logo from "../../assets/images/logo.svg";
 
 const ProfilePage = () => {
   const [open, setOpen] = useState(false);
   const { name, email, joinedAt, imageURL } = useAppSelector(
     (state) => state.user
   );
+  const user = useAppSelector((state) => state.user);
   const matches = useMediaQuery("(min-width:600px)");
   const dispatch = useAppDispatch();
-
-  let paperStyle = {
-    p: "10px",
-    border: "solid 2px",
-    borderRadius: "10px",
-    borderColor: "#78909c",
-  };
+  console.log(user);
 
   return (
     <Box
@@ -64,7 +60,7 @@ const ProfilePage = () => {
             <Typography variant="h6">{email}</Typography>
             <Divider sx={{ width: "100%" }} />
             <Tooltip title="work in progress (change name, pw etc)">
-              <span onClick={() => notifyUser("test", "test-message")}>
+              <span>
                 <Typography
                   variant="body1"
                   sx={{ ":hover": { cursor: "pointer" } }}
@@ -90,7 +86,14 @@ const ProfilePage = () => {
                 Log-Out
               </Typography>
             </Link>
-            <span onClick={() => Push.create("Hey there")}>
+            <span
+              onClick={() =>
+                Push.create("You have now activated Notifications", {
+                  body: "Send from VocChat",
+                  icon: Logo,
+                })
+              }
+            >
               <Typography
                 variant="body1"
                 color="primary"
