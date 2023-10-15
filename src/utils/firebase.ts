@@ -47,11 +47,13 @@ export const storage = getStorage();
 export const uploadFile = async (file: File, uid: string) => {
   const path = `user-images/${uid}`;
   const storageRef = ref(storage, path);
+
   try {
     await uploadBytes(storageRef, file);
     const userDocRef = doc(db, "users", uid);
     const url = await loadUserImage(uid);
     updateDoc(userDocRef, { imageURL: url });
+    return url;
   } catch (error) {
     // throw new Error(error.message as string);
     console.log(error);

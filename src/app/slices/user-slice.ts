@@ -161,8 +161,8 @@ export const UserSlice = createSlice({
     changeLearnLangs: (state, actions: PayloadAction<string[]>) => {
       state.learnLanguages = actions.payload;
     },
-    setJoinDate: (state, actions: PayloadAction<number>) => {
-      state.joinedAt = new Date(actions.payload);
+    setJoinDate: (state, actions: PayloadAction<Date>) => {
+      state.joinedAt = actions.payload;
     },
     resetUserState: (state) => {
       return initialState;
