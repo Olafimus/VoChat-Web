@@ -29,6 +29,7 @@ import AddVocab from "../../add-vocab";
 import ShareMenu from "../../../general/shared-menu";
 import { updateVocDb } from "../../../../utils/firebase/firebase-vocab";
 import { deleteWbDb } from "../../../../utils/firebase/firebase-workbooks";
+import { useNavigate } from "react-router-dom";
 
 interface ExpandMoreProps extends IconButtonProps {
   expand: boolean;
@@ -46,6 +47,8 @@ const ExpandMore = styled((props: ExpandMoreProps) => {
 }));
 
 const WorkbookCard = ({ wb }: { wb: WorkbookType }) => {
+  const dispatch = useAppDispatch();
+  const nav = useNavigate();
   const [expanded, setExpanded] = React.useState(false);
   const [openWbModal, setOpenWbModal] = React.useState(false);
   const [openVocModal, setOpenVocModal] = React.useState(false);
@@ -53,7 +56,6 @@ const WorkbookCard = ({ wb }: { wb: WorkbookType }) => {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const { allVocabs } = useAppSelector((state) => state.allVocabs);
   const { id: uid } = useAppSelector((state) => state.user);
-  const dispatch = useAppDispatch();
 
   const handleExpandClick = () => {
     setExpanded(!expanded);
@@ -65,7 +67,10 @@ const WorkbookCard = ({ wb }: { wb: WorkbookType }) => {
     { title: "Score", info: wb.score },
     { title: "Vocab Count", info: wbVocs.length },
     { title: "Last learned", info: wb.lastLearned },
-    { title: "Vocab-List", info: wbVocs.map((voc) => voc.getVocArr()[0]) },
+    {
+      title: "Vocab-List",
+      info: wbVocs.map((voc) => voc.getVocArr()[0]).join(" "),
+    },
     { title: "rel Cats", info: "vll related cats?" },
   ];
 
@@ -149,18 +154,21 @@ const WorkbookCard = ({ wb }: { wb: WorkbookType }) => {
             <IconButton
               size="small"
               aria-label="learn"
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                nav(`/vocab/learning/workbook/${wb.id}`);
+              }}
             >
               <SchoolRoundedIcon sx={{ color: green[600] }} />
             </IconButton>
           </Tooltip>
-          <IconButton
+          {/* <IconButton
             size="small"
             aria-label="delete"
             onClick={(e) => e.stopPropagation()}
           >
             <StarBorderPurple500Icon sx={{ color: yellow[700] }} />
-          </IconButton>
+          </IconButton> */}
           <ExpandMore
             expand={expanded}
             onClick={handleExpandClick}
@@ -192,6 +200,7 @@ const WorkbookCard = ({ wb }: { wb: WorkbookType }) => {
       )}
 
       <AddVocab
+        sendVoc={false}
         open={openVocModal}
         setOpen={setOpenVocModal}
         type="wbAdd"

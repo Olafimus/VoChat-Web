@@ -17,8 +17,12 @@ import { VocObj, WorkbookType } from "./../../../logic/types/vocab.types";
 import { Vocab } from "./../../../logic/classes/vocab.class";
 import ListItemText from "@mui/material/ListItemText/ListItemText";
 import VocabListView from "./vocab-view";
-import { useAppSelector } from "../../../app/hooks";
+import { useAppDispatch, useAppSelector } from "../../../app/hooks";
 import { getSharedWb } from "../../../utils/firebase";
+import { useNavigate } from "react-router-dom";
+import { addVocab, addWorkbook } from "../../../app/slices/vocabs-slice";
+import { addVocToDb } from "../../../utils/firebase/firebase-vocab";
+import { addWbToDb } from "../../../utils/firebase/firebase-workbooks";
 
 const WorkbookView = ({
   wb,
@@ -33,8 +37,10 @@ const WorkbookView = ({
 }) => {
   const [scroll, setScroll] = React.useState<DialogProps["scroll"]>("paper");
   const [vocabs, setVocabs] = React.useState<Vocab[]>([]);
-
+  const nav = useNavigate();
+  const dispatch = useAppDispatch();
   let fullScreen = false;
+
   let disableEdit = true;
   let type: "own" | "send" = "own";
   const { allVocabs } = useAppSelector((state) => state.allVocabs);
@@ -171,8 +177,28 @@ const WorkbookView = ({
             <Tooltip title="Add this workbook to your workbooks">
               <Button
                 onClick={() => {
+                  if (vocabs.length === 0)
+                    alert(
+                      "No Vocabs in this workbook. It either failed to load or no vocabs were provided"
+                    );
                   const newWb: WorkbookType = { ...wb };
                   newWb.owner = uid;
+
+                  const saveVoc = async (voc: Vocab) => {
+                    const VocObj = voc.getVocObj();
+                    VocObj.owner = uid;
+
+                    dispatch(addVocab(VocObj));
+                    await addVocToDb(VocObj);
+                    allVocabs.addVocab(new Vocab(VocObj));
+                  };
+                  vocabs.forEach((voc) => saveVoc(voc));
+                  const addWb = async () => {
+                    dispatch(addWorkbook(newWb));
+                    await addWbToDb(newWb);
+                    nav("/vocab/workbooks");
+                  };
+                  addWb();
                 }}
               >
                 Add to your Books
@@ -180,14 +206,26 @@ const WorkbookView = ({
             </Tooltip>
           </span>
         ) : (
-          <span>
+          <Box display="flex" flexDirection="row" gap={2}>
             <Tooltip title="Edit this workbook">
-              <IconButton size="small">Edit</IconButton>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => nav(`/vocab/workbooks/${wb.id}`)}
+              >
+                Edit
+              </Button>
             </Tooltip>
             <Tooltip title="Learn this workbook">
-              <IconButton size="small">Learn</IconButton>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => nav(`/vocab/learning/workbook/${wb.id}`)}
+              >
+                Learn
+              </Button>
             </Tooltip>
-          </span>
+          </Box>
         )}
       </DialogActions>
     </Dialog>

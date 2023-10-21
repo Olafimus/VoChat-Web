@@ -1,8 +1,10 @@
 import { Menu, MenuItem } from "@mui/material";
 import { VocObj, WorkbookType } from "../../logic/types/vocab.types";
-import { useAppSelector } from "../../app/hooks";
+import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { addMsgHis, createMsgObj } from "../chat/editable-input-div";
 import { sendNewMessage, sendSharedWb } from "../../utils/firebase";
+import { useNavigate } from "react-router-dom";
+import { switchActiveConv } from "../../app/slices/conversation-slice";
 
 const ShareMenu = ({
   open,
@@ -19,6 +21,8 @@ const ShareMenu = ({
   wb?: WorkbookType;
   wbVocs?: VocObj[];
 }) => {
+  const nav = useNavigate();
+  const dispatch = useAppDispatch();
   const { id } = useAppSelector((state) => state.user);
 
   const handleSubmit = (convId: string) => {
@@ -32,6 +36,8 @@ const ShareMenu = ({
 
     sendNewMessage(convId, msg);
     setOpen(false);
+    dispatch(switchActiveConv(convId));
+    nav("/chat");
   };
 
   const handleClose = () => {

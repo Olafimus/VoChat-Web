@@ -164,12 +164,7 @@ export const UserSlice = createSlice({
     setJoinDate: (state, actions: PayloadAction<Date>) => {
       state.joinedAt = actions.payload;
     },
-    resetUserState: (state) => {
-      return initialState;
-    },
-    setUserImageURL: (state, a: PayloadAction<string>) => {
-      state.imageURL = a.payload;
-    },
+    resetUserState: () => initialState,
     addDataRef: (
       state,
       actions: PayloadAction<{ lang: keyof typeof dbLangObj; ref: string }>
@@ -179,6 +174,9 @@ export const UserSlice = createSlice({
         ...state.addedDataVocsRefs,
         [key]: actions.payload.ref,
       };
+    },
+    setUserImageURL: (s, a: PayloadAction<string>) => {
+      s.imageURL = a.payload;
     },
   },
 });

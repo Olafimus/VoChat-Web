@@ -23,7 +23,6 @@ export const addVocToDb = async (voc: VocObj) => {
   try {
     await setDoc(doc(vocCol), { ...voc });
   } catch (error) {
-    console.log("catched");
     throw new Error();
   }
   // return setDoc(doc(vocCol), { ...voc });

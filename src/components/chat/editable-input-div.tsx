@@ -21,6 +21,7 @@ import {
 } from "../../utils/text-scripts/html-formating";
 import { VocObj, WorkbookType } from "../../logic/types/vocab.types";
 import { ToastContainer, toast } from "react-toastify";
+import { sendHelpMsg } from "../../app/slices/conversation-slice";
 
 type InputProps = {
   type: "newMsg" | "answer" | "edit";
@@ -127,6 +128,18 @@ const InputDiv: React.FC<InputProps> = ({
       theme: "colored",
     });
 
+  const sendHelpBotMsg = () => {
+    const msg = createMsgObj(id);
+    addMsgHis(msg, msgTxt, "standard");
+    dispatch(sendHelpMsg(msg));
+    setMsgTxt("");
+    if (!ref.current) return;
+    ref.current.innerHTML = "";
+    const textfeld = document.getElementById(divId);
+    if (!textfeld) return;
+    textfeld.focus();
+  };
+
   const sendNewMsgHandler = (newMsg = msgTxt) => {
     const msg = createMsgObj(id);
     addMsgHis(msg, msgTxt, "standard");
@@ -140,6 +153,7 @@ const InputDiv: React.FC<InputProps> = ({
     sendNewMessage(activeConv, msg).catch(() => failedSending());
 
     setMsgTxt("");
+
     const textfeld = document.getElementById(divId);
     if (!textfeld) return;
     textfeld.focus();
@@ -165,6 +179,7 @@ const InputDiv: React.FC<InputProps> = ({
     if (msgTxt === "") return;
     if (id === "") return;
     if (!ref.current) return;
+    if (activeConv === "chatConversation") return sendHelpBotMsg();
     try {
       switch (type) {
         case "newMsg":

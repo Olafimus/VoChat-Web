@@ -36,6 +36,10 @@ const MultiSelect = ({
   const { currentLang, nativeLang } = useAppSelector((state) => state.vocabs);
   const dispatch = useAppDispatch();
 
+  React.useEffect(() => {
+    setSelOptions(options);
+  }, [options]);
+
   const inputHandler = (input: string) => {
     let check = false;
     options.forEach((opt) => {

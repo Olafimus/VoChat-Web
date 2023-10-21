@@ -54,6 +54,7 @@ export const NoteSlice = createSlice({
         (lang) => lang !== action.payload
       );
     },
+    resetNotesSlice: () => initialState,
   },
 });
 
@@ -64,6 +65,7 @@ export const {
   switchNoteLang,
   addNoteLang,
   deleteNoteLang,
+  resetNotesSlice,
 } = NoteSlice.actions;
 
 export default NoteSlice.reducer;

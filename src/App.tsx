@@ -62,10 +62,13 @@ function App() {
 
                 <Route path="delete" element={<DeleteFriend />} />
                 <Route path="vocab" element={<AllVocabs />}></Route>
-                <Route path="vocab/workbooks" element={<WorkbooksScreen />} />
+                <Route
+                  path="vocab/workbooks/:id?"
+                  element={<WorkbooksScreen />}
+                />
                 <Route path="vocab/learning" element={<LearningScreen />} />
                 <Route
-                  path="vocab/learning/:route"
+                  path="vocab/learning/:route/:id?"
                   element={<LearningRoute />}
                 />
                 <Route path="*" element={<PageNotFound />} />

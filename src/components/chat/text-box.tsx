@@ -6,11 +6,11 @@ import { useAppSelector } from "../../app/hooks";
 import MessageBox from "./message-box";
 import { Conversation } from "../../logic/classes/conversation.class";
 import ChatBoxHeader from "./text-box-header";
+import { chatBot } from "../../app/slices/conversation-slice";
 
 const ChatTextBox = ({ matches }: { matches: boolean }) => {
-  const { conversations, activeConv, oldMessages } = useAppSelector(
-    (state) => state.conversations
-  );
+  const { conversations, activeConv, oldMessages, helpBotChat } =
+    useAppSelector((state) => state.conversations);
   const { friends } = useAppSelector((state) => state.user);
   const { theme } = useAppSelector((state) => state.settings);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -20,7 +20,6 @@ const ChatTextBox = ({ matches }: { matches: boolean }) => {
     range: number;
   }>({ start: 0, end: 0, range: 50 });
   const [scroll, setScroll] = useState(false);
-  const [firstLoad, setFirstLoad] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [scrollType, setScrollType] = useState<"up" | "down">("up");
   const [filterSet, setFilterSet] = useState<{
@@ -47,9 +46,20 @@ const ChatTextBox = ({ matches }: { matches: boolean }) => {
     }
     return oldMsgArr;
   };
-  const conv = conversations.find((conv) => conv.id === activeConv);
+  const helpConv: Conversation = {
+    id: "helpConv",
+    users: ["Help Bot", id],
+    languages: ["English"],
+    messages: helpBotChat,
+    corrections: [],
+    vocabs: [],
+    unreadMsgs: 0,
+  };
+  const conv =
+    activeConv === "chatConversation"
+      ? helpConv
+      : conversations.find((conv) => conv.id === activeConv);
   const cIds = conv?.users.filter((usr) => usr !== id) || [];
-
   const defaultLoad = () => {
     if (!conv) return;
     // if (scrolled && !firstLoad) return setNewMsg(true);
@@ -85,13 +95,17 @@ const ChatTextBox = ({ matches }: { matches: boolean }) => {
     });
     setimageURLS(contactURLs);
     setContacts(contactNames);
-
-    setFirstLoad(false);
+    if (activeConv === "chatConversation") {
+      setContacts(["Help Bot"]);
+      if (typeof chatBot.imageURL === "string")
+        setimageURLS([chatBot.imageURL]);
+      else setimageURLS([""]);
+    }
   }, [activeConv]);
 
   useLayoutEffect(() => {
     defaultLoad();
-  }, [activeConv, conversations, filterSet]);
+  }, [activeConv, conversations, filterSet, helpBotChat.length]);
 
   useLayoutEffect(() => {
     const scrollBox = document.getElementById("chat--container");
@@ -174,6 +188,7 @@ const ChatTextBox = ({ matches }: { matches: boolean }) => {
         filterSet={filterSet}
         imageURLS={imageURLS}
       />
+
       <div
         style={
           theme === "light"

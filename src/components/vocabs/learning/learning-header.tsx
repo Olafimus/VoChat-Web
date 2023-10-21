@@ -1,10 +1,12 @@
 import { useState, MouseEvent, Dispatch } from "react";
 import AppBar from "@mui/material/AppBar";
-import { styled } from "@mui/material/styles";
+import { ClickAwayListener } from "@mui/base/ClickAwayListener";
 import Box from "@mui/material/Box";
 import {
   Button,
   Fade,
+  Menu,
+  MenuItem,
   Paper,
   Popper,
   Tooltip,
@@ -46,33 +48,36 @@ const LearnHeader = ({ theme }: HeaderProps) => {
   } = useAppSelector((s) => s.learning);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  // const [open, setOpen] = useState(false);
-  // const [render, setRender] = useState(false);
-  // const dispatch = useAppDispatch();
-  // const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
-  // const [openPop, setOpenPop] = useState(false);
-
-  // const matches = useMediaQuery("(min-width:1000px)");
-  // const matches2 = useMediaQuery("(min-width:850px)");
+  const [openPop, setOpenPop] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null); // const dispatch = useAppDispatch();
   const matches3 = useMediaQuery("(min-width:600px)");
   const bgcolor = theme === "dark" ? "#3f51b5" : "#81d4fa";
+
   const rightAnswers = currentResults.reduce((acc, cur) => {
     if (cur === true) return acc + 1;
     else return acc;
   }, 0);
   const wrongAnswers = checkedCount - rightAnswers;
+
+  const handleClickAway = () => {
+    setOpenPop(false);
+    setAnchorEl(null);
+  };
+
   const rightSide = (
     <>
-      <IconButton
-        size="small"
-        sx={{ height: 25, width: 25, color: "inherit" }}
-        onClick={() => {
-          dispatch(resetLearnSlice());
-          navigate("/vocab/learning");
-        }}
-      >
-        <MoreVertIcon />
-      </IconButton>
+      <ClickAwayListener onClickAway={handleClickAway}>
+        <IconButton
+          size="small"
+          sx={{ height: 25, width: 25, color: "inherit" }}
+          onClick={(e) => {
+            setOpenPop((prev) => !prev);
+            setAnchorEl(e.currentTarget);
+          }}
+        >
+          <MoreVertIcon />
+        </IconButton>
+      </ClickAwayListener>
     </>
   );
   const mt = matches3 ? 8.05 : 7.05;
@@ -153,25 +158,23 @@ const LearnHeader = ({ theme }: HeaderProps) => {
           </Toolbar>
         </Box>
       </AppBar>
-      {/* <Popper open={openPop} anchorEl={anchorEl} placement="bottom" transition>
+      <Popper open={openPop} anchorEl={anchorEl} placement="bottom" transition>
         {({ TransitionProps }) => (
           <Fade {...TransitionProps} timeout={350}>
-            <Paper>
-              <Typography sx={{ p: 2 }}>
-                Want to add all these Vocabs to your Vocabs?
-              </Typography>
-              <Box display="flex" justifyContent="space-around" mb={2} p={1}>
-                <Button variant="outlined" onClick={() => setOpenPop(false)}>
-                  No
-                </Button>
-                <Button variant="contained" onClick={addAll}>
-                  Yes
-                </Button>
-              </Box>
-            </Paper>
+            <Box p={0} bgcolor={theme === "dark" ? "#263238" : "#cfd8dc"}>
+              <MenuItem
+                sx={{ mt: 2, p: 1.5 }}
+                onClick={() => {
+                  dispatch(resetLearnSlice());
+                  navigate("/vocab/learning");
+                }}
+              >
+                End learning
+              </MenuItem>
+            </Box>
           </Fade>
         )}
-      </Popper> */}
+      </Popper>
     </>
   );
 };

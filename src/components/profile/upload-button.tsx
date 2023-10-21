@@ -75,7 +75,7 @@ export default function PictureUploadButton({
     if (!selectedImage) return;
     resizeImage(selectedImage, 1000, (resizedImage) => {
       if (!resizedImage) throw new Error("something went wrong with resizing");
-      console.log(resizedImage.size);
+
       const url = URL.createObjectURL(resizedImage);
 
       setSuccess(false);

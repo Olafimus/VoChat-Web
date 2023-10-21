@@ -19,9 +19,9 @@ const SettingsScreen = () => {
   // const [vocs, setVocs] = useState<AllVocabsClass>([]);
   const dispatch = useAppDispatch();
 
-  const testing = async () => {
-    console.log(allVocabs.getDefaultVocs(5));
-  };
+  // const testing = async () => {
+  //   console.log(allVocabs.getDefaultVocs(5));
+  // };
 
   const loading = async () => {
     // const data = await loadPreVocs("German", workbooks, uid);
@@ -55,7 +55,6 @@ const SettingsScreen = () => {
         <p>teest</p>
         <p>teest</p>
         <button onClick={loading}>load</button>
-        <button onClick={testing}>upload</button>
         <button onClick={handleClick}>toast</button>
       </div>
       <ToastContainer

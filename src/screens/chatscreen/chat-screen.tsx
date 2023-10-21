@@ -23,8 +23,6 @@ const ChatScreen = ({ matches }: { matches: boolean }) => {
     const textfeld = document.getElementById(divId);
     setOpen(false);
     if (!textfeld) return;
-    // textfeld.innerHTML = msgTxt + e.emoji;
-    // setMsgTxt(msgTxt + e.emoji);
     textfeld.focus();
     setEndFocus(divId);
   };

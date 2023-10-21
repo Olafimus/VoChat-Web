@@ -2,12 +2,14 @@ import { useState, useLayoutEffect, useEffect } from "react";
 import List from "@mui/material/List";
 import ContactItem from "./contact-item";
 import { useAppSelector } from "../../app/hooks";
-import { Friend } from "../../logic/types/user.types";
+import { Contact, Friend } from "../../logic/types/user.types";
+import { chatBot } from "../../app/slices/conversation-slice";
 
 export default function ContactsList() {
   const [sortedContacts, setSortedContacts] = useState<Friend[]>([]);
   const { friends } = useAppSelector((state) => state.user);
-  const { conversations } = useAppSelector((state) => state.conversations);
+  const { chatBotActive, helpBot } = useAppSelector((s) => s.conversations);
+  const [botActive, setBotActive] = useState(true);
 
   useLayoutEffect(() => {
     const conts = [...friends];
@@ -28,6 +30,7 @@ export default function ContactsList() {
         marginBottom: "0.5rem",
       }}
     >
+      {chatBotActive && <ContactItem key={helpBot.id} friend={helpBot} />}
       {sortedContacts.map((contact) => (
         <ContactItem key={contact.id} friend={contact} />
       ))}

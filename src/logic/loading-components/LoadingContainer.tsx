@@ -79,7 +79,6 @@ const LoadingContainer = () => {
           expirationTime: 13242,
         },
       };
-      console.log("user create meta: ", user.metadata.creationTime);
 
       dispatch(setJoinDate(new Date(user.metadata.creationTime as string)));
       dispatch(setCurrentUser(currentUser));
