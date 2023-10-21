@@ -32,7 +32,10 @@ import Dialog, { DialogProps } from "@mui/material/Dialog";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import SwitchMenu from "../general/switchmenu";
 import ImportanceSlider from "./Importance-slider";
-import { supLangObj, supportedLanguages } from "../../utils/country-flags";
+import {
+  supLangObj,
+  supportedLanguages,
+} from "../../utils/constants/supported-langs";
 import {
   addVocToDb,
   updateAddedDataVocs,
@@ -66,6 +69,7 @@ export type EditProps = {
   imp?: number;
   vocId?: string;
   vocab?: Vocab;
+  sendVoc: boolean;
 };
 
 const AddVocab = ({
@@ -83,6 +87,7 @@ const AddVocab = ({
   imp = 8,
   vocId,
   vocab,
+  sendVoc = false,
 }: EditProps) => {
   const [scroll, setScroll] = useState<DialogProps["scroll"]>("paper");
   const vocFieldRef = useRef<HTMLDivElement>(null);
@@ -153,13 +158,14 @@ const AddVocab = ({
       newWbOptions.push({ label: wb.name, value: wb.id })
     );
     categories.forEach((cat) => newCatOptions.push({ label: cat, value: cat }));
+    console.log("new wb: ", newWbOptions);
     setWbOptions(newWbOptions);
     setCatOptions(newCatOptions);
     if (vocab) {
       setTransLang(vocab.getTransLang());
       setVocLang(vocab.getVocLang());
     }
-  }, []);
+  }, [workbooks.length]);
 
   const defaultVal = importance;
 
@@ -386,6 +392,16 @@ const AddVocab = ({
                     >
                       {supportedLanguages.map((lang) => (
                         <MenuItem key={lang[1]} value={lang[0]}>
+                          <img
+                            src={`https://flagcdn.com/16x12/${lang[1].toLowerCase()}.png`}
+                            srcSet={`https://flagcdn.com/32x24/${lang[1].toLowerCase()}.png 2x, https://flagcdn.com/48x36/${
+                              lang[1]
+                            }.png 3x`}
+                            width="16"
+                            height="12"
+                            style={{ marginRight: 10 }}
+                            alt={`${lang[1]} Flag`}
+                          ></img>
                           {lang[1]}
                         </MenuItem>
                       ))}
@@ -427,6 +443,16 @@ const AddVocab = ({
                     >
                       {supportedLanguages.map((lang) => (
                         <MenuItem key={lang[1]} value={lang[0]}>
+                          <img
+                            src={`https://flagcdn.com/16x12/${lang[1].toLowerCase()}.png`}
+                            srcSet={`https://flagcdn.com/32x24/${lang[1].toLowerCase()}.png 2x, https://flagcdn.com/48x36/${
+                              lang[1]
+                            }.png 3x`}
+                            width="16"
+                            height="12"
+                            style={{ marginRight: 10 }}
+                            alt={`${lang[1]} Flag`}
+                          ></img>
                           {lang[1]}
                         </MenuItem>
                       ))}
@@ -512,7 +538,7 @@ const AddVocab = ({
           <Button
             variant="contained"
             size="medium"
-            disabled={disable}
+            disabled={disable || sendVoc}
             onClick={() => {
               if (!vocabSubSettings.needConfirmation) {
                 handleSubmit();

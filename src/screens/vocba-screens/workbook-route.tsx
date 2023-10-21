@@ -16,12 +16,13 @@ import {
   setRoute,
 } from "../../app/slices/learning-slice";
 import SearchField from "../../components/general/search-field";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import LearnTabs from "../../components/vocabs/learning/learning-tabbar";
 
 const WorkbookRoute = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const params = useParams();
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredWb, setFilteredWb] = useState<WorkbookType[]>([]);
   const { workbooks } = useAppSelector((state) => state.vocabs);
@@ -34,11 +35,18 @@ const WorkbookRoute = () => {
   }, [searchTerm]);
 
   useEffect(() => {
+    if (!params.id) return;
+    const wb = workbooks.find((wb) => wb.id === params.id);
+    if (wb) setWorkbook(params.id);
+  }, [params]);
+
+  useEffect(() => {
     if (workbook) {
       const vocs = allVocabs.getWbVocs(workbook);
-      dispatch(setCurLearnVocabs({ vocs, withStarted: false }));
+      dispatch(setCurLearnVocabs({ vocs, withStarted: true }));
       dispatch(setLearnVocabs(vocs));
       dispatch(setRoute("workbook"));
+      console.log(vocs);
     }
   }, [workbook]);
 

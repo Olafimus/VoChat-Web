@@ -21,6 +21,7 @@ import { resetVocabSlice } from "../../app/slices/vocabs-slice";
 import { resetVocClassSlice } from "../../app/slices/vocabs-class-slice";
 import { notifyUser } from "../../utils/notification";
 import Logo from "../../assets/images/logo.svg";
+import { resetNotesSlice } from "../../app/slices/notes-slice";
 
 const ProfilePage = () => {
   const [open, setOpen] = useState(false);
@@ -28,9 +29,10 @@ const ProfilePage = () => {
     (state) => state.user
   );
   const user = useAppSelector((state) => state.user);
+  const { allVocabs } = useAppSelector((state) => state.allVocabs);
+  const { workbooks, categories } = useAppSelector((state) => state.vocabs);
   const matches = useMediaQuery("(min-width:600px)");
   const dispatch = useAppDispatch();
-  console.log(user);
 
   return (
     <Box
@@ -42,7 +44,13 @@ const ProfilePage = () => {
       my={2}
     >
       <Box display="flex" flexWrap="wrap" height="100%" gap="1rem">
-        <section style={matches ? { width: 300 } : { width: "100%" }}>
+        <section
+          style={
+            matches
+              ? { width: 300, margin: "auto" }
+              : { width: "100%", margin: "auto" }
+          }
+        >
           <Box
             display="flex"
             flexDirection="column"
@@ -76,6 +84,7 @@ const ProfilePage = () => {
                 dispatch(resetConversations());
                 dispatch(resetVocabSlice());
                 dispatch(resetVocClassSlice());
+                dispatch(resetNotesSlice());
               }}
             >
               <Typography
@@ -119,8 +128,12 @@ const ProfilePage = () => {
           </Typography>
           <Stack spacing={2}>
             <SectionPaper>
-              <Typography variant="h6">Languge Configuration</Typography>
-              <LanguageConfiguration type="profile" />
+              <Typography p={1} variant="h6">
+                Languge Configuration
+              </Typography>
+              <Box position="relative">
+                <LanguageConfiguration type="profile" />
+              </Box>
             </SectionPaper>
 
             <SectionPaper>
@@ -136,7 +149,7 @@ const ProfilePage = () => {
                     Vocabs:
                   </Grid>
                   <Grid item xs={1}>
-                    10
+                    {allVocabs.getVocCount()}
                   </Grid>
                 </Grid>
                 <Grid container columns={4}>
@@ -144,7 +157,7 @@ const ProfilePage = () => {
                     Workbooks:
                   </Grid>
                   <Grid item xs={1}>
-                    3
+                    {workbooks.length}
                   </Grid>
                 </Grid>
                 <Grid container columns={4}>
@@ -152,25 +165,25 @@ const ProfilePage = () => {
                     Categories
                   </Grid>
                   <Grid item xs={1}>
-                    4
+                    {categories.length}
                   </Grid>
                 </Grid>
-                <Grid container columns={4}>
+                {/* <Grid container columns={4}>
                   <Grid item xs={3}>
                     Shared Vocabs
                   </Grid>
                   <Grid item xs={1}>
                     4
                   </Grid>
-                </Grid>
-                <Grid container columns={4}>
+                </Grid> */}
+                {/* <Grid container columns={4}>
                   <Grid item xs={3}>
                     Shared Workbooks
                   </Grid>
                   <Grid item xs={1}>
                     4
                   </Grid>
-                </Grid>
+                </Grid> */}
               </div>
             </SectionPaper>
             <SectionPaper>

@@ -12,7 +12,7 @@ import {
   Select,
   TextField,
 } from "@mui/material";
-import { supportedLanguages as languages } from "../../utils/country-flags";
+import { supportedLanguages as languages } from "../../utils/constants/supported-langs";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import {
   addNote,
@@ -108,7 +108,17 @@ const NoteAddDialog = ({
             >
               {languages.map((lang) => (
                 <MenuItem key={lang[0]} value={lang[0]}>
-                  {lang[1] + " " + lang[0]}
+                  <img
+                    src={`https://flagcdn.com/16x12/${lang[1].toLowerCase()}.png`}
+                    srcSet={`https://flagcdn.com/32x24/${lang[1].toLowerCase()}.png 2x, https://flagcdn.com/48x36/${
+                      lang[1]
+                    }.png 3x`}
+                    width="16"
+                    height="12"
+                    style={{ marginRight: 10 }}
+                    alt={`${lang[1]} Flag`}
+                  ></img>
+                  {lang[0]}
                 </MenuItem>
               ))}
             </Select>

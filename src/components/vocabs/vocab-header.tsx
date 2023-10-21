@@ -61,7 +61,7 @@ const VocHeader = ({
     (state) => state.allVocabs
   );
 
-  const matches = useMediaQuery("(min-width:1000px)");
+  const matches = useMediaQuery("(min-width:1150px)");
   const matches2 = useMediaQuery("(min-width:850px)");
   const matches3 = useMediaQuery("(min-width:600px)");
   let vocabType = dbLang ? `${dbLang} Database Vocabs` : "Your Vocabs"; // Je nachdem was gezeigt wird
@@ -162,6 +162,7 @@ const VocHeader = ({
               setOpen={setOpen}
               render={render}
               setRender={setRender}
+              sendVoc={false}
             />
           )}
         </Box>

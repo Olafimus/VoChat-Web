@@ -21,15 +21,9 @@ export const useVocFunctions = (setValue: Dispatch<SetStateAction<number>>) => {
   const { id: uid } = useAppSelector((s) => s.user);
   const { allVocabs } = useAppSelector((s) => s.allVocabs);
   const { vocabLearnSettings } = useAppSelector((state) => state.settings);
-  const {
-    round,
-    roundFinished,
-    completed,
-    currentVocabs,
-    checkedCount,
-    currentResults,
-    vocabs,
-  } = useAppSelector((s) => s.learning);
+  const { activeLang, vocabs, currentVocabs } = useAppSelector(
+    (s) => s.learning
+  );
 
   const startAgain = () => {
     vocabs.forEach((voc) => voc.resetStatus());
@@ -41,6 +35,7 @@ export const useVocFunctions = (setValue: Dispatch<SetStateAction<number>>) => {
 
   const startNewDefault = () => {
     const vocs = allVocabs.getDefaultVocs(
+      activeLang,
       vocabLearnSettings.defaultVocCount,
       vocabLearnSettings.vocabTimeOut,
       vocabLearnSettings.rethrowMistakes

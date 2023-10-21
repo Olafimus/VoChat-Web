@@ -1,7 +1,6 @@
 import {
   Typography,
   Box,
-  Divider,
   Tooltip,
   Stack,
   Avatar,
@@ -13,20 +12,23 @@ import {
   Menu,
   MenuItem,
   FormControl,
-  FormControlLabel,
   Select,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import React from "react";
-import { deleteField } from "firebase/firestore";
 import { removeFriend } from "../../app/slices/user-slice";
 import { deleteContact } from "../../utils/firebase";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
-import { switchActiveConv } from "../../app/slices/conversation-slice";
+import {
+  chatBot,
+  setChatBotActive,
+  switchActiveConv,
+} from "../../app/slices/conversation-slice";
 import { useNavigate } from "react-router-dom";
 import { MsgHisTypes } from "../../logic/types/message.types";
 import { stringAvatar } from "../contacts/contact-item";
+import { $CombinedState } from "redux";
 
 const ChatBoxHeader = ({
   names,
@@ -60,6 +62,7 @@ const ChatBoxHeader = ({
     teachLanguages,
     learnLanguages,
   } = useAppSelector((state) => state.user);
+  const { activeConv } = useAppSelector((s) => s.conversations);
 
   const handleClick = () => {
     setOpen((cur) => !cur);
@@ -244,32 +247,46 @@ const ChatBoxHeader = ({
             "aria-labelledby": "basic-button",
           }}
         >
-          <MenuItem onClick={handleClose}>Profile</MenuItem>
-          {!deleteReq ? (
-            <MenuItem onClick={() => setDeleteReq(true)}>
-              Delete Contact
+          {" "}
+          {activeConv === chatBot.conversation ? (
+            <MenuItem
+              onClick={() => {
+                dispatch(setChatBotActive(false));
+                dispatch(switchActiveConv(""));
+              }}
+            >
+              Leave HelpBot
             </MenuItem>
           ) : (
-            <MenuItem disableRipple>
-              Delete?{" "}
-              <Button
-                size="small"
-                variant="contained"
-                sx={{ mx: 1, p: 0.2 }}
-                color="error"
-                onClick={handleDelete}
-              >
-                yes
-              </Button>
-              <Button
-                size="small"
-                variant="contained"
-                sx={{ p: 0.2 }}
-                onClick={() => setDeleteReq(false)}
-              >
-                no
-              </Button>
-            </MenuItem>
+            <span>
+              <MenuItem onClick={handleClose}>Profile</MenuItem>
+              {!deleteReq ? (
+                <MenuItem onClick={() => setDeleteReq(true)}>
+                  Delete Contact
+                </MenuItem>
+              ) : (
+                <MenuItem disableRipple>
+                  Delete?{" "}
+                  <Button
+                    size="small"
+                    variant="contained"
+                    sx={{ mx: 1, p: 0.2 }}
+                    color="error"
+                    onClick={handleDelete}
+                  >
+                    yes
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    sx={{ p: 0.2 }}
+                    onClick={() => setDeleteReq(false)}
+                  >
+                    no
+                  </Button>
+                </MenuItem>
+              )}
+            </span>
           )}
         </Menu>
       </Stack>

@@ -86,6 +86,7 @@ export default function SignUpStepper() {
 
   const handleFinish = async () => {
     if (!credentials) return;
+
     try {
       const user = await createAuthUserWithEmailAndPassword(
         credentials.mail,

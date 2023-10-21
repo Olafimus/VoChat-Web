@@ -13,6 +13,7 @@ type learnState = {
   checkedCount: number;
   currentResults: boolean[];
   currentIndex: number;
+  activeLang: string;
 };
 
 const initialState: learnState = {
@@ -26,6 +27,7 @@ const initialState: learnState = {
   checkedCount: 0,
   currentResults: [],
   currentIndex: 0,
+  activeLang: "None",
 };
 
 export const LearningSlice = createSlice({
@@ -52,6 +54,9 @@ export const LearningSlice = createSlice({
     },
     setCompleted: (s, a: PayloadAction<boolean>) => {
       s.completed = a.payload;
+    },
+    setActiveLange: (s, a: PayloadAction<string>) => {
+      s.activeLang = a.payload;
     },
     setRoundFinished: (s, a: PayloadAction<boolean>) => {
       s.roundFinished = a.payload;
@@ -110,6 +115,7 @@ export const {
   setRoundFinished,
   setCompleted,
   resetLearnSlice,
+  setActiveLange,
 } = LearningSlice.actions;
 
 export default LearningSlice.reducer;

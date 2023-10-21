@@ -2,12 +2,32 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { Conversation } from "../../logic/classes/conversation.class";
 import { VocObj } from "../../logic/types/vocab.types";
 import { Message } from "../../logic/types/message.types";
+import {
+  addMsgHis,
+  createMsgObj,
+} from "../../components/chat/editable-input-div";
+import {
+  helpBotKeywords,
+  helpBotMsgs,
+} from "../../utils/constants/help-bot-msgs";
+import { Friend } from "../../logic/types/user.types";
+import BotImage from "../../assets/images/Bot-Image.jpg";
+
+export const chatBot: Friend = {
+  id: "chatbot",
+  name: "Chat Bot",
+  lastInteraction: Date.now(),
+  conversation: "chatConversation",
+  lastMessage: "",
+  imageURL: BotImage,
+};
 
 export interface OldMessages {
   ref: string;
   msgs: { [key: string]: Message[] };
 }
-
+const botWelcomeMsg = createMsgObj("helpBot");
+addMsgHis(botWelcomeMsg, helpBotMsgs.first, "standard");
 interface conversation {
   conversations: Conversation[];
   activeConv: string;
@@ -15,6 +35,9 @@ interface conversation {
   activeContact: string;
   unreadMsgs: number;
   oldMessages: OldMessages[];
+  chatBotActive: boolean;
+  helpBotChat: Message[];
+  helpBot: Friend;
 }
 
 const initialState: conversation = {
@@ -24,6 +47,9 @@ const initialState: conversation = {
   newMsg: false,
   unreadMsgs: 0,
   oldMessages: [],
+  chatBotActive: false,
+  helpBotChat: [botWelcomeMsg],
+  helpBot: chatBot,
 };
 
 export const ConversationSlice = createSlice({
@@ -63,6 +89,9 @@ export const ConversationSlice = createSlice({
     setConversations: (state, action: PayloadAction<Conversation[]>) => {
       state.conversations = action.payload;
     },
+    setChatBotActive: (state, action: PayloadAction<boolean>) => {
+      state.chatBotActive = action.payload;
+    },
     switchActiveConv: (state, action: PayloadAction<string>) => {
       state.activeConv = action.payload;
     },
@@ -72,9 +101,7 @@ export const ConversationSlice = createSlice({
     newMsgReceived: (state) => {
       state.newMsg = !state.newMsg;
     },
-    resetConversations: (state) => {
-      return initialState;
-    },
+    resetConversations: () => initialState,
     addOldMsg: (state, action: PayloadAction<OldMessages>) => {
       state.oldMessages.push(action.payload);
     },
@@ -84,12 +111,28 @@ export const ConversationSlice = createSlice({
       );
       state.oldMessages[refI] = action.payload;
     },
+    sendHelpMsg: (s, a: PayloadAction<Message>) => {
+      s.helpBotChat.push(a.payload);
+      const wordArr = a.payload.messageHis.at(-1)?.message.split(" ") || [];
+      const keys = wordArr
+        .filter((word) => helpBotKeywords.includes(word.toLowerCase()))
+        .filter((word) => word != "first")
+        .map((key) => key.toLowerCase()) as Array<keyof typeof helpBotMsgs>;
+
+      const answer = createMsgObj(chatBot.id);
+      if (keys.length > 0) addMsgHis(answer, helpBotMsgs[keys[0]], "standard");
+      else addMsgHis(answer, helpBotMsgs.defaultMsg, "standard");
+      s.helpBotChat.push(answer);
+      s.helpBot.lastMessage = wordArr.join(" ");
+      s.helpBot.lastInteraction = Date.now();
+    },
   },
 });
 
 export const {
   addConversation,
   setConversations,
+  setChatBotActive,
   switchActiveConv,
   switchActiveContact,
   newMsgReceived,
@@ -98,6 +141,7 @@ export const {
   countUnreadMsgs,
   MutateOldMsg,
   addOldMsg,
+  sendHelpMsg,
 } = ConversationSlice.actions;
 
 export default ConversationSlice.reducer;

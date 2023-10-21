@@ -11,6 +11,7 @@ import IconButton, { IconButtonProps } from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
 import { red, green, yellow } from "@mui/material/colors";
 import FavoriteIcon from "@mui/icons-material/Favorite";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ShareIcon from "@mui/icons-material/Share";
 import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
@@ -147,7 +148,7 @@ const VocabCard = ({ vocab }: { vocab: Vocab }) => {
           )}
           {dataVoc && vocab.getAdded() ? (
             <Tooltip title="vocab already added">
-              <Typography>✅</Typography>
+              <CheckCircleOutlineIcon />
             </Tooltip>
           ) : (
             <Tooltip title="Add Vocab" arrow>
@@ -203,6 +204,7 @@ const VocabCard = ({ vocab }: { vocab: Vocab }) => {
       </Card>
       {openModal && (
         <AddVocab
+          sendVoc={false}
           setOpen={setOpenModal}
           open={openModal}
           type={dataVoc ? "add" : "edit"}

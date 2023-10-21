@@ -1,6 +1,6 @@
 import React from "react";
 import { Typography, Box, Divider, Tooltip } from "@mui/material";
-import { supLangObj } from "../../../utils/country-flags";
+import { supLangObj } from "../../../utils/constants/supported-langs";
 import { WorkbookType } from "../../../logic/types/vocab.types";
 import FunctionsIcon from "@mui/icons-material/Functions";
 import LanguageRoundedIcon from "@mui/icons-material/LanguageRounded";
@@ -24,8 +24,39 @@ const WbMsgBox = ({
   let vocLang = wb.vocLanguage;
   let transLang = wb.transLanguage;
   try {
-    vocFlag = supLangObj[vocLang];
-    transFlag = supLangObj[transLang];
+    vocFlag = (
+      <img
+        src={`https://flagcdn.com/16x12/${supLangObj[
+          vocLang
+        ].toLowerCase()}.png`}
+        srcSet={`https://flagcdn.com/32x24/${supLangObj[
+          vocLang
+        ].toLowerCase()}.png 2x, https://flagcdn.com/48x36/${
+          supLangObj[vocLang]
+        }.png 3x`}
+        width="16"
+        height="12"
+        style={{ margin: "auto" }}
+        alt={`${supLangObj[vocLang]} Flag`}
+      ></img>
+    );
+
+    transFlag = (
+      <img
+        src={`https://flagcdn.com/16x12/${supLangObj[
+          transLang
+        ].toLowerCase()}.png`}
+        srcSet={`https://flagcdn.com/32x24/${supLangObj[
+          transLang
+        ].toLowerCase()}.png 2x, https://flagcdn.com/48x36/${
+          supLangObj[transLang]
+        }.png 3x`}
+        width="16"
+        height="12  "
+        style={{ margin: "auto" }}
+        alt={`${supLangObj[transLang]} Flag`}
+      ></img>
+    );
   } catch {
     console.log("not supported");
   }
@@ -80,8 +111,10 @@ const WbMsgBox = ({
                   pl={1}
                   sx={{ whiteSpace: "nowrap" }}
                   variant="caption"
+                  fontSize={18}
+                  fontWeight="bold"
                 >
-                  {vocFlag ? vocFlag : wb.vocLanguage} -{" "}
+                  {vocFlag ? vocFlag : wb.vocLanguage} -{"  "}
                   {transFlag ? transFlag : wb.transLanguage}{" "}
                 </Typography>
               </Box>

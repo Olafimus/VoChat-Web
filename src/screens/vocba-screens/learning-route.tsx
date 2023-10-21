@@ -18,6 +18,7 @@ const LearningRoute = () => {
   const { route } = useParams();
   const dispatch = useAppDispatch();
   const { allVocabs } = useAppSelector((state) => state.allVocabs);
+  const { activeLang } = useAppSelector((state) => state.learning);
   const { vocabLearnSettings } = useAppSelector((state) => state.settings);
   const navigate = useNavigate();
   // const { started } = useAppSelector((state) => state.learning);
@@ -32,6 +33,7 @@ const LearningRoute = () => {
       //   allVocabs.getDefaultVocs(vocabLearnSettings.defaultVocCount, 5)
       // );
       vocs = allVocabs.getDefaultVocs(
+        activeLang,
         vocabLearnSettings.defaultVocCount,
         vocabLearnSettings.vocabTimeOut,
         vocabLearnSettings.rethrowMistakes

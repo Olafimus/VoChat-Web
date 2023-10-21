@@ -22,7 +22,7 @@ import {
   changeTeachLangs,
 } from "../../../app/slices/user-slice";
 import { changeDbLangs } from "../../../utils/firebase";
-import { supportedLanguages as languages } from "../../../utils/country-flags";
+import { supportedLanguages as languages } from "../../../utils/constants/supported-langs";
 
 export type LangProp = {
   vocLang: string;
@@ -61,8 +61,7 @@ const LanguageConfiguration: React.FC<LangConfigProps> = ({
   } = useAppSelector((state) => state.user);
   const { currentLang, nativeLang } = useAppSelector((state) => state.vocabs);
 
-  useEffect(() => {
-    if (type === "setUp") return;
+  const setDefLangs = () => {
     let defVocLang = langs?.vocLang || "";
     let defTransLang = langs?.transLang || "";
     let defTeachLangs = langs?.teachLangs || [];
@@ -84,11 +83,12 @@ const LanguageConfiguration: React.FC<LangConfigProps> = ({
       teachLangs: defTeachLangs,
       learnLangs: defLearnLangs,
     });
-  }, [teachLanguages, learnLanguages]);
+  };
 
-  // const handleLangSet = () => {
-  //   console.log(tempLangs);
-  // };
+  useEffect(() => {
+    if (type === "setUp") return;
+    setDefLangs();
+  }, [teachLanguages, learnLanguages]);
 
   const handleProfileChange = () => {
     const teachLangLoad = tempLangs.teachLangs.map((el) => el[0]);
@@ -106,9 +106,25 @@ const LanguageConfiguration: React.FC<LangConfigProps> = ({
     );
   };
 
+  const langItem = (lang: string[]) => (
+    <>
+      <img
+        src={`https://flagcdn.com/16x12/${lang[1].toLowerCase()}.png`}
+        srcSet={`https://flagcdn.com/32x24/${lang[1].toLowerCase()}.png 2x, https://flagcdn.com/48x36/${
+          lang[1]
+        }.png 3x`}
+        width="16"
+        height="12"
+        style={{ marginRight: 10 }}
+        alt={`${lang[1]} Flag`}
+      ></img>
+      {lang[0]}
+    </>
+  );
+
   return (
     <Box>
-      <Stack spacing={2} sx={{ minWidth: 300, maxWidth: 500 }}>
+      <Stack spacing={2} sx={{ minWidth: 250, maxWidth: 550, margin: "auto" }}>
         {type === "setUp" && (
           <span>
             <Typography textAlign="center" variant="h6">
@@ -125,7 +141,7 @@ const LanguageConfiguration: React.FC<LangConfigProps> = ({
           </span>
         )}
         <Box display="flex" alignItems="center" gap="0.5rem">
-          <FormControl sx={{ minWidth: 175, flex: 1 }}>
+          <FormControl sx={{ minWidth: 130, flex: 1 }}>
             <InputLabel variant="standard" size="small">
               Vocab Language
             </InputLabel>
@@ -144,14 +160,6 @@ const LanguageConfiguration: React.FC<LangConfigProps> = ({
                   learnLangs: tempLangs.learnLangs || [],
                   vocLang,
                 };
-                // if (!newLang.learnLangs.find((el) => el[0] === vocLang)) {
-                //   const rightLang = languages.find(
-                //     (lang) => lang[0] === vocLang
-                //   );
-                //   console.log("rightLang: ", rightLang);
-                //   if (!rightLang) return;
-                //   newLang.learnLangs.push([vocLang, rightLang[1]]);
-                // }
                 setTempLangs(newLang);
                 if (type === "setUp") setLangs(newLang);
                 setChanged(true);
@@ -159,12 +167,12 @@ const LanguageConfiguration: React.FC<LangConfigProps> = ({
             >
               {languages.map((lang) => (
                 <MenuItem key={lang[0]} value={lang[0]}>
-                  {lang[1] + " " + lang[0]}
+                  {langItem(lang)}
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
-          <FormControl sx={{ minWidth: 175, flex: 1 }}>
+          <FormControl sx={{ minWidth: 130, flex: 1 }}>
             <InputLabel variant="standard" size="small">
               Translation Language
             </InputLabel>
@@ -189,7 +197,7 @@ const LanguageConfiguration: React.FC<LangConfigProps> = ({
             >
               {languages.map((lang) => (
                 <MenuItem key={lang[0]} value={lang[0]}>
-                  {lang[1] + " " + lang[0]}
+                  {langItem(lang)}
                 </MenuItem>
               ))}
             </Select>
@@ -205,7 +213,8 @@ const LanguageConfiguration: React.FC<LangConfigProps> = ({
           multiple
           id="tags-standard"
           options={languages}
-          getOptionLabel={(lang: string[]) => lang[1] + " " + lang[0]}
+          getOptionLabel={(lang: string[]) => lang[0]}
+          renderOption={(props, lang) => <li {...props}>{langItem(lang)}</li>}
           value={tempLangs.learnLangs}
           onChange={(e, v) => {
             const learnLangs = v;
@@ -232,7 +241,8 @@ const LanguageConfiguration: React.FC<LangConfigProps> = ({
           multiple
           id="tags-standard"
           options={languages}
-          getOptionLabel={(lang) => lang[1] + " " + lang[0]}
+          getOptionLabel={(lang) => lang[0]}
+          renderOption={(props, lang) => <li {...props}>{langItem(lang)}</li>}
           value={tempLangs.teachLangs}
           onChange={(e, v) => {
             const teachLangs = v;
@@ -271,11 +281,17 @@ const LanguageConfiguration: React.FC<LangConfigProps> = ({
         </Box>
       )}
       {type === "profile" && (
-        <Box display="flex" justifyContent="space-between" mx={1} mt={2}>
+        <Box
+          display="flex"
+          justifyContent="space-between"
+          mx={"auto"}
+          mt={2}
+          maxWidth={550}
+        >
           <Button
             size="small"
             color="inherit"
-            onClick={goBack}
+            onClick={setDefLangs}
             sx={{ mr: 1 }}
             disabled={!changed}
           >

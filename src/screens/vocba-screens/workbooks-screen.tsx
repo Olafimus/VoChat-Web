@@ -5,7 +5,6 @@ import { Box, Typography } from "@mui/material";
 
 const WorkbooksScreen = () => {
   const [searchString, setSearchString] = useState("");
-  const [open, setOpen] = useState(false);
   const [render, setRender] = useState(false);
 
   return (

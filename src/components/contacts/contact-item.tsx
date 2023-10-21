@@ -126,20 +126,7 @@ const ContactItem: React.FC<PropTypes> = ({ friend }) => {
       </ListItemAvatar>
       <ListItemText
         primary={friend.name}
-        secondary={
-          <Interweave content={lastMsg} />
-          // <Typography
-          //   sx={{
-          //     whiteSpace: "nowrap",
-          //     textOverflow: "ellipsis",
-          //     overflow: "hidden",
-          //   }}
-          //   // component="span"
-          //   color="text.primary"
-          //   id={`previewText--${friend.id}`}
-          // >
-          // </Typography>
-        }
+        secondary={<Interweave content={lastMsg} />}
       />
       <ListItemText
         sx={{

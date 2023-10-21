@@ -1,6 +1,7 @@
 import { PayloadAction, createSlice } from "@reduxjs/toolkit";
 import { VocObj, WorkbookType } from "../../logic/types/vocab.types";
 import { dbLangObj } from "../../assets/constants/db-lang-obj";
+import { AppDispatch } from "../store";
 
 interface VocabState {
   allUserVocabs: VocObj[];
@@ -110,13 +111,9 @@ export const VocabSlice = createSlice({
       try {
         s.addedDataVocs[lang].push(vocId);
         s.lastUpdate = Date.now();
-      } catch (error) {
-        s.addedDataVocs = { ...s.addedDataVocs, [lang]: [vocId] };
-      }
+      } catch (error) {}
     },
-    resetVocabSlice: (s) => {
-      s = initialState;
-    },
+    resetVocabSlice: () => initialState,
     updateSavedVoc: (
       s,
       a: PayloadAction<{

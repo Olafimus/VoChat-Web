@@ -9,7 +9,8 @@ export class AllVocabsClass {
   constructor(public vocs: Vocab[]) {}
 
   addVocab = (voc: Vocab) => {
-    this.vocs.push(voc);
+    const check = this.vocs.find((v) => v.getId() === voc.getId());
+    if (!check) this.vocs.push(voc);
   };
   getVocCount() {
     return this.vocs.length;
@@ -88,10 +89,16 @@ export class AllVocabsClass {
     }, []);
   }
 
-  getDefaultVocs(num: number, timeRef = 10, reThrowMistakes = true) {
+  getDefaultVocs(
+    lang: string,
+    num: number,
+    timeRef = 10,
+    reThrowMistakes = true
+  ) {
     // timeRef describes the threshold in minutes for vocabs to be excluded in the next learn run. If timeRef = 10, than all vocabs which were learned in the last 10 minutes will be excluded
     // reThrowMistakes deaktiviert die timeRef für Vokabeln die zuletzt falsch beantwortet wurden
-    const sortedVocs = this.vocs
+    const vocs = lang === "All" ? this.vocs : this.getAllLangVocs(lang);
+    const sortedVocs = vocs
       .sort((a, b) => b.getCalcImp() - a.getCalcImp())
       .slice(0, num * 2 + 10);
     sortedVocs.forEach((voc) => console.log(voc.getCalcImp()));

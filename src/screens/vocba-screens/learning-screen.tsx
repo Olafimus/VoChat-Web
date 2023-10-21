@@ -32,6 +32,8 @@ import {
 import { useNavigate } from "react-router-dom";
 import { AllVocabsClass, Vocab } from "../../logic/classes/vocab.class";
 import { setAllVocabs } from "../../app/slices/vocabs-class-slice";
+import { countryCodes } from "../../utils/constants/countrieCodes";
+import { setActiveLange } from "../../app/slices/learning-slice";
 
 export type RouteTypes =
   | "default"
@@ -42,9 +44,13 @@ export type RouteTypes =
 
 const LearningScreen = () => {
   const { allVocabs } = useAppSelector((state) => state.allVocabs);
-  const { allUserVocabs } = useAppSelector((s) => s.vocabs);
+  const { allUserVocabs, currentLang } = useAppSelector((s) => s.vocabs);
   const { vocabLearnSettings } = useAppSelector((state) => state.settings);
-  const { started, route } = useAppSelector((state) => state.learning);
+  const { started, route, activeLang } = useAppSelector(
+    (state) => state.learning
+  );
+  const [languages, setLanguages] = useState<string[][]>([["All", "eu"]]);
+  const [noVocs, setNoVocs] = useState(false);
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const [open, setOpen] = useState(false);
@@ -55,9 +61,18 @@ const LearningScreen = () => {
     if (allVocabs.getVocCount() === 0) {
       const loadedVocs: AllVocabsClass = new AllVocabsClass([]);
       allUserVocabs.forEach((voc) => loadedVocs.addVocab(new Vocab(voc)));
-      dispatch(setAllVocabs(loadedVocs));
+      if (loadedVocs.getVocCount() != 0) dispatch(setAllVocabs(loadedVocs));
+      else setNoVocs(true);
+    } else {
+      const langs = allVocabs.getVocLangs().map((lang) => {
+        let code = countryCodes[lang as keyof typeof countryCodes];
+
+        return [lang, code];
+      });
+      setLanguages([["All", "eu"], ...langs]);
     }
-  }, []);
+    if (activeLang === "None") dispatch(setActiveLange(currentLang));
+  }, [allVocabs]);
 
   const handleClose = (event: Event | React.SyntheticEvent) => {
     if (
@@ -84,6 +99,33 @@ const LearningScreen = () => {
   return (
     <Box>
       <Typography variant="h5">Choose your learning route!</Typography>
+      <Box>
+        <Typography variant="h6">Choose Vocab Language: </Typography>
+        <Select
+          variant="standard"
+          id="cur-trans-lang"
+          size="small"
+          label="Translation Language"
+          value={activeLang}
+          onChange={(e) => {
+            dispatch(setActiveLange(e.target.value));
+          }}
+        >
+          {languages.map((lang) => (
+            <MenuItem key={lang[0]} value={lang[0]}>
+              <img
+                src={`https://flagcdn.com/16x12/${lang[1]}.png`}
+                srcSet={`https://flagcdn.com/32x24/${lang[1]}.png 2x, https://flagcdn.com/48x36/${lang[1]}.png 3x`}
+                width="16"
+                height="12"
+                style={{ marginRight: 10 }}
+                alt={`${lang[0]} Flag`}
+              ></img>
+              {lang[0]}
+            </MenuItem>
+          ))}
+        </Select>
+      </Box>
       <Fab
         color="primary"
         aria-label="Learn Settings"
@@ -238,22 +280,22 @@ const LearningScreen = () => {
           <StyledGridItem
             xs={2}
             text="Default Route!"
-            link={"/vocab/learning/default"}
+            link={noVocs ? "/vocab/learning/" : "/vocab/learning/default"}
           />
           <StyledGridItem
             xs={2}
             text="Workbook"
-            link="/vocab/learning/workbook"
+            link={noVocs ? "/vocab/learning/" : "/vocab/learning/workbook"}
           />
           <StyledGridItem
             xs={1}
             text="Some random Vocabs"
-            link="/vocab/learning/random"
+            link={noVocs ? "/vocab/learning/" : "/vocab/learning/random"}
           />
           <StyledGridItem
             xs={1}
             text="Redeem yourself by learning your last mistakes!"
-            link="/vocab/learning/mistakes"
+            link={noVocs ? "/vocab/learning/" : "/vocab/learning/mistakes"}
           />
         </Grid>
       </>

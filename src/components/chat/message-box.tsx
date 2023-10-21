@@ -193,7 +193,11 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
             />
           )}
           {msgType === "vocab" && (
-            <VocMsgBox vocab={msg.messageHis.at(-1)?.vocab} msgHTML={msgHTML} />
+            <VocMsgBox
+              vocab={msg.messageHis.at(-1)?.vocab}
+              msgHTML={msgHTML}
+              myVoc={msg.sender === id}
+            />
           )}
           {msgType === "wb" && (
             <WbMsgBox
@@ -265,20 +269,6 @@ const MessageBox: React.FC<MsgProp> = ({ msg, contactName }) => {
                 borderRadius: "5px",
               }}
             >
-              {/* <Typography
-                id="modal-modal-title"
-                variant="h6"
-                component="h2"
-                style={{
-                  border: "solid 0.15rem #2756ef",
-                  padding: "0.5rem",
-                  // paddingLeft: "0.5rem",
-                  minWidth: "200px",
-                  marginBottom: "8px",
-                  borderRadius: "5px",
-                }}
-              >
-              </Typography> */}
               <Interweave content={text} />
             </Box>
             <span className="msg-sender">{name}</span>
