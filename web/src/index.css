@@ -73,7 +73,7 @@ label { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.92rem; 
 label.inline { flex-direction: row; align-items: center; gap: 0.5rem; color: var(--text); }
 fieldset { border: 1px solid var(--border); border-radius: var(--radius); padding: 0.8rem; display: grid; gap: 0.5rem; }
 legend { color: var(--muted); padding: 0 0.3rem; }
-button {
+button, label.button {
   cursor: pointer;
   background: var(--surface-2);
   border: 1px solid transparent;
@@ -82,7 +82,7 @@ button {
   min-height: 40px;
 }
 button:disabled { opacity: 0.5; cursor: default; }
-button.primary { background: var(--accent); color: var(--accent-text); font-weight: 600; }
+button.primary, label.button.primary { background: var(--accent); color: var(--accent-text); font-weight: 600; }
 button.wide { width: 100%; }
 button.danger { color: var(--danger); }
 button.link { background: none; padding: 0; min-height: 0; text-align: start; font-weight: 600; }
@@ -320,3 +320,15 @@ button.link.on { color: var(--accent); font-weight: 700; }
 .speak:hover { background: var(--surface-2, rgba(127, 127, 127, 0.15)); }
 .speak.busy { opacity: 0.5; }
 .speak.failed { opacity: 0.6; }
+
+/* Foto → Vokabeln */
+.scan-link { text-decoration: none; font-size: 1.2rem; padding: 0.2rem 0.4rem; border-radius: 8px; }
+.scan-link.active { background: var(--surface-2, rgba(127, 127, 127, 0.15)); }
+.scan-preview { max-width: 100%; max-height: 320px; object-fit: contain; border-radius: 10px; align-self: flex-start; }
+.file-button { cursor: pointer; }
+label.button { display: inline-flex; flex-direction: row; align-items: center; color: inherit; font-size: 1rem; }
+label.button.primary { color: var(--accent-text); font-weight: 600; }
+.board th { white-space: nowrap; }
+.review-line { display: flex; align-items: baseline; gap: 0.5rem; }
+.review-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.review-actions { display: flex; gap: 0.7rem; white-space: nowrap; }

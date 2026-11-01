@@ -81,6 +81,7 @@ const overflow = (page) => page.evaluate(() => {
       await konto.locator("button.primary").click();
       await page.getByText(/Angemeldet als/).waitFor({ timeout: 15000 });
       await page.goto(base + "/community", { waitUntil: "networkidle" });
+      await page.getByRole("button", { name: "Mitmachen", exact: true }).first().click();
       await page.getByRole("button", { name: "Vorschlag", exact: true }).click();
       await shot("community-suggest");
       report.push("suggest:" + (await overflow(page)).join(","));

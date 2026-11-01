@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import type { LangCode } from "@vochat/shared";
+import { generatedIpa } from "../lib/audio";
 import { useDisplay } from "../lib/display";
 import { CefrBadge, Lemma } from "./ui";
 import { SpeakButton } from "./SpeakButton";
@@ -32,6 +34,15 @@ export function WordView({
   const pron = d.pronunciation ? pronunciation : null;
   // Aussprache fehlt bei Persisch und Japanisch: sichtbar als Hinweis, damit klar ist, dass etwas fehlt.
   const missingPron = d.pronunciation && !pronunciation && (lang === "fa" || lang === "ja");
+  const [ipa, setIpa] = useState<string | null>(null);
+  useEffect(() => {
+    if (!missingPron) return;
+    let live = true;
+    void generatedIpa(lang, lemma).then((v) => live && setIpa(v));
+    return () => {
+      live = false;
+    };
+  }, [missingPron, lang, lemma]);
   const cls = `word-view ${large || d.size === "large" ? "word-large" : ""} ${d.pronunciationInline ? "" : "word-stacked"}`;
   return (
     <span className={cls}>
@@ -39,7 +50,13 @@ export function WordView({
       <SpeakButton lang={lang} text={lemma} lexemeId={lexemeId} />
       {(pron || missingPron) && (
         <span className="pron" lang="und" aria-label="Aussprache">
-          {pron ? `[${pron}]` : <span className="muted">[Aussprache fehlt]</span>}
+          {pron ? (
+            `[${pron}]`
+          ) : ipa ? (
+            <span className="muted" title="Automatisch erzeugte Lautschrift (eSpeak NG) – noch nicht geprüft">/{ipa}/*</span>
+          ) : (
+            <span className="muted">[Aussprache fehlt]</span>
+          )}
         </span>
       )}
       {d.pos && pos && <span className="muted small">{pos}</span>}

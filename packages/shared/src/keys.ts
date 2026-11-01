@@ -22,10 +22,25 @@ export function lemmaKey(text: string): string {
 }
 
 /** Wörter (Unicode-Buchstabenfolgen) aus einem Text, in Reihenfolge, ohne Duplikate (nach Schlüssel). */
+const CJK = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u;
+let jaSegmenter: Intl.Segmenter | null | undefined;
+
+/**
+ * Japanisch hat keine Leerzeichen: Läufe aus Kanji/Kana werden mit Intl.Segmenter zerlegt
+ * (wörterbuchbasiert, ohne Beugungsanalyse – z. B. 食べました wird nicht immer zu 食べる).
+ */
+function splitCjk(token: string): string[] {
+  if (!CJK.test(token)) return [token];
+  if (jaSegmenter === undefined) jaSegmenter = typeof Intl !== "undefined" && "Segmenter" in Intl ? new Intl.Segmenter("ja", { granularity: "word" }) : null;
+  if (!jaSegmenter) return [token];
+  return [...jaSegmenter.segment(token)].filter((s) => s.isWordLike).map((s) => s.segment);
+}
+
 export function tokenize(text: string, limit = 400): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
-  for (const raw of text.normalize("NFC").match(/\p{L}[\p{L}\p{M}'’‌-]*/gu) ?? []) {
+  const raws = (text.normalize("NFC").match(/\p{L}[\p{L}\p{M}'’‌-]*/gu) ?? []).flatMap(splitCjk);
+  for (const raw of raws) {
     const token = raw.replace(/[-'’‌]+$/u, "");
     const key = lemmaKey(token);
     if (!key || seen.has(key)) continue;

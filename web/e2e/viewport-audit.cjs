@@ -58,14 +58,14 @@ async function audit(page, label) {
     const page = await context.newPage();
     const errors = [];
     page.on("pageerror", (e) => errors.push(e.message));
-    await page.goto("${BASE}/profile", { waitUntil: "networkidle" });
+    await page.goto(`${BASE}/profile`, { waitUntil: "networkidle" });
     // Profil: Lernsprachen wählen, lokal speichern
     await page.getByRole("checkbox", { name: "Persisch", exact: true }).check();
     await page.getByRole("checkbox", { name: "Spanisch" }).check();
     await page.getByRole("button", { name: "Speichern" }).first().click();
     await page.getByText("Gespeichert.").waitFor({ timeout: 10000 });
     // Chat: Wort suchen & als Karte speichern
-    await page.goto("${BASE}/chat", { waitUntil: "networkidle" });
+    await page.goto(`${BASE}/chat`, { waitUntil: "networkidle" });
     await page.getByLabel("Lernsprache").selectOption({ label: "Persisch" });
     await page.getByLabel("Nachricht").fill("آب");
     await page.getByRole("button", { name: "Senden" }).click();
@@ -80,7 +80,7 @@ async function audit(page, label) {
       report.push(await audit(page, `${vp.name} ${route}`));
     }
     // Chat mit Lookup-Treffer aufgeklappt
-    await page.goto("${BASE}/chat", { waitUntil: "networkidle" });
+    await page.goto(`${BASE}/chat`, { waitUntil: "networkidle" });
     await page.screenshot({ path: `${SHOTS}/${vp.name}-chat-view.png`, fullPage: false });
     if (errors.length) report.push({ label: `${vp.name} errors`, issues: errors.slice(0, 3) });
     await context.close();

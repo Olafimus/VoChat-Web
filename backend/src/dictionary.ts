@@ -136,15 +136,21 @@ export async function extractWords(db: Db, lang: LangCode, text: string, nativeL
   const matches: LexemeSummary[] = [];
   const seen = new Set<number>();
   const unknown: string[] = [];
+  const forms: Record<number, string[]> = {};
   for (const token of tokens) {
-    const hit = resolved.get(lemmaKey(token));
-    if (!hit) unknown.push(token);
-    else if (!seen.has(hit.id)) {
+    const key = lemmaKey(token);
+    const hit = resolved.get(key);
+    if (!hit) {
+      unknown.push(token);
+      continue;
+    }
+    if (!seen.has(hit.id)) {
       seen.add(hit.id);
       matches.push(hit);
     }
+    if (key !== lemmaKey(hit.lemma)) (forms[hit.id] ??= []).push(token);
   }
-  return { matches, unknown };
+  return { matches, unknown, forms };
 }
 
 export async function lexemeDetail(db: Db, id: number, nativeLang: LangCode): Promise<LexemeDetail | null> {

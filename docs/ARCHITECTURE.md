@@ -96,15 +96,66 @@ SRS-Werte (Ease, Intervall, Fälligkeit). Die SRS-Logik (`packages/shared/src/sr
 - Die Wörterbuch-Antworten liefern Bedeutungen bevorzugt in der Muttersprache (`senses.gloss_lang`), sonst auf Englisch.
 - Neue Sprachen: Eintrag in `packages/shared/src/languages.ts`, dann Importdaten laden. Die DB-Struktur braucht keine Änderung.
 
-## Geplante Erweiterung: Bilder → Text → Vokabeln
+## Foto → Text → Vokabeln (OCR)
 
-Noch nicht implementiert. Vorgesehen ist:
+Umgesetzt im Browser, ohne Server-Upload (Seite `/scan`, Kamera-Symbol oben rechts):
 
-1. Upload-Endpunkt `POST /ingest/images` (Bilder als Blob, Ergebnis als Job mit Status).
-2. Texterkennung (OCR) und Spracherkennung pro Bild, austauschbar über ein Provider-Interface.
-3. Extraktion: Wörter/Wendungen gegen das Wörterbuch abgleichen, unbekannte Wörter als Vorschläge zurückgeben.
-4. Der Nutzer bestätigt im Chat, Bestätigungen werden zu Lernkarten (gleiche Sync-Pipeline).
-5. Sprache (Audio): gleiche Pipeline mit Transkription statt OCR.
+1. Foto aufnehmen oder wählen; große Bilder werden auf 2400 px verkleinert.
+2. Texterkennung mit Tesseract.js 7 (LSTM, WASM). Worker, Kern und Sprachdaten (`deu`, `eng`, `spa`, `fas`, `jpn`,
+   Modell `4.0.0_best_int`) liegen unter `web/public/tesseract` – kopiert von `web/scripts/copy-ocr-assets.mjs`
+   bei `npm run dev`/`build`. Kein CDN, funktioniert offline; geladen wird nur, wenn jemand scannt (~2–4 MB je Sprache).
+3. Der erkannte Text ist editierbar und wird dann über `POST /dictionary/extract` ausgewertet: bekannte Wörter
+   (eigene Karten), neue Wörterbuch-Wörter (nach Häufigkeit) und Wörter ohne Eintrag. Offline wird nur mit der
+   eigenen Sammlung verglichen.
+4. Neue Wörter mit einem Tipp lernen oder als (private) Sammlung „Buch“ speichern. Foto und Text werden nie gespeichert.
+
+### Grammatische Varianten („ich esse“ / „ich aß“)
+
+Der Wortschlüssel (`lemma_key`) normalisiert Schreibung (Groß/Klein, persische Varianten, Harakat, ZWNJ). Zusätzlich
+gibt es `lexeme_forms`: jede bekannte gebeugte Form zeigt auf ihr Lexem. Quellen: Wiktionary/kaikki (`forms`, vollständige
+Konjugations- und Deklinationstabellen) und wordhoard (Top 2000 de/en/es). Bei der Auswertung wird zuerst das Lemma,
+dann die Form gesucht; „esse“, „isst“, „aß“, „gegessen“ landen alle bei **essen**. Die Antwort enthält `forms`
+(Lexem-ID → Formen im Text), die Scan-Seite zeigt sie als „im Text: aß, gegessen“.
+
+Grenzen: Ohne kaikki-Import kennen nur die häufigsten Wörter ihre Formen. Trennbare Verben („ich fange … an“) werden
+nicht zusammengesetzt. Japanisch wird mit `Intl.Segmenter` in Wörter getrennt, Beugungen (食べました → 食べる) werden
+erst mit einem Morphologie-Analysator (z. B. kuromoji) aufgelöst – geplant.
+
+## Aussprache-Audio
+
+Reihenfolge beim Tippen auf 🔊 (`web/src/lib/audio.ts`):
+
+1. **Aufnahme** echter Sprecher aus Lingua Libre / Wikimedia Commons (meist CC BY-SA 4.0). Gespeichert wird nur der
+   Link mit Lizenz und Sprecher (`lexeme_audio`), abgespielt direkt von `upload.wikimedia.org` (MP3-Transcode, läuft
+   auch auf iOS). Import: über kaikki (`sounds`) oder `npm run import:dictionary -w backend -- commons-audio --lang de`.
+2. **Gerätestimme** (Web Speech API) – offline, auf Handys meist sehr gut.
+3. **Erzeugt** mit eSpeak NG (GPL-3, Emscripten-Build, keine Systempakete): `GET /audio/tts?lang=&text=[&slow=1]`
+   liefert WAV, wird im Speicher und unter `TTS_CACHE_DIR` gecacht und ist unbegrenzt cachebar.
+
+`GET /audio/ipa` erzeugt eine IPA-Umschrift; die Wortanzeige nutzt sie (mit `*` markiert), wenn bei Persisch oder
+Japanisch keine geprüfte Aussprache existiert. Rechtsklick auf 🔊 spielt langsam ab. Einstellungen im Profil:
+Knopf an/aus, Stimme (automatisch / nur Gerät / nur erzeugt), Autoplay beim Lernen.
+
+## Gemeinsames Lernen
+
+- **Arbeitsbuch an Freunde** (`POST /challenges`): Wortliste aus einer eigenen Sammlung, 1 Freund = Duell, mehrere = Gruppe,
+  Laufzeit 3–30 Tage. Eingeladene nehmen an oder lehnen ab.
+- **Wochen-Challenge** je Sprache: 25 Wörter, rotierend aus den häufigsten Wörtern, Montag bis Sonntag (UTC), offen für alle.
+- **Rangliste** serverseitig aus den synchronisierten Karten und Lernereignissen (abgeleitete Spalten `ref_key`/`ref_id`/`attr`
+  in `sync_rows`): bekannte Wörter × 10 + richtige Antworten im Zeitraum. Namen in Wochen-Challenges nur für Freunde/öffentlich.
+
+## Expertenprüfung, Verlauf und Punkte
+
+- Jedes Lexem gilt als **ungeprüft**, bis ein Experte der Sprache (oder Admin) es prüft – auch importierte Standarddaten.
+- Seite „Experten“ (Community): Filter offen / verdächtig / mit Fehler / geprüft; Aussprache setzen, Bedeutungen korrigieren,
+  ergänzen, entfernen, Übersetzungen ergänzen/entfernen, als geprüft markieren oder Fehler melden.
+- **Verdachts-Weitergabe:** Wird eine Bedeutung korrigiert/entfernt, werden andere Einträge mit derselben Glosse markiert;
+  wird eine Übersetzung ergänzt/entfernt, alle Lexeme mit derselben Übersetzung. Sie stehen dann oben in der Warteschlange.
+- **Verlauf** (`audit_log`): jede Aktion mit Wer/Wann/Was (alt → neu), öffentlich je Wort abrufbar.
+- **Kommentare** als Baum mit Auf-/Abwertung an Beiträgen, Wörtern, Sammlungen und Challenges – so lässt sich auch eine
+  Bewertung bewerten und diskutieren.
+- **Punkte:** verifizierte Beiträge × 10 − abgelehnte × 2 + passende Stimmen × 2 − unpassende + Kommentar-Bewertungen
+  + Expertenaktionen.
 
 ## Performance
 

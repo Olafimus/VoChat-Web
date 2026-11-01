@@ -4,6 +4,7 @@ import { community, review, type HistoryEntry, type ReviewEntry } from "../api/c
 import { useSession } from "../session";
 import { CommentThread } from "../components/CommentThread";
 import { Empty, Lemma } from "../components/ui";
+import { SpeakButton } from "../components/SpeakButton";
 
 type Filter = "open" | "suspicious" | "needs_fix" | "approved";
 const FILTERS: { key: Filter; label: string }[] = [
@@ -50,11 +51,15 @@ export function ReviewPage() {
     });
   }, [token, user.learnLangs]);
 
+  const [pages, setPages] = useState(1);
+  const PAGE = 15;
   const load = () => {
     if (!token || !lang) return;
-    review.queue(token, lang, filter).then(setData).catch(() => setMsg("Warteschlange konnte nicht geladen werden."));
+    // Nach einer Aktion neu laden, ohne die bereits geöffneten Seiten zu verlieren.
+    review.queue(token, lang, filter, 0, PAGE * pages).then(setData).catch(() => setMsg("Warteschlange konnte nicht geladen werden."));
   };
-  useEffect(load, [token, lang, filter]);
+  useEffect(load, [token, lang, filter, pages]);
+  useEffect(() => setPages(1), [lang, filter]);
 
   if (!token) return <Empty>Die Expertenprüfung braucht ein Konto.</Empty>;
   if (langs === null) return <div className="muted">Lade …</div>;
@@ -96,6 +101,9 @@ export function ReviewPage() {
           <ReviewCard key={e.id} entry={e} nativeLang={user.nativeLang} onAct={(body) => act(e.id, body)} />
         ))}
       </ul>
+      {data && data.entries.length >= PAGE * pages && PAGE * pages < 50 && (
+        <button onClick={() => setPages((p) => p + 1)}>Mehr laden</button>
+      )}
     </div>
   );
 }
@@ -117,6 +125,7 @@ function ReviewCard({ entry, nativeLang, onAct }: { entry: ReviewEntry; nativeLa
     <li className="card stack review-card">
       <div className="row">
         <Lemma lang={entry.lang}><span className="big-ish">{entry.lemma}</span></Lemma>
+        <SpeakButton lang={entry.lang} text={entry.lemma} lexemeId={entry.id} />
         {entry.pos && <span className="muted small">{entry.pos}</span>}
         <span className={`badge status-${entry.status}`}>{STATUS[entry.status]}</span>
         {entry.reviewedBy && <span className="muted small">von {entry.reviewedBy}</span>}
@@ -130,10 +139,7 @@ function ReviewCard({ entry, nativeLang, onAct }: { entry: ReviewEntry; nativeLa
         </div>
       )}
       <div className="row">
-        <label className="inline small" style={{ flex: 1 }}>
-          Aussprache
-          <input value={pron} onChange={(e) => setPron(e.target.value)} placeholder="z. B. āb" />
-        </label>
+        <input value={pron} onChange={(e) => setPron(e.target.value)} placeholder="Aussprache, z. B. āb" aria-label="Aussprache" style={{ flex: 1, minWidth: 0 }} />
         <button className="small-btn" disabled={pron === (entry.romanization ?? "")} onClick={() => onAct({ action: "setPronunciation", romanization: pron || null })}>Speichern</button>
       </div>
       <div className="stack" style={{ gap: "0.3rem" }}>
@@ -148,13 +154,13 @@ function ReviewCard({ entry, nativeLang, onAct }: { entry: ReviewEntry; nativeLa
                 <button className="small-btn" onClick={() => setEditing(null)}>Abbrechen</button>
               </>
             ) : (
-              <>
-                <span>{s.gloss}</span>
-                <span className="muted small">{s.glossLang} · {s.source}</span>
-                <span className="spacer" />
-                <button className="link small" onClick={() => { setEditing(s.id); setEditText(s.gloss); }}>Korrigieren</button>
-                <button className="link small danger" onClick={() => onAct({ action: "hideSense", senseId: s.id })}>Entfernen</button>
-              </>
+              <div className="review-line">
+                <span className="review-text">{s.gloss} <span className="muted small">{s.glossLang} · {s.source}</span></span>
+                <span className="review-actions">
+                  <button className="link small" onClick={() => { setEditing(s.id); setEditText(s.gloss); }}>Korrigieren</button>
+                  <button className="link small danger" onClick={() => onAct({ action: "hideSense", senseId: s.id })}>Entfernen</button>
+                </span>
+              </div>
             )}
           </div>
         ))}
@@ -167,11 +173,11 @@ function ReviewCard({ entry, nativeLang, onAct }: { entry: ReviewEntry; nativeLa
         <b className="small">Übersetzungen</b>
         {entry.translations.length === 0 && <span className="muted small">keine</span>}
         {entry.translations.map((t) => (
-          <div key={t.id} className="row">
-            <span>{t.targetLemma}</span>
-            <span className="muted small">{t.targetLang} · {t.source}</span>
-            <span className="spacer" />
-            <button className="link small danger" onClick={() => onAct({ action: "hideTranslation", translationId: t.id })}>Entfernen</button>
+          <div key={t.id} className="review-line">
+            <span className="review-text">{t.targetLemma} <span className="muted small">{t.targetLang} · {t.source}</span></span>
+            <span className="review-actions">
+              <button className="link small danger" onClick={() => onAct({ action: "hideTranslation", translationId: t.id })}>Entfernen</button>
+            </span>
           </div>
         ))}
         <div className="row">

@@ -155,7 +155,7 @@ function ChallengeView({ id, onBack }: { id: string; onBack: () => void }) {
         <h2>Rangliste</h2>
         <table className="board">
           <thead>
-            <tr><th>#</th><th>Name</th><th>bekannt</th><th>richtig</th><th>Punkte</th></tr>
+            <tr><th>#</th><th>Name</th><th title="bekannte Challenge-Wörter">Wörter</th><th title="richtige Antworten">✓</th><th title="Punkte">Pkt.</th></tr>
           </thead>
           <tbody>
             {detail.leaderboard.map((e, i) => (

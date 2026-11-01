@@ -144,4 +144,6 @@ export interface ExtractResult {
   matches: LexemeSummary[];
   /** Wörter ohne Treffer. */
   unknown: string[];
+  /** Gebeugte Formen aus dem Text je Lexem-ID (z. B. 12 → ["aß"] für „essen“). */
+  forms?: Record<number, string[]>;
 }

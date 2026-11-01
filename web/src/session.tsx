@@ -172,13 +172,20 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         window.location.reload();
         return;
       }
-      if (store.owner === "local") store.enqueueAll(); // anonym angelegte Daten zum Konto hochladen
+      if (store.owner === "local") {
+        store.enqueueAll(); // anonym angelegte Daten zum Konto hochladen
+        // Lokal gewählte Lernsprachen ins neue Konto übernehmen, falls dort noch keine stehen.
+        if (user.learnLangs.length === 0 && profile.learnLangs.length > 0) {
+          user = await api.updateProfile(newToken, { learnLangs: profile.learnLangs }).catch(() => user);
+          prefs.set("vochat.accountProfile", JSON.stringify(user));
+        }
+      }
       store.setOwner(user.id);
       setToken(newToken);
       setProfile(user);
       startEngine(store, newToken, user.id);
     },
-    [store, startEngine],
+    [store, startEngine, profile.learnLangs],
   );
 
   const disconnect = useCallback(

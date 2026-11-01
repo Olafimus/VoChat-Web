@@ -80,3 +80,22 @@ export async function playPronunciation(opts: {
 
 // Manche Browser laden die Stimmenliste erst asynchron.
 if (typeof speechSynthesis !== "undefined") speechSynthesis.getVoices();
+
+const ipaCache = new Map<string, Promise<string | null>>();
+
+/** Erzeugte Lautschrift (eSpeak NG) für Wörter ohne Aussprache-Angabe; null offline/bei Fehler. */
+export function generatedIpa(lang: LangCode, text: string): Promise<string | null> {
+  const key = `${lang}:${text}`;
+  let hit = ipaCache.get(key);
+  if (!hit) {
+    hit = fetch(apiUrl(`/audio/ipa?lang=${lang}&text=${encodeURIComponent(text.slice(0, 100))}`))
+      .then((r) => (r.ok ? (r.json() as Promise<{ ipa: string | null }>) : { ipa: null }))
+      .then((r) => r.ipa)
+      .catch(() => {
+        ipaCache.delete(key);
+        return null;
+      });
+    ipaCache.set(key, hit);
+  }
+  return hit;
+}

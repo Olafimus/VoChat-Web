@@ -238,9 +238,9 @@ export interface HistoryEntry {
 }
 
 export const review = {
-  queue: (token: string, lang: string, filter: string, offset = 0) =>
+  queue: (token: string, lang: string, filter: string, offset = 0, limit = 15) =>
     request<{ stats: { approved: number; needsFix: number; suspicious: number }; entries: ReviewEntry[] }>(
-      `/review/queue?lang=${lang}&filter=${filter}&offset=${offset}`,
+      `/review/queue?lang=${lang}&filter=${filter}&offset=${offset}&limit=${limit}`,
       { token },
     ),
   act: (token: string, lexemeId: number, body: Record<string, unknown>) =>

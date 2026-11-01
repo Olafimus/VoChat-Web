@@ -47,6 +47,7 @@ export function Layout() {
           ))}
         </nav>
         <div className="topbar-right">
+          <NavLink to="/scan" className="scan-link" aria-label="Foto scannen" title="Foto → Vokabeln">📷</NavLink>
           <SyncIndicator />
           <span className="muted hide-sm">{token ? user.name : "Gast"}</span>
         </div>

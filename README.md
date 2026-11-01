@@ -4,7 +4,7 @@ Vokabel-Lern-App im Chat-Stil: Du schreibst Wörter, bekommst Bedeutungen, Beisp
 legst sie in deine Liste und lernst sie mit Wiederholungsplan. Funktioniert offline; Änderungen werden
 synchronisiert, sobald eine Verbindung besteht.
 
-- **Sprachen:** Deutsch, Englisch, Spanisch, Persisch (erweiterbar)
+- **Sprachen:** Deutsch, Englisch, Spanisch, Persisch, Japanisch (erweiterbar)
 - **Stack:** TypeScript · Backend: Hono, PostgreSQL oder SQLite · Web: React, Vite, TanStack DB, IndexedDB
 - **Konto optional:** Alles funktioniert lokal ohne Anmeldung. Ein Konto braucht man nur für Synchronisation,
   das Teilen von Sammlungen und das Bewerten. Die API nutzt Bearer-Tokens (kein Cookie), damit spätere
@@ -68,6 +68,12 @@ docs/              DICTIONARY_SOURCES.md (Quellen & Status), ARCHITECTURE.md (De
   wie viele Wörter du schon kennst und welche dir noch fehlen. Mit Konto teilbar und mit 1–5 Sternen
   nach Schwierigkeit bewertbar.
 
+- **Foto → Vokabeln:** Buchseite fotografieren, Text wird auf dem Gerät erkannt (Tesseract), unbekannte Wörter
+  werden gefunden – auch gebeugte Formen („aß“ → essen) – und lassen sich mit einem Tipp lernen.
+- **Aussprache:** 🔊 überall – echte Aufnahmen (Lingua Libre/Wikimedia Commons), sonst Gerätestimme, sonst eSpeak NG.
+- **Challenges:** Arbeitsbücher an Freunde schicken (Duell/Gruppe), Wochen-Challenges, Rangliste.
+- **Expertenprüfung:** alles startet ungeprüft; Korrekturen ziehen ähnliche Einträge nach vorn; Verlauf, Kommentarbäume, Punkte.
+
 ## Wörterbuchquellen
 
 Siehe [docs/DICTIONARY_SOURCES.md](docs/DICTIONARY_SOURCES.md): welche Quellen geprüft und importiert sind,
@@ -109,10 +115,12 @@ Datenbank löschen und `starter` erneut ausführen.
 | `CORS_ORIGINS` | `http://localhost:5173` | Erlaubte Web-Origins (kommagetrennt) |
 | `VITE_BACKEND_URL` | `http://localhost:8787` | Ziel des Dev-Proxys `/api` |
 | `VITE_API_URL` | `/api` | API-Basis für Produktionsbuilds |
+| `TTS` | an | `off` schaltet die erzeugte Aussprache (eSpeak NG) ab |
+| `TTS_CACHE_DIR` | `data/tts-cache` | Cache für erzeugte Audiodateien (leer = nur Speicher) |
 
 ## Status
 
-Erster Wurf. Geplant: Bild- und Spracheingabe mit Extraktion neuer Vokabeln (siehe `docs/ARCHITECTURE.md`).
+Geplant: Spracheingabe (Transkription), japanische Morphologie (Beugungen → Grundform), native Apps.
 
 ## Docker
 

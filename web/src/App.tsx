@@ -7,6 +7,7 @@ import { PathsPage } from "./pages/PathsPage";
 import { CommunityHub } from "./pages/CommunityHub";
 import { UserPage } from "./pages/UserPage";
 import { ProfilePage } from "./pages/ProfilePage";
+import { ScanPage } from "./pages/ScanPage";
 
 export function App() {
   return (
@@ -21,6 +22,7 @@ export function App() {
           <Route path="community" element={<CommunityHub />} />
           <Route path="users/:id" element={<UserPage />} />
           <Route path="profile" element={<ProfilePage />} />
+          <Route path="scan" element={<ScanPage />} />
           <Route path="*" element={<Navigate to="/chat" replace />} />
         </Route>
       </Routes>

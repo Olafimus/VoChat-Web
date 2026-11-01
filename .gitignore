@@ -10,3 +10,5 @@ backend/data/cache
 .vscode/*
 !.vscode/extensions.json
 .idea
+web/public/tesseract
+backend/data/tts-cache

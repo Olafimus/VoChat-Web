@@ -74,7 +74,7 @@ export class Tts {
       const w = await loadWorker();
       w.set_voice(VOICES[lang], VOICES[lang]);
       const ipa = w.synthesize_and_get_phonemes(text, () => false);
-      return typeof ipa === "string" ? ipa.replace(/\s+/g, " ").trim() || null : null;
+      return typeof ipa === "string" ? ipa.replace(/_/g, "").replace(/\s+/g, " ").trim() || null : null;
     });
     this.queue = run.catch(() => undefined);
     return run;
@@ -113,8 +113,10 @@ export class Tts {
     if (wav.length <= 44) return null;
     this.remember(key, wav);
     if (this.cacheDir) {
-      await mkdir(this.cacheDir, { recursive: true });
-      await writeFile(join(this.cacheDir, `${key}.wav`), wav).catch(() => undefined);
+      // Cache ist optional: Schreibfehler (z. B. schreibgeschützt) ignorieren.
+      await mkdir(this.cacheDir, { recursive: true })
+        .then(() => writeFile(join(this.cacheDir!, `${key}.wav`), wav))
+        .catch(() => undefined);
     }
     return wav;
   }

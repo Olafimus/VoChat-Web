@@ -1,3 +1,4 @@
+import { addForm } from "../src/importers/common.js";
 import { describe, expect, it, beforeEach } from "vitest";
 import { createApp } from "../src/app.js";
 import type { Db } from "../src/db/index.js";
@@ -259,6 +260,18 @@ describe("extraction and Japanese", () => {
     expect(body.matches.map((m: { lemma: string }) => m.lemma).sort()).toEqual(["Haus", "Hund"]);
     expect(body.unknown).toEqual(expect.arrayContaining(["Der", "sieht", "das", "Zebra"]));
     expect(body.matches.find((m: { lemma: string }) => m.lemma === "Haus").gloss).toBe("Gebäude");
+  });
+
+  it("maps inflected forms to their lemma (ich esse / ich aß -> essen)", async () => {
+    const r = await app.request("/auth/register", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email: "f@example.com", password: "geheimes-passwort", name: "F", nativeLang: "en" }) });
+    const { token } = (await r.json()) as { token: string };
+    await addLexeme(db, { id: 903, lang: "de", lemma: "essen", pos: "verb", rank: 3 });
+    for (const f of ["esse", "isst", "aß", "gegessen"]) await addForm(db, 903, "de", f);
+    const res = await app.request("/dictionary/extract?native=en", { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${token}` }, body: JSON.stringify({ lang: "de", text: "Ich esse. Gestern aß ich, heute habe ich gegessen." }) });
+    const body = await res.json();
+    expect(body.matches.filter((m: { id: number }) => m.id === 903)).toHaveLength(1);
+    expect(body.forms["903"].sort()).toEqual(["aß", "esse", "gegessen"]);
+    expect(body.unknown).not.toContain("aß");
   });
 
   it("accepts Japanese as a learning language", async () => {

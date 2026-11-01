@@ -25,6 +25,7 @@ describe("tts ipa", () => {
   it("produces an IPA transcription", async () => {
     const ipa = await new Tts().ipa("fa", "کتاب");
     expect(ipa).toMatch(/k/);
+    expect(ipa).not.toContain("_");
     expect(await new Tts().ipa("de", "essen")).toMatch(/s/);
   }, 30_000);
 });

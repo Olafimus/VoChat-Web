@@ -17,6 +17,13 @@ describe("lemmaKey", () => {
 });
 
 describe("tokenize", () => {
+  it("segments Japanese text without spaces", () => {
+    const t = tokenize("私は毎日りんごを");
+    expect(t).toContain("私");
+    expect(t).toContain("りんご");
+    expect(t).toContain("毎日");
+  });
+
   it("returns unique words in order", () => {
     expect(tokenize("Der Hund sieht das Haus. Der Hund!")).toEqual(["Der", "Hund", "sieht", "das", "Haus"]);
   });
