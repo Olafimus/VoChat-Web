@@ -17,18 +17,47 @@ import { type Db, transaction } from "./db.js";
 import { browseLexemes, languageStats, lexemeDetail, searchLexemes } from "./dictionary.js";
 import { createUser, findUserByEmail, loadProfile, authResponse } from "./users.js";
 import { pullChanges, pushOps } from "./sync.js";
+import {
+  DEFAULT_COMMUNITY,
+  canDecide,
+  decide,
+  grantRole,
+  isAdmin,
+  listContributions,
+  loadContribution,
+  revokeRole,
+  rolesOf,
+  submitContribution,
+  tally,
+  vote,
+  type CommunityOptions,
+} from "./community.js";
+import { decideSchema, grantSchema, submitSchema, voteSchema, type ContributionStatus } from "@vochat/shared";
 
 export interface AppOptions {
   db: Db;
   now?: () => number;
   corsOrigins?: string[];
+  /** E-Mail-Adressen, die beim Anmelden automatisch Admin-Rechte bekommen. */
+  adminEmails?: string[];
+  community?: CommunityOptions;
 }
 
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 const LOGIN_MAX_ATTEMPTS = 10;
 
-export function createApp({ db, now = Date.now, corsOrigins = ["http://localhost:5173"] }: AppOptions): Hono {
+export function createApp({
+  db,
+  now = Date.now,
+  corsOrigins = ["http://localhost:5173"],
+  adminEmails = [],
+  community = DEFAULT_COMMUNITY,
+}: AppOptions): Hono {
   const app = new Hono();
+  const admins = new Set(adminEmails.map((e) => e.toLowerCase()));
+  const bootstrapAdmin = (userId: string, email: string) => {
+    if (admins.has(email.toLowerCase())) grantRole(db, userId, "admin", "", now());
+  };
   const loginAttempts = new Map<string, { count: number; resetAt: number }>();
 
   app.use("*", cors({ origin: corsOrigins, allowHeaders: ["Authorization", "Content-Type"], allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"] }));
@@ -50,6 +79,7 @@ export function createApp({ db, now = Date.now, corsOrigins = ["http://localhost
     const userId = transaction(db, () =>
       createUser(db, { email, name: parsed.data.name.trim(), nativeLang: parsed.data.nativeLang as LangCode, passwordHash }, now()),
     );
+    bootstrapAdmin(userId, email);
     const token = createSession(db, userId, now());
     return c.json(authResponse(token, loadProfile(db, userId)!), 201);
   });
@@ -73,6 +103,7 @@ export function createApp({ db, now = Date.now, corsOrigins = ["http://localhost
       return c.json({ error: "invalid credentials" }, 401);
     }
     loginAttempts.delete(email);
+    bootstrapAdmin(user.id, email);
     const token = createSession(db, user.id, now());
     return c.json(authResponse(token, loadProfile(db, user.id)!));
   });
@@ -151,6 +182,93 @@ export function createApp({ db, now = Date.now, corsOrigins = ["http://localhost
     const nativeLang = nativeParam(c.req.query("native"));
     const detail = lexemeDetail(db, id, nativeLang);
     return detail ? c.json(detail) : c.json({ error: "not found" }, 404);
+  });
+
+  // ---- Community: Rollen, Beiträge, Abstimmung -----------------------
+  app.get("/community/me", auth, (c) => {
+    const userId = currentUserId(c);
+    const mine = db
+      .prepare("SELECT status, COUNT(*) AS n FROM contributions WHERE author_id = ? GROUP BY status")
+      .all(userId) as { status: string; n: number }[];
+    return c.json({ roles: rolesOf(db, userId), contributions: Object.fromEntries(mine.map((m) => [m.status, m.n])) });
+  });
+
+  app.post("/community/contributions", auth, async (c) => {
+    const parsed = submitSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "invalid input" }, 400);
+    const result = submitContribution(db, currentUserId(c), parsed.data.payload, now(), community);
+    return result.ok ? c.json({ id: result.id, status: "pending" }, 201) : c.json({ error: result.error }, result.status as 400);
+  });
+
+  app.get("/community/contributions", auth, (c) => {
+    const status = c.req.query("status");
+    const lang = c.req.query("lang");
+    const mine = c.req.query("mine") === "1";
+    const rows = listContributions(db, {
+      status: (["pending", "verified", "rejected", "revoked"] as const).includes(status as never) ? (status as ContributionStatus) : undefined,
+      lang: lang && isLangCode(lang) ? lang : undefined,
+      mine: mine ? currentUserId(c) : undefined,
+      limit: Math.min(100, Math.max(1, Number(c.req.query("limit") ?? 50) || 50)),
+    });
+    return c.json(rows);
+  });
+
+  app.get("/community/contributions/:id", auth, (c) => {
+    const id = Number(c.req.param("id"));
+    const row = loadContribution(db, id);
+    if (!row) return c.json({ error: "not found" }, 404);
+    const userId = currentUserId(c);
+    return c.json({
+      id: row.id,
+      kind: row.kind,
+      lang: row.lang,
+      payload: JSON.parse(row.payload) as unknown,
+      status: row.status,
+      decisionReason: row.decision_reason,
+      votes: tally(db, id, userId),
+      isAuthor: row.author_id === userId,
+      canDecide: canDecide(db, userId, row.lang),
+    });
+  });
+
+  app.post("/community/contributions/:id/vote", auth, async (c) => {
+    const parsed = voteSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "invalid input" }, 400);
+    const result = vote(db, Number(c.req.param("id")), currentUserId(c), parsed.data.vote, now(), community);
+    return result.ok ? c.json({ status: result.status }) : c.json({ error: result.error }, result.status as 400);
+  });
+
+  app.post("/community/contributions/:id/decide", auth, async (c) => {
+    const parsed = decideSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "invalid input" }, 400);
+    const id = Number(c.req.param("id"));
+    const row = loadContribution(db, id);
+    if (!row) return c.json({ error: "not found" }, 404);
+    if (!canDecide(db, currentUserId(c), row.lang)) return c.json({ error: "forbidden" }, 403);
+    const result = decide(db, id, currentUserId(c), parsed.data.decision, now());
+    return result.ok ? c.json({ status: result.status }) : c.json({ error: result.error }, result.status as 400);
+  });
+
+  // ---- Admin: Rollen vergeben -----------------------------------------
+  app.post("/admin/roles", auth, async (c) => {
+    if (!isAdmin(db, currentUserId(c))) return c.json({ error: "forbidden" }, 403);
+    const parsed = grantSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "invalid input" }, 400);
+    if (parsed.data.role === "expert" && !parsed.data.lang) return c.json({ error: "expert needs a language" }, 400);
+    const target = db.prepare("SELECT id FROM users WHERE email = ?").get(parsed.data.email.toLowerCase()) as { id: string } | undefined;
+    if (!target) return c.json({ error: "user not found" }, 404);
+    grantRole(db, target.id, parsed.data.role, parsed.data.lang ?? "", now());
+    return c.json({ ok: true, roles: rolesOf(db, target.id) }, 201);
+  });
+
+  app.delete("/admin/roles", auth, async (c) => {
+    if (!isAdmin(db, currentUserId(c))) return c.json({ error: "forbidden" }, 403);
+    const parsed = grantSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "invalid input" }, 400);
+    const target = db.prepare("SELECT id FROM users WHERE email = ?").get(parsed.data.email.toLowerCase()) as { id: string } | undefined;
+    if (!target) return c.json({ error: "user not found" }, 404);
+    revokeRole(db, target.id, parsed.data.role, parsed.data.lang ?? "");
+    return c.json({ ok: true, roles: rolesOf(db, target.id) });
   });
 
   // ---- Katalog: Lernpfade & Medien-Sammlungen (öffentlich lesbar) ------

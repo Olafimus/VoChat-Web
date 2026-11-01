@@ -112,3 +112,23 @@ Noch nicht implementiert. Vorgesehen ist:
 - Pro Sitzung nur fällige/ausgewählte Karten im Speicher; Persistenz schreibt gebündelt (150 ms) und zeilenweise.
 - Offene Punkte: Code-Splitting der Web-App (Bundle ca. 650 kB unkomprimiert), virtuelle Liste im Wortschatz ab
   einigen tausend Karten, Caching der Wörterbuchabfragen im Client.
+
+## Community & Rollen
+
+Das Wörterbuch wächst durch Beiträge der Community. Ein Beitrag erscheint erst, wenn er verifiziert ist.
+
+| Rolle | Rechte |
+|---|---|
+| Nutzer (mit Konto) | Beiträge vorschlagen (max. 30 offen), abstimmen |
+| Experte (je Sprache) | verbindlich verifizieren oder ablehnen, Beiträge der Sprache widerrufen |
+| Admin | alles, Experten ernennen; per `ADMIN_EMAILS` automatisch beim Anmelden |
+
+Beitragsarten: neues Wort, Bedeutung, Beispielsatz, Übersetzung, Widerruf (Ausblenden fehlerhafter Angaben).
+
+Abstimmung: Experten entscheiden sofort. Sonst entscheiden übereinstimmende Stimmen (Standard 3 Richtig bzw. 3 Falsch,
+per `COMMUNITY_VERIFY_THRESHOLD` / `COMMUNITY_REJECT_THRESHOLD`). Eigene Beiträge kann man nicht bewerten.
+
+Nichts wird gelöscht: Angewandte Zeilen tragen die Quelle `community:<id>` und lassen sich per Admin-Widerruf
+ausblenden (`hidden = 1`). Alle Wörterbuchabfragen filtern ausgeblendete Zeilen heraus.
+
+Community-Schreibvorgänge sind online-only, weil der gemeinsame Bestand zentral entschieden wird.

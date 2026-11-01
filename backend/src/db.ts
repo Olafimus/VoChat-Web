@@ -68,6 +68,7 @@ CREATE TABLE IF NOT EXISTS lexemes (
   romanization TEXT,
   frequency_rank INTEGER,
   frequency_count INTEGER,
+  hidden INTEGER NOT NULL DEFAULT 0,
   UNIQUE (lang, lemma, pos)
 );
 CREATE INDEX IF NOT EXISTS lexemes_lookup ON lexemes (lang, lemma COLLATE NOCASE);
@@ -80,7 +81,8 @@ CREATE TABLE IF NOT EXISTS senses (
   position INTEGER NOT NULL,
   gloss_lang TEXT NOT NULL,
   gloss TEXT NOT NULL,
-  source TEXT NOT NULL
+  source TEXT NOT NULL,
+  hidden INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS senses_lexeme ON senses (lexeme_id, gloss_lang, position);
 
@@ -90,7 +92,8 @@ CREATE TABLE IF NOT EXISTS examples (
   text TEXT NOT NULL,
   translation TEXT,
   translation_lang TEXT,
-  source TEXT NOT NULL
+  source TEXT NOT NULL,
+  hidden INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS examples_lexeme ON examples (lexeme_id);
 
@@ -100,6 +103,7 @@ CREATE TABLE IF NOT EXISTS translations (
   target_lang TEXT NOT NULL,
   target_lemma TEXT NOT NULL,
   source TEXT NOT NULL,
+  hidden INTEGER NOT NULL DEFAULT 0,
   UNIQUE (lexeme_id, target_lang, target_lemma)
 );
 
@@ -116,6 +120,40 @@ CREATE TABLE IF NOT EXISTS lexeme_categories (
   PRIMARY KEY (lexeme_id, category_id)
 );
 CREATE INDEX IF NOT EXISTS lexeme_categories_cat ON lexeme_categories (category_id);
+
+-- Rollen: admin (global), expert (je Sprache). Beiträge und Stimmen der Community.
+CREATE TABLE IF NOT EXISTS user_roles (
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  role TEXT NOT NULL,
+  lang TEXT NOT NULL DEFAULT '',
+  granted_at INTEGER NOT NULL,
+  PRIMARY KEY (user_id, role, lang)
+);
+
+CREATE TABLE IF NOT EXISTS contributions (
+  id INTEGER PRIMARY KEY,
+  kind TEXT NOT NULL,
+  lang TEXT NOT NULL,
+  payload TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  author_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at INTEGER NOT NULL,
+  decided_at INTEGER,
+  decided_by TEXT,
+  decision_reason TEXT,
+  result_lexeme_id INTEGER
+);
+CREATE INDEX IF NOT EXISTS contributions_status ON contributions (status, lang, id);
+CREATE INDEX IF NOT EXISTS contributions_author ON contributions (author_id, status);
+
+CREATE TABLE IF NOT EXISTS votes (
+  contribution_id INTEGER NOT NULL REFERENCES contributions(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  vote TEXT NOT NULL,
+  is_expert INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (contribution_id, user_id)
+);
 
 CREATE TABLE IF NOT EXISTS import_runs (
   id INTEGER PRIMARY KEY,

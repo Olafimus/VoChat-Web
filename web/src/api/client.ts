@@ -76,3 +76,34 @@ export const api = {
   rate: (token: string, id: string, difficulty: number) =>
     request<{ ok: boolean }>(`/catalog/collections/${encodeURIComponent(id)}/rating`, { method: "PUT", body: { difficulty }, token }),
 };
+
+export const community = {
+  me: (token: string) =>
+    request<{ roles: { role: string; lang: string }[]; contributions: Record<string, number> }>("/community/me", { token }),
+  list: (token: string, params: { status?: string; lang?: string; mine?: boolean }) => {
+    const qs = new URLSearchParams(
+      Object.entries({ status: params.status, lang: params.lang, mine: params.mine ? "1" : undefined }).filter(([, v]) => v) as [string, string][],
+    ).toString();
+    return request<CommunityRow[]>(`/community/contributions${qs ? `?${qs}` : ""}`, { token });
+  },
+  submit: (token: string, payload: unknown) =>
+    request<{ id: number; status: string }>("/community/contributions", { method: "POST", body: { payload }, token }),
+  vote: (token: string, id: number, vote: "verify" | "reject") =>
+    request<{ status: string }>(`/community/contributions/${id}/vote`, { method: "POST", body: { vote }, token }),
+  decide: (token: string, id: number, decision: "verify" | "reject" | "revoke") =>
+    request<{ status: string }>(`/community/contributions/${id}/decide`, { method: "POST", body: { decision }, token }),
+  grant: (token: string, email: string, role: "admin" | "expert", lang: string | null) =>
+    request<{ ok: boolean }>("/admin/roles", { method: "POST", body: { email, role, lang }, token }),
+};
+
+export interface CommunityRow {
+  id: number;
+  kind: "lexeme" | "sense" | "example" | "translation" | "retract";
+  lang: string;
+  payload: Record<string, unknown>;
+  status: "pending" | "verified" | "rejected" | "revoked";
+  author: string;
+  createdAt: number;
+  decidedAt: number | null;
+  decisionReason: string | null;
+}

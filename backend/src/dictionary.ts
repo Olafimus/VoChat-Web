@@ -15,9 +15,9 @@ type SummaryRow = {
 
 const SUMMARY_SELECT = `
   SELECT l.id, l.lang, l.lemma, l.pos, l.gender, l.cefr, l.frequency_rank,
-    (SELECT s.gloss FROM senses s WHERE s.lexeme_id = l.id AND s.gloss_lang = :native
+    (SELECT s.gloss FROM senses s WHERE s.lexeme_id = l.id AND s.hidden = 0 AND s.gloss_lang = :native
       ORDER BY s.position LIMIT 1) AS gloss,
-    (SELECT t.target_lemma FROM translations t WHERE t.lexeme_id = l.id AND t.target_lang = :native
+    (SELECT t.target_lemma FROM translations t WHERE t.lexeme_id = l.id AND t.hidden = 0 AND t.target_lang = :native
       ORDER BY t.id LIMIT 1) AS translation
   FROM lexemes l`;
 
@@ -69,7 +69,7 @@ export function searchLexemes(
   const rows = db
     .prepare(
       `${SUMMARY_SELECT.replaceAll(":native", "?")}
-       WHERE l.lang = ? AND (${ranges})
+       WHERE l.lang = ? AND l.hidden = 0 AND (${ranges})
        ORDER BY (l.lemma COLLATE NOCASE IN (${exactList})) DESC, l.frequency_rank IS NULL, l.frequency_rank, l.lemma
        LIMIT ?`,
     )
@@ -85,7 +85,7 @@ export function browseLexemes(
   const rows = db
     .prepare(
       `${SUMMARY_SELECT}
-       WHERE l.lang = :lang AND (:cefr IS NULL OR l.cefr = :cefr)
+       WHERE l.lang = :lang AND l.hidden = 0 AND (:cefr IS NULL OR l.cefr = :cefr)
        ORDER BY l.frequency_rank IS NULL, l.frequency_rank, l.lemma
        LIMIT :limit OFFSET :offset`,
     )
@@ -100,18 +100,18 @@ export function browseLexemes(
 }
 
 export function lexemeDetail(db: Db, id: number, nativeLang: LangCode): LexemeDetail | null {
-  const row = db.prepare(`${SUMMARY_SELECT} WHERE l.id = :id`).get({ native: nativeLang, id }) as SummaryRow | undefined;
+  const row = db.prepare(`${SUMMARY_SELECT} WHERE l.id = :id AND l.hidden = 0`).get({ native: nativeLang, id }) as SummaryRow | undefined;
   if (!row) return null;
   const extra = db.prepare("SELECT romanization FROM lexemes WHERE id = ?").get(id) as { romanization: string | null };
 
   const senses = db
-    .prepare("SELECT position, gloss_lang, gloss, source FROM senses WHERE lexeme_id = ? ORDER BY gloss_lang = ? DESC, position LIMIT 40")
+    .prepare("SELECT position, gloss_lang, gloss, source FROM senses WHERE lexeme_id = ? AND hidden = 0 ORDER BY gloss_lang = ? DESC, position LIMIT 40")
     .all(id, nativeLang) as { position: number; gloss_lang: string; gloss: string; source: string }[];
   const examples = db
-    .prepare("SELECT text, translation, translation_lang, source FROM examples WHERE lexeme_id = ? ORDER BY id LIMIT 30")
+    .prepare("SELECT text, translation, translation_lang, source FROM examples WHERE lexeme_id = ? AND hidden = 0 ORDER BY id LIMIT 30")
     .all(id) as { text: string; translation: string | null; translation_lang: string | null; source: string }[];
   const translations = db
-    .prepare("SELECT target_lang, target_lemma, source FROM translations WHERE lexeme_id = ? ORDER BY target_lang = ? DESC, id LIMIT 60")
+    .prepare("SELECT target_lang, target_lemma, source FROM translations WHERE lexeme_id = ? AND hidden = 0 ORDER BY target_lang = ? DESC, id LIMIT 60")
     .all(id, nativeLang) as { target_lang: string; target_lemma: string; source: string }[];
   const categories = db
     .prepare(
@@ -145,7 +145,7 @@ export function languageStats(db: Db): { lang: string; lexemes: number; withCefr
       `SELECT lang, COUNT(*) AS lexemes,
          SUM(cefr IS NOT NULL) AS withCefr,
          SUM(frequency_rank IS NOT NULL) AS withFrequency
-       FROM lexemes GROUP BY lang ORDER BY lang`,
+       FROM lexemes WHERE hidden = 0 GROUP BY lang ORDER BY lang`,
     )
     .all() as { lang: string; lexemes: number; withCefr: number; withFrequency: number }[];
 }

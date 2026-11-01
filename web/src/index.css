@@ -105,7 +105,7 @@ a { color: var(--accent); }
 .tabs-desktop a.active, .tabs-mobile a.active { color: var(--accent); font-weight: 600; background: var(--surface-2); }
 .topbar-right { margin-inline-start: auto; display: flex; align-items: center; gap: 0.75rem; }
 .tabs-mobile {
-  position: fixed; bottom: 0; inset-inline: 0; display: grid; grid-template-columns: repeat(5, 1fr);
+  position: fixed; bottom: 0; inset-inline: 0; display: grid; grid-template-columns: repeat(6, 1fr);
   background: var(--surface); border-top: 1px solid var(--border); padding: 0.3rem 0.2rem calc(0.3rem + env(safe-area-inset-bottom));
   z-index: 10;
 }
@@ -212,3 +212,8 @@ button.star { min-height: 36px; padding: 0.1rem 0.5rem; font-size: 1.4rem; color
 button.star.on { color: var(--warn); }
 .sync-local .dot { background: var(--muted); }
 .card.row-card .row { gap: 0.6rem; }
+
+.segmented.four { grid-template-columns: repeat(4, 1fr); }
+.lookup-pick { text-align: start; background: var(--surface-2); }
+.status-verified { color: var(--ok); }
+.status-rejected, .status-revoked { color: var(--danger); }

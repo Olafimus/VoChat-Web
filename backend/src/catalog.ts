@@ -106,7 +106,7 @@ export function myRating(db: Db, collectionId: string, userId: string): number |
  */
 export function builtinPaths(db: Db, lang: LangCode): CatalogCollection[] {
   const levels = db
-    .prepare("SELECT cefr, COUNT(*) AS n FROM lexemes WHERE lang = ? AND cefr IS NOT NULL GROUP BY cefr ORDER BY cefr")
+    .prepare("SELECT cefr, COUNT(*) AS n FROM lexemes WHERE lang = ? AND hidden = 0 AND cefr IS NOT NULL GROUP BY cefr ORDER BY cefr")
     .all(lang) as { cefr: string; n: number }[];
   const paths: CatalogCollection[] = levels.map((l) => ({
     id: `builtin:${lang}:${l.cefr}`,

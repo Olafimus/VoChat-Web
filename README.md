@@ -64,6 +64,18 @@ was fehlt und wie du die vollständigen Wiktionary-Daten (kaikki.org) lokal eins
 
 ## Konfiguration
 
+Zusätzlich für die Community:
+
+| Variable | Standard | Zweck |
+|---|---|---|
+| `ADMIN_EMAILS` | leer | Kommagetrennte E-Mails, die beim Anmelden Admin werden |
+| `COMMUNITY_VERIFY_THRESHOLD` | `3` | Übereinstimmende Stimmen, damit ein Beitrag verifiziert ist |
+| `COMMUNITY_REJECT_THRESHOLD` | `3` | Übereinstimmende Stimmen, damit ein Beitrag abgelehnt ist |
+
+**Hinweis:** Nach dem Community-Update fehlen in einer bestehenden `vochat.db` die neuen Spalten (`hidden`).
+Datenbank löschen und `starter` erneut ausführen.
+
+
 | Variable | Standard | Zweck |
 |---|---|---|
 | `PORT` | `8787` | Port der API |
