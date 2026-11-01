@@ -76,3 +76,19 @@ describe("coverage", () => {
     expect(c.ratio).toBeCloseTo(1 / 3);
   });
 });
+
+describe("coverage with references", () => {
+  it("matches by lexeme id even when the user edited the spelling", () => {
+    const items = [{ lemma: "Haus", lang: "de", lexemeId: 7 }];
+    const cards = [{ lemma: "Häuschen (mein Wort)", lang: "de", lexemeId: 7, status: "review" as const, deleted: false }];
+    expect(coverage(items, cards).known).toBe(1);
+  });
+
+  it("matches unlinked words by normalized spelling, including Persian letter variants", () => {
+    const items = [{ lemma: "کتاب", lang: "fa", lexemeId: null }];
+    const cards = [{ lemma: "كتاب", lang: "fa", lexemeId: null, status: "learning" as const, deleted: false }];
+    const c = coverage(items, cards);
+    expect(c.learning).toBe(1);
+    expect(c.missing).toHaveLength(0);
+  });
+});

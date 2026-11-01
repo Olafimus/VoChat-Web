@@ -66,8 +66,11 @@ export function ProfilePage() {
 
   const logout = () => {
     const pending = status.pending;
-    if (pending > 0 && !window.confirm(`${pending} Änderungen sind noch nicht synchronisiert. Sie bleiben auf diesem Gerät erhalten.`)) return;
-    disconnect();
+    if (pending > 0 && !window.confirm(`${pending} Änderungen sind noch nicht synchronisiert. Trotzdem abmelden?`)) return;
+    const clearLocal = window.confirm(
+      "Auch die lokalen Daten dieses Kontos von diesem Gerät löschen?\n\nOK: löschen (empfohlen auf geteilten Geräten)\nAbbrechen: auf dem Gerät behalten",
+    );
+    void disconnect({ clearLocal });
   };
 
   return (
@@ -184,7 +187,7 @@ export function ProfilePage() {
             <div className="small muted">Lokal gespeichert: {collections ? "Wortschatz & Fortschritt" : ""}</div>
             <AuthForm
               onAuthenticated={(t, u) => {
-                connect(t, u);
+                void connect(t, u);
               }}
             />
           </>

@@ -93,7 +93,7 @@ function PathDetail({ id, lang, native, onBack, cards }: { id: string; lang: Lan
   if (!detail?.items) return <div className="muted">Lade …</div>;
   const detailItems = detail.items;
   const cov = coverage(detailItems, cards);
-  const missing = detailItems.filter((i) => !hasCardWord(cards, i.lang, i.lemma));
+  const missing = detailItems.filter((i) => !hasCardWord(cards, i.lang, i.lemma, i.lexemeId));
 
   const copyToOwn = () => {
     const row = newMediaCollection({
@@ -218,7 +218,7 @@ function MediaDetail({ id, cards, onBack }: { id: string; cards: CardRow[]; onBa
   if (!detail?.items) return <div className="muted">Lade …</div>;
   const detailItems = detail.items;
   const cov = coverage(detailItems, cards);
-  const missing = detailItems.filter((i) => !hasCardWord(cards, i.lang, i.lemma));
+  const missing = detailItems.filter((i) => !hasCardWord(cards, i.lang, i.lemma, i.lexemeId));
 
   const copyToOwn = () => {
     const row = newMediaCollection({
@@ -351,17 +351,32 @@ function CreateCollection({ onDone, defaultLang }: { onDone: () => void; default
   const [extractInfo, setExtractInfo] = useState<string | null>(null);
 
   /** Ersetzt den Text durch die im Wörterbuch gefundenen Wörter (mit Bedeutung), unbekannte bleiben als Hinweis. */
-  const extractFromText = async () => {
+  const [source, setSource] = useState("");
+
+  /**
+   * Text (z. B. Liedtext, Buchkapitel) einmalig auswerten: alle vorkommenden Wörter werden als
+   * Wortliste übernommen, der Text selbst wird verworfen und nie gespeichert. Wörter ohne
+   * Wörterbucheintrag bleiben in der Liste und verknüpfen sich später automatisch.
+   */
+  const extractFromSource = async () => {
     try {
-      const { matches, unknown } = await extract(lang, text, user.nativeLang);
-      const lines = matches.map((m) => {
-        const pron = m.romanization ? ` [${m.romanization}]` : "";
-        return m.gloss ? `${m.lemma}${pron} = ${m.gloss}` : `${m.lemma}${pron}`;
-      });
-      setText(lines.join("\n"));
-      setExtractInfo(`${matches.length} Treffer übernommen${unknown.length ? ` · ${unknown.length} ohne Eintrag (bitte von Hand ergänzen)` : ""}.`);
+      const { matches, unknown } = await extract(lang, source, user.nativeLang);
+      const lines = [
+        ...matches.map((m) => {
+          const pron = m.romanization ? ` [${m.romanization}]` : "";
+          return m.gloss ? `${m.lemma}${pron} = ${m.gloss}` : `${m.lemma}${pron}`;
+        }),
+        ...unknown,
+      ];
+      setText((prev) => [prev.trim(), ...lines].filter(Boolean).join("\n"));
+      setSource("");
+      setExtractInfo(
+        `${matches.length + unknown.length} Wörter übernommen: ${matches.length} aus dem Wörterbuch` +
+          (unknown.length ? `, ${unknown.length} noch ohne Eintrag (werden verknüpft, sobald es sie gibt)` : "") +
+          ". Der Text selbst wurde nicht gespeichert.",
+      );
     } catch {
-      setExtractInfo("Extraktion fehlgeschlagen (offline?).");
+      setExtractInfo("Auswertung fehlgeschlagen (offline?).");
     }
   };
 
@@ -428,15 +443,25 @@ function CreateCollection({ onDone, defaultLang }: { onDone: () => void; default
         <textarea value={description} onChange={(e) => setDescription(e.target.value)} maxLength={2000} rows={2} />
       </label>
       <label>
-        Wörter (eine Zeile pro Wort, optional „wort = bedeutung“)
-        <textarea value={text} onChange={(e) => setText(e.target.value)} rows={8} placeholder={"Haus = house\nLiebe\nHund = dog"} />
+        Text auswerten (optional, z. B. ein Liedtext, den du besitzt)
+        <textarea
+          value={source}
+          onChange={(e) => setSource(e.target.value)}
+          rows={5}
+          placeholder="Text einfügen – es werden nur die vorkommenden Wörter übernommen, der Text wird nicht gespeichert."
+          dir={lang === "fa" ? "rtl" : "ltr"}
+        />
       </label>
       <div className="row">
-        <button type="button" onClick={extractFromText} disabled={!text.trim()}>
-          Aus Text extrahieren (Treffer im Wörterbuch)
+        <button type="button" onClick={extractFromSource} disabled={!source.trim()}>
+          Wörter aus Text übernehmen
         </button>
-        <span className="muted small">{items.length} Wörter erkannt</span>
       </div>
+      <label>
+        Wortliste (eine Zeile pro Wort, optional „wort [aussprache] = bedeutung“)
+        <textarea value={text} onChange={(e) => setText(e.target.value)} rows={8} placeholder={"Haus = house\nآب [āb] = Wasser\nHund"} />
+      </label>
+      <div className="muted small">{items.length} Wörter in der Liste</div>
       {extractInfo && <div className="muted small" role="status">{extractInfo}</div>}
       <label className="inline">
         <input type="checkbox" checked={share} onChange={(e) => setShare(e.target.checked)} disabled={!token} />
@@ -453,7 +478,7 @@ function CreateCollection({ onDone, defaultLang }: { onDone: () => void; default
 function OwnDetail({ c, cards, onBack, engine, token }: { c: MediaCollectionRow; cards: CardRow[]; onBack: () => void; engine: { getStatus: () => { enabled: boolean } }; token: string | null }) {
   const { collections } = useSession();
   const cov = coverage(c.items, cards);
-  const missing = c.items.filter((i) => !hasCardWord(cards, i.lang, i.lemma));
+  const missing = c.items.filter((i) => !hasCardWord(cards, i.lang, i.lemma, i.lexemeId));
   const remove = () => {
     collections.collections.update(c.id, (d) => {
       d.deleted = true;
@@ -510,7 +535,7 @@ function ItemList({ items, lang, cards }: { items: { lemma: string; lang: string
   return (
     <ul className="list">
       {items.map((i, idx) => {
-        const known = hasCardWord(cards, i.lang, i.lemma);
+        const known = hasCardWord(cards, i.lang, i.lemma, i.lexemeId);
         const card = cards.find((c) => !c.deleted && c.lang === i.lang && c.lemma.toLocaleLowerCase("de") === i.lemma.toLocaleLowerCase("de"));
         return (
           <li key={`${i.lemma}-${idx}`} className="row card-line">

@@ -58,6 +58,8 @@ export type CardRow = Row & {
   lexemeId: number | null;
   gloss: string | null;
   pronunciation: string | null;
+  /** Vom Nutzer geänderte Felder; diese überschreibt der Abgleich mit dem Wörterbuch nicht. */
+  custom: ("lemma" | "gloss" | "pronunciation" | "cefr")[];
   note: string;
   cefr: string | null;
   status: "new" | "learning" | "review" | "mastered";
@@ -97,7 +99,7 @@ export type MediaCollectionRow = Row & {
   level: string | null;
   visibility: "private" | "public";
   ownerName: string;
-  items: { lemma: string; lang: string; lexemeId: number | null; gloss: string | null; cefr: string | null }[];
+  items: { lemma: string; lang: string; lexemeId: number | null; gloss: string | null; pronunciation?: string | null; cefr: string | null }[];
   createdAt: number;
 };
 

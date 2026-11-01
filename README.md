@@ -58,6 +58,9 @@ docs/              DICTIONARY_SOURCES.md (Quellen & Status), ARCHITECTURE.md (De
   kürzlich falsch beantworteten Karten (kommen nach einer Wartezeit wieder), Fälligkeit und neuen Wörtern.
   Jede Antwort wird protokolliert (`reviews`).
 - **Lernpfade:** empfohlene Pfade je Sprache und CEFR-Niveau sowie „Top 500“ nach Häufigkeit.
+- **Eigene Vokabeln:** eigene Wörter anlegen und jede Karte bearbeiten. Die Verknüpfung zum Wörterbuch bleibt;
+  eigene Werte werden nicht überschrieben, alles andere aktualisiert sich automatisch. Fehlende Wörter lassen sich
+  ins Wörterbuch vorschlagen und verknüpfen sich nach der Prüfung bei allen Nutzern automatisch.
 - **Profile & Social:** Profilbild, Bio, Sichtbarkeit. Folgen (öffentlich sofort, privat mit Zustimmung),
   Freundschaften, Suche nach öffentlichen Profilen, Feed von Freunden und Gefolgten. Lernfortschritt nur für Freunde,
   und nur wenn du es freigibst.

@@ -1,5 +1,5 @@
 import type { SyncEntity } from "@vochat/shared";
-import { loadEntries, removeKeys, saveEntries, type Kv } from "./kv";
+import { clearLocalKv, loadEntries, removeKeys, saveEntries, type Kv } from "./kv";
 
 export type Row = { id: string; updatedAt: number; deleted: boolean } & Record<string, unknown>;
 type Listener = (rows: Row[]) => void;
@@ -7,6 +7,7 @@ type Listener = (rows: Row[]) => void;
 const DATA = "data/";
 const OUTBOX = "outbox/";
 const CURSOR = "meta/cursor/";
+const OWNER = "meta/owner";
 
 /**
  * Local-first-Speicher des Geräts. Die App liest und schreibt ausschließlich hier.
@@ -19,6 +20,8 @@ export class LocalStore {
   private listeners = new Map<SyncEntity, Set<Listener>>();
   private dirty = new Map<string, unknown | undefined>();
   private cursors = new Map<string, number>();
+  /** Konto, dem die lokalen Daten gehören; "local" = noch keinem (anonym genutzt). */
+  private ownerId = "local";
   private flushTimer: ReturnType<typeof setTimeout> | null = null;
   private onOutboxChange: (() => void) | null = null;
 
@@ -45,8 +48,29 @@ export class LocalStore {
         this.outbox.set(`${entity}/${id}`, { entity: entity as SyncEntity, row: value as Row });
       } else if (key.startsWith(CURSOR)) {
         this.cursors.set(key.slice(CURSOR.length), Number(value) || 0);
+      } else if (key === OWNER) {
+        this.ownerId = String(value || "local");
       }
     }
+  }
+
+  get owner(): string {
+    return this.ownerId;
+  }
+
+  setOwner(id: string): void {
+    this.ownerId = id;
+    this.persist(OWNER, id);
+  }
+
+  /** Alle lokalen Daten entfernen (z. B. beim Kontowechsel). Danach sollte die Seite neu laden. */
+  async clearAll(): Promise<void> {
+    this.rows.clear();
+    this.outbox.clear();
+    this.cursors.clear();
+    this.dirty.clear();
+    this.ownerId = "local";
+    if (this.kv) await clearLocalKv(this.kv);
   }
 
   setOutboxListener(fn: () => void) {

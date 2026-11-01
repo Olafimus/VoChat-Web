@@ -15,6 +15,8 @@ export const cardSchema = z.object({
   lexemeId: z.number().int().nullable(),
   gloss: z.string().max(500).nullable(),
   pronunciation: z.string().max(200).nullable().default(null),
+  /** Felder, die der Nutzer selbst geändert hat. Sie werden beim Abgleich mit dem Wörterbuch nicht überschrieben. */
+  custom: z.array(z.enum(["lemma", "gloss", "pronunciation", "cefr"])).max(4).default([]),
   note: z.string().max(2000),
   cefr: cefrSchema.nullable(),
   status: cardStatusSchema,

@@ -60,7 +60,7 @@ const overflow = (page) => page.evaluate(() => {
       await page.getByRole("button", { name: "Meine" }).click();
       await page.getByRole("button", { name: "+ Neue Sammlung" }).click();
       await page.getByLabel("Titel").fill("Mein Lied mit einem sehr langen Titel zum Testen der Umbrüche");
-      await page.getByLabel(/Wörter/).fill("آب\nخانه = Haus\nکتاب = Buch\nدرخت = Baum");
+      await page.getByLabel(/Wortliste/).fill("آب\nخانه = Haus\nکتاب = Buch\nدرخت = Baum");
       await page.getByRole("button", { name: "Speichern" }).click();
       await page.getByRole("button", { name: /Mein Lied mit einem/ }).click();
       await page.getByText(/Fehlende Wörter lernen/).waitFor({ timeout: 8000 });

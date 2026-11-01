@@ -182,3 +182,36 @@ unquotierte Namen klein). Zeitstempel sind Millisekunden (`BIGINT`). Migrationen
 vereinheitlicht, ohne Diakritika und Null-Breite-Zeichen). Suche, Formen-Abgleich und das Verknüpfen eigener
 Vokabeln laufen darüber. **Formen (`lexeme_forms`):** gebeugte Formen aus wordhoard und kaikki, damit die
 Extraktion aus Texten auch „ist“ → „sein“ erkennt.
+
+## Eigene Vokabeln und Wörterbuch
+
+Jede Karte trägt zwei Referenzen:
+
+1. **Lexem-ID** (`lexemeId`): präzise Verknüpfung mit einem Wörterbucheintrag (unterscheidet z. B. Nomen und Verb).
+2. **Wortschlüssel**: Sprache + normalisierte Schreibung (`lemmaKey`). Fehlt die ID, ist das Wort selbst die Referenz.
+
+Felder, die der Nutzer selbst ändert, stehen in `custom` und werden nie vom Wörterbuch überschrieben.
+Alle anderen Felder folgen dem Wörterbuch. Ergänzt die Community z. B. eine Aussprache, erscheint sie automatisch
+auf den Karten. Ein Feld lässt sich jederzeit auf den Wörterbuchwert zurücksetzen.
+
+**Automatischer Abgleich** (`web/src/lib/linker.ts`): beim Start, beim Online-Werden, bei neuen Karten oder
+Sammlungen (gedrosselt auf alle 10 Minuten) und auf Knopfdruck im Wortschatz.
+
+1. Unverknüpfte Karten und Sammlungswörter werden gesammelt über `POST /dictionary/resolve` aufgelöst
+   (Wortschlüssel, sonst bekannte gebeugte Form) und verknüpft.
+2. Verknüpfte Karten holen über `POST /dictionary/lexemes/batch` neue Werte für alle nicht eigenen Felder.
+3. Geschrieben wird nur bei echten Änderungen.
+
+**Aufstieg ins Wörterbuch:** Ein eigenes Wort ohne Eintrag lässt sich direkt aus der Karte als Community-Beitrag
+„Neues Wort“ vorschlagen (mit Bedeutung und Aussprache). Nach der Verifizierung verknüpfen sich beim nächsten
+Abgleich die passenden Karten und Sammlungswörter aller Nutzer automatisch, weil sie über den Wortschlüssel
+gefunden werden. Eigene Bedeutungen oder Aussprachen verknüpfter Karten lassen sich ebenso vorschlagen.
+
+**Medien und Lieder:** Beim Anlegen einer Sammlung kann ein Text (z. B. ein Liedtext, den man besitzt) eingefügt
+werden. Übernommen werden nur die vorkommenden Wörter; der Text selbst wird verworfen und nie gespeichert oder
+geteilt. Wörter ohne Wörterbucheintrag bleiben in der Liste und verknüpfen sich später automatisch. Der Abgleich
+„wie viele Wörter kenne ich schon“ läuft über Lexem-ID und Wortschlüssel.
+
+**Lokale Daten und Konten:** Der Gerätespeicher merkt sich, welchem Konto die Daten gehören. Anonyme Daten werden
+beim ersten Login übernommen; Daten eines anderen Kontos werden verworfen statt hochgeladen. Beim Abmelden kann
+man die lokalen Daten löschen (empfohlen auf geteilten Geräten).

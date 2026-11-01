@@ -182,3 +182,11 @@ export const extract = (lang: LangCode, text: string, native: LangCode) =>
     method: "POST",
     body: { lang, text },
   });
+
+/** Wörter zu Wörterbuch-Einträgen auflösen (Schlüssel -> Eintrag). Lesend, ohne Konto. */
+export const resolveWords = (lang: LangCode, words: string[], native: LangCode) =>
+  request<Record<string, LexemeSummary>>(`/dictionary/resolve?native=${native}`, { method: "POST", body: { lang, words } });
+
+/** Mehrere Einträge auf einmal (zum Aktualisieren verknüpfter Karten). */
+export const lexemesBatch = (ids: number[], native: LangCode) =>
+  request<LexemeSummary[]>(`/dictionary/lexemes/batch?native=${native}`, { method: "POST", body: { ids } });

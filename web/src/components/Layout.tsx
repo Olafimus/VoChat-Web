@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useSession, useSyncStatus } from "../session";
+import { useDictionaryLinker } from "../lib/useDictionaryLinker";
 
 const TABS = [
   { to: "/chat", label: "Chat", short: "Chat", icon: "💬" },
@@ -33,6 +34,7 @@ export function SyncIndicator() {
 
 export function Layout() {
   const { user, token } = useSession();
+  useDictionaryLinker();
   return (
     <div className="app">
       <header className="topbar">

@@ -284,3 +284,10 @@ button.link.small { font-size: 0.82rem; }
 .word-view.word-large .lemma { font-size: 1.35rem; }
 .word-view.word-large .pron { font-size: 1.05rem; }
 .lemma { overflow-wrap: anywhere; }
+
+/* Wortschatz: Verknüpfung und Bearbeiten */
+.badge.linked { color: var(--ok); background: color-mix(in srgb, var(--ok) 12%, transparent); }
+.card-editor { margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px solid var(--border); }
+.card-editor label > .row { gap: 0.4rem; }
+.field { display: grid; gap: 0.3rem; }
+.field-head label { font-size: 0.92rem; color: var(--muted); }

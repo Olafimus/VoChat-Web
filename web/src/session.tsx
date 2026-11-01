@@ -27,10 +27,10 @@ export interface Session {
   updateProfile: (patch: ProfilePatch) => Promise<void>;
   /** Übernimmt ein vom Server geliefertes Profil (z. B. nach Avatar-Upload). */
   replaceProfile: (profile: UserProfile) => void;
-  /** Verbindet ein Konto (Sync startet). Lokale Daten werden hochgeladen. */
-  connect: (token: string, user: UserProfile) => void;
-  /** Trennt das Konto. Lokale Daten bleiben erhalten. */
-  disconnect: () => void;
+  /** Verbindet ein Konto (Sync startet). Anonyme lokale Daten werden hochgeladen, fremde verworfen. */
+  connect: (token: string, user: UserProfile) => Promise<void>;
+  /** Trennt das Konto. Lokale Daten bleiben erhalten, außer `clearLocal` ist gesetzt. */
+  disconnect: (opts?: { clearLocal?: boolean }) => Promise<void>;
 }
 
 const SessionContext = createContext<Session | null>(null);
@@ -137,6 +137,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     api
       .me(saved)
       .then((me) => {
+        if (store.owner === "local") store.setOwner(me.id); // Daten aus Versionen ohne Eigentümer zuordnen
         setProfile(me);
         prefs.set("vochat.accountProfile", JSON.stringify(me));
         setToken(saved);
@@ -159,11 +160,20 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [store, ready, startEngine]);
 
   const connect = useCallback(
-    (newToken: string, user: UserProfile) => {
+    async (newToken: string, user: UserProfile) => {
       if (!store) return;
       prefs.set(TOKEN_KEY, newToken);
       prefs.set("vochat.accountProfile", JSON.stringify(user));
-      store.enqueueAll(); // lokal angelegte Daten zum Konto hochladen
+      if (store.owner !== "local" && store.owner !== user.id) {
+        // Lokale Daten gehören einem anderen Konto: nicht hochladen, sondern verwerfen und neu laden.
+        await store.clearAll();
+        store.setOwner(user.id);
+        await store.flush();
+        window.location.reload();
+        return;
+      }
+      if (store.owner === "local") store.enqueueAll(); // anonym angelegte Daten zum Konto hochladen
+      store.setOwner(user.id);
       setToken(newToken);
       setProfile(user);
       startEngine(store, newToken, user.id);
@@ -171,17 +181,25 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     [store, startEngine],
   );
 
-  const disconnect = useCallback(() => {
-    if (!store) return;
-    const old = token;
-    prefs.set(TOKEN_KEY, null);
-    prefs.set("vochat.accountProfile", null);
-    const local = readLocalProfile();
-    setToken(null);
-    setProfile(local);
-    startEngine(store, null, null);
-    if (old) void api.logout(old).catch(() => undefined);
-  }, [store, token, startEngine]);
+  const disconnect = useCallback(
+    async (opts: { clearLocal?: boolean } = {}) => {
+      if (!store) return;
+      const old = token;
+      prefs.set(TOKEN_KEY, null);
+      prefs.set("vochat.accountProfile", null);
+      if (old) void api.logout(old).catch(() => undefined);
+      if (opts.clearLocal) {
+        await store.clearAll();
+        await store.flush();
+        window.location.reload();
+        return;
+      }
+      setToken(null);
+      setProfile(readLocalProfile());
+      startEngine(store, null, null);
+    },
+    [store, token, startEngine],
+  );
 
   const updateProfile = useCallback(
     async (patch: ProfilePatch) => {

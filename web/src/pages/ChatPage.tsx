@@ -4,7 +4,7 @@ import { LANGUAGES, type ExtractResult, type LangCode, type LexemeSummary } from
 import { api, ApiError, extract } from "../api/client";
 import { useSession, useSyncStatus } from "../session";
 import { useActiveLang } from "../lib/lang";
-import { addCardFromLexeme, hasCardFor, hasCardWord } from "../lib/cards";
+import { addCardFromLexeme, addOwnWord, hasCardFor, hasCardWord } from "../lib/cards";
 import { newId } from "../lib/ids";
 import { LexemeInfo } from "../components/LexemeInfo";
 import { WordView } from "../components/WordView";
@@ -150,6 +150,8 @@ export function ChatPage() {
                 lang={lang}
                 isAdded={(id) => hasCardFor(cards, id)}
                 onAdd={(lexeme) => addCardFromLexeme(collections, lexeme, lang)}
+                ownExists={hasCardWord(cards, lang, (m.payload as LookupPayload).query)}
+                onAddOwn={(word) => addOwnWord(collections, { lang, lemma: word })}
               />
             )}
             {m.kind === "extract" && (
@@ -210,17 +212,31 @@ function LookupMessage({
   lang,
   isAdded,
   onAdd,
+  ownExists,
+  onAddOwn,
 }: {
   body: string;
   payload: LookupPayload;
   lang: LangCode;
   isAdded: (id: number) => boolean;
   onAdd: (lexeme: LexemeSummary) => void;
+  ownExists: boolean;
+  onAddOwn: (word: string) => void;
 }) {
   const [open, setOpen] = useState<number | null>(payload.results.length === 1 ? payload.results[0].id : null);
   return (
     <div>
       <div className="small muted">{body}</div>
+      {payload.results.length === 0 && (
+        <div className="row" style={{ marginTop: "0.4rem" }}>
+          {ownExists ? (
+            <span className="muted small">✓ als eigenes Wort gespeichert</span>
+          ) : (
+            <button className="small-btn" onClick={() => onAddOwn(payload.query)}>Als eigenes Wort speichern</button>
+          )}
+          <span className="muted small">Bedeutung kannst du im Wortschatz ergänzen.</span>
+        </div>
+      )}
       {payload.results.map((r) => (
         <div key={r.id} className="lookup-item">
           <div className="row">
@@ -254,7 +270,7 @@ function ExtractMessage({
   cards: CardRow[];
   onAdd: (lexeme: LexemeSummary) => void;
 }) {
-  const fresh = payload.matches.filter((m) => !hasCardFor(cards, m.id) && !hasCardWord(cards, lang, m.lemma));
+  const fresh = payload.matches.filter((m) => !hasCardFor(cards, m.id) && !hasCardWord(cards, lang, m.lemma, m.id));
   return (
     <div className="stack" style={{ gap: "0.4rem" }}>
       <div className="small muted">{body}</div>
