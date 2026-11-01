@@ -52,9 +52,10 @@ export function buildSmartPack(
   let newCount = 0;
   for (const card of cards) {
     const acc = accuracyFor(events, card.id, opts.now, windowMs);
-    const waitingForReinsert =
-      acc.lastWrongAt !== null && opts.now - acc.lastWrongAt >= reinsertAfterMs && acc.rate !== null && acc.rate < 1;
-    const recentlyWrong = acc.lastWrongAt !== null && opts.now - acc.lastWrongAt < reinsertAfterMs;
+    // Wiedereinreihen nur, solange die letzte Antwort falsch war; eine spätere richtige Antwort beendet das.
+    const lastWasWrong = acc.lastOutcome === "wrong" && acc.lastWrongAt !== null;
+    const waitingForReinsert = lastWasWrong && opts.now - acc.lastWrongAt! >= reinsertAfterMs;
+    const recentlyWrong = lastWasWrong && opts.now - acc.lastWrongAt! < reinsertAfterMs;
     // Schwach erst ab zwei Antworten im Fenster, sonst reicht ein Ausrutscher.
     const weak = acc.rate !== null && acc.right + acc.wrong >= 2 && acc.rate < weakBelow;
 

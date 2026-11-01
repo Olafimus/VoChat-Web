@@ -16,14 +16,22 @@ export interface Accuracy {
   /** Trefferquote im Zeitfenster, null wenn keine Antworten vorliegen. */
   rate: number | null;
   lastWrongAt: number | null;
+  /** Ergebnis der jüngsten Antwort im Zeitfenster. */
+  lastOutcome: Outcome | null;
 }
 
 export function accuracyFor(events: ReviewEvent[], cardId: string, now: number, windowMs: number): Accuracy {
   let right = 0;
   let wrong = 0;
   let lastWrongAt: number | null = null;
+  let lastAt = -Infinity;
+  let lastOutcome: Outcome | null = null;
   for (const e of events) {
     if (e.cardId !== cardId || e.at < now - windowMs) continue;
+    if (e.at >= lastAt) {
+      lastAt = e.at;
+      lastOutcome = e.outcome;
+    }
     if (e.outcome === "right") right++;
     else {
       wrong++;
@@ -31,5 +39,5 @@ export function accuracyFor(events: ReviewEvent[], cardId: string, now: number, 
     }
   }
   const total = right + wrong;
-  return { right, wrong, rate: total === 0 ? null : right / total, lastWrongAt };
+  return { right, wrong, rate: total === 0 ? null : right / total, lastWrongAt, lastOutcome };
 }

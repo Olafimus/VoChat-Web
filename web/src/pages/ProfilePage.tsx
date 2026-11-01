@@ -47,6 +47,19 @@ export function ProfilePage() {
   const [learn, setLearn] = useState<{ lang: LangCode; targetCefr: Cefr | null }[]>(user.learnLangs);
   const [saved, setSaved] = useState<string | null>(null);
 
+  // Nach An- oder Abmelden wechselt das Profil: Formular mit den Werten des neuen Profils füllen,
+  // damit beim Speichern nicht die alten (lokalen) Werte ins Konto geschrieben werden.
+  useEffect(() => {
+    setName(user.name);
+    setNativeLang(user.nativeLang);
+    setLearn(user.learnLangs);
+    setBio(user.bio);
+    setProfilePublic(user.profilePublic);
+    setShowProgress(user.showProgress);
+    setSaved(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user.id]);
+
   const toggle = (lang: LangCode) => {
     setLearn((prev) =>
       prev.some((l) => l.lang === lang) ? prev.filter((l) => l.lang !== lang) : [...prev, { lang, targetCefr: "B1" }],
@@ -60,7 +73,7 @@ export function ProfilePage() {
       await updateProfile({ name, nativeLang, learnLangs: learn, bio, profilePublic, showProgress });
       setSaved("Gespeichert.");
     } catch (err) {
-      setSaved(err instanceof ApiError && err.status === 0 ? "Offline – nur lokal gespeichert." : "Speichern fehlgeschlagen.");
+      setSaved(err instanceof ApiError && err.status === 0 ? "Offline – nicht gespeichert. Bitte erneut versuchen, sobald du online bist." : "Speichern fehlgeschlagen.");
     }
   };
 

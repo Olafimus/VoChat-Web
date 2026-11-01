@@ -27,7 +27,7 @@ services:
       CORS_ORIGINS: ${PUBLIC_ORIGIN:-http://localhost:8080}
       MEDIA_DRIVER: ${MEDIA_DRIVER:-local}
       MEDIA_LOCAL_DIR: /app/backend/data/media
-      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      APP_SECRET: ${APP_SECRET:-}
     volumes:
       - media:/app/backend/data/media
     depends_on:

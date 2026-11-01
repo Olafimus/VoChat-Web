@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHmac, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import type { AuthResponse, CEFR_LEVELS, LangCode, UserProfile } from "@vochat/shared";
 import type { Db } from "./db/index.js";
 
@@ -14,8 +14,25 @@ interface UserRow {
   show_progress: number;
 }
 
+/**
+ * Avatar-Links sind signiert (HMAC über Nutzer-ID und Version). So können Browser Avatare
+ * privater Profile per <img> laden, ohne Token-Header – sichtbar für alle, denen die API den
+ * Link herausgibt. Der Schlüssel kommt aus APP_SECRET oder wird dauerhaft in der DB abgelegt.
+ */
+let avatarSecret: Buffer = randomBytes(32);
+export const setAvatarSecret = (secret: string) => {
+  avatarSecret = Buffer.from(secret);
+};
+const sign = (id: string, version: number) => createHmac("sha256", avatarSecret).update(`${id}:${version}`).digest("base64url").slice(0, 22);
+
+export function verifyAvatarSignature(id: string, version: number, signature: string): boolean {
+  const expected = Buffer.from(sign(id, version));
+  const given = Buffer.from(signature);
+  return expected.length === given.length && timingSafeEqual(expected, given);
+}
+
 export const avatarUrl = (row: { id: string; avatar_ext: string | null; avatar_version: number }): string | null =>
-  row.avatar_ext ? `/media/avatars/${row.id}?v=${row.avatar_version}` : null;
+  row.avatar_ext ? `/media/avatars/${row.id}?v=${row.avatar_version}&s=${sign(row.id, Number(row.avatar_version))}` : null;
 
 export async function loadProfile(db: Db, userId: string): Promise<UserProfile | null> {
   const user = await db.get<UserRow>(

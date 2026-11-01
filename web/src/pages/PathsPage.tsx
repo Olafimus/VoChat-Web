@@ -93,7 +93,7 @@ function PathDetail({ id, lang, native, onBack, cards }: { id: string; lang: Lan
   if (!detail?.items) return <div className="muted">Lade …</div>;
   const detailItems = detail.items;
   const cov = coverage(detailItems, cards);
-  const missing = detailItems.filter((i) => !hasCardWord(cards, i.lang, i.lemma, i.lexemeId));
+  const missing = cov.missing;
 
   const copyToOwn = () => {
     const row = newMediaCollection({
@@ -120,7 +120,7 @@ function PathDetail({ id, lang, native, onBack, cards }: { id: string; lang: Lan
         <Coverage ratio={cov.ratio} known={cov.known} learning={cov.learning} total={cov.total} />
         <div className="row">
           <button className="primary" onClick={copyToOwn} disabled={copied}>{copied ? "Übernommen ✓" : "Als eigene Liste übernehmen"}</button>
-          <button onClick={() => missing.forEach((i) => addCard(collections, { lang: i.lang, lemma: i.lemma, lexemeId: i.lexemeId, gloss: i.gloss, cefr: (i.cefr as Cefr | null) ?? null }))} disabled={missing.length === 0}>
+          <button onClick={() => missing.forEach((i) => addCardOf(collections, i))} disabled={missing.length === 0}>
             Alle fehlenden lernen ({missing.length})
           </button>
         </div>
@@ -139,6 +139,7 @@ function SharedMedia() {
   const [type, setType] = useState<string>("");
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<"new" | "rating">("rating");
+  const [allLangs, setAllLangs] = useState(false);
   const [list, setList] = useState<CatalogCollection[] | null>(null);
   const [open, setOpen] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -147,7 +148,7 @@ function SharedMedia() {
   useEffect(() => {
     const t = setTimeout(() => {
       api
-        .publicCollections({ kind: "media", mediaType: type, q, sort }, token)
+        .publicCollections({ kind: "media", mediaType: type, q, sort, lang: allLangs ? undefined : lang }, token)
         .then((r) => {
           setList(r);
           setError(null);
@@ -155,7 +156,7 @@ function SharedMedia() {
         .catch((err) => setError(err instanceof ApiError && err.status === 0 ? "Offline – geteilte Medien brauchen eine Verbindung." : "Laden fehlgeschlagen."));
     }, 250);
     return () => clearTimeout(t);
-  }, [type, q, sort, token]);
+  }, [type, q, sort, token, lang, allLangs]);
 
   if (open) return <MediaDetail id={open} cards={cards} onBack={() => setOpen(null)} />;
 
@@ -191,7 +192,10 @@ function SharedMedia() {
           </li>
         ))}
       </ul>
-      <div className="muted small">Angezeigte Sprache richtet sich nach deiner Lernsprache: {lang.toUpperCase()}</div>
+      <label className="inline small">
+        <input type="checkbox" checked={allLangs} onChange={(e) => setAllLangs(e.target.checked)} />
+        Alle Sprachen zeigen (sonst nur {LANGUAGES[lang].name})
+      </label>
       {user.learnLangs.length === 0 && <div className="muted small">Tipp: Lernsprache im Profil wählen.</div>}
     </div>
   );
@@ -218,7 +222,7 @@ function MediaDetail({ id, cards, onBack }: { id: string; cards: CardRow[]; onBa
   if (!detail?.items) return <div className="muted">Lade …</div>;
   const detailItems = detail.items;
   const cov = coverage(detailItems, cards);
-  const missing = detailItems.filter((i) => !hasCardWord(cards, i.lang, i.lemma, i.lexemeId));
+  const missing = cov.missing;
 
   const copyToOwn = () => {
     const row = newMediaCollection({
@@ -478,7 +482,7 @@ function CreateCollection({ onDone, defaultLang }: { onDone: () => void; default
 function OwnDetail({ c, cards, onBack, engine, token }: { c: MediaCollectionRow; cards: CardRow[]; onBack: () => void; engine: { getStatus: () => { enabled: boolean } }; token: string | null }) {
   const { collections } = useSession();
   const cov = coverage(c.items, cards);
-  const missing = c.items.filter((i) => !hasCardWord(cards, i.lang, i.lemma, i.lexemeId));
+  const missing = cov.missing;
   const remove = () => {
     collections.collections.update(c.id, (d) => {
       d.deleted = true;

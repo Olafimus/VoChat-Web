@@ -5,6 +5,18 @@ import { createApp } from "./app.js";
 import { openDatabase } from "./db/index.js";
 import { loadConfig } from "./config.js";
 import { createMediaStore } from "./media.js";
+import { randomBytes } from "node:crypto";
+import type { Db } from "./db/index.js";
+
+/** Dauerhaftes Geheimnis der Installation: aus APP_SECRET oder einmalig erzeugt und in der DB gespeichert. */
+async function loadAppSecret(db: Db, fromEnv: string | undefined): Promise<string> {
+  if (fromEnv) return fromEnv;
+  const row = await db.get<{ value: string }>("SELECT value FROM app_settings WHERE key = 'app_secret'");
+  if (row) return row.value;
+  const secret = randomBytes(32).toString("base64url");
+  await db.run("INSERT INTO app_settings (key, value) VALUES ('app_secret', ?) ON CONFLICT (key) DO NOTHING", [secret]);
+  return (await db.get<{ value: string }>("SELECT value FROM app_settings WHERE key = 'app_secret'"))!.value;
+}
 
 const config = loadConfig();
 const isFile = !/^(postgres(ql)?:\/\/|pglite:)/.test(config.database) && config.database !== ":memory:";
@@ -15,7 +27,7 @@ const media = await createMediaStore(config.media);
 const app = createApp({
   db,
   corsOrigins: config.corsOrigins,
-  adminEmails: config.adminEmails,
+  appSecret: await loadAppSecret(db, config.appSecret),
   community: { verifyThreshold: config.verifyThreshold, rejectThreshold: config.rejectThreshold, maxPendingPerUser: 30 },
   media,
   trustProxy: config.trustProxy,

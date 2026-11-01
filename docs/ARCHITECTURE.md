@@ -121,7 +121,7 @@ Das Wörterbuch wächst durch Beiträge der Community. Ein Beitrag erscheint ers
 |---|---|
 | Nutzer (mit Konto) | Beiträge vorschlagen (max. 30 offen), abstimmen |
 | Experte (je Sprache) | verbindlich verifizieren oder ablehnen, Beiträge der Sprache widerrufen |
-| Admin | alles, Experten ernennen; per `ADMIN_EMAILS` automatisch beim Anmelden |
+| Admin | alles, Experten ernennen; vergeben vom Betreiber per Kommando (`npm run admin:grant`), nie automatisch |
 
 Beitragsarten: neues Wort, Bedeutung, Beispielsatz, Übersetzung, Widerruf (Ausblenden fehlerhafter Angaben).
 

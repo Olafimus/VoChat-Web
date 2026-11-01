@@ -107,11 +107,13 @@ export function LearnPage() {
     });
     setFeedback(wrong ? "wrong" : "right");
     setQueue((q) => {
-      const rest = q.slice(1);
+      // Genau die beantwortete Karte entfernen (nicht blind die erste ID – die kann inzwischen gelöscht sein).
+      const at = q.indexOf(current.id);
+      const rest = at >= 0 ? [...q.slice(0, at), ...q.slice(at + 1)] : q;
       if (!wrong) return rest;
       // Falsche Karte kommt nach ein paar anderen Karten noch einmal dran.
-      const at = Math.min(3, rest.length);
-      return [...rest.slice(0, at), current.id, ...rest.slice(at)];
+      const later = Math.min(3, rest.length);
+      return [...rest.slice(0, later), current.id, ...rest.slice(later)];
     });
     resetCard();
   };

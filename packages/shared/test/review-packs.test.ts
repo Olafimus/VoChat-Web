@@ -92,3 +92,17 @@ describe("coverage with references", () => {
     expect(c.missing).toHaveLength(0);
   });
 });
+
+describe("reinsert only while the last answer is wrong", () => {
+  it("stops reinserting a card once it was answered correctly", () => {
+    const card = { id: "c", status: "review" as const, dueAt: now + DAY, createdAt: 0, lapses: 0 };
+    const events = [
+      { cardId: "c", outcome: "wrong" as const, mode: "type" as const, at: now - 2 * 60 * 60 * 1000 },
+      { cardId: "c", outcome: "right" as const, mode: "type" as const, at: now - 60 * 60 * 1000 },
+      { cardId: "c", outcome: "right" as const, mode: "type" as const, at: now - 30 * 60 * 1000 },
+      { cardId: "c", outcome: "right" as const, mode: "type" as const, at: now - 20 * 60 * 1000 },
+    ];
+    // 3 von 4 richtig (75 %) ist nicht schwach; nach den richtigen Antworten gibt es nichts nachzuholen.
+    expect(buildSmartPack([card], events, { now })).toEqual([]);
+  });
+});

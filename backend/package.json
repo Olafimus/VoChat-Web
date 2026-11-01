@@ -10,7 +10,8 @@
     "import:dictionary": "tsx scripts/import-dictionary.ts",
     "test": "vitest run",
     "seed:songs": "tsx scripts/seed-public-songs.ts",
-    "test:pg": "TEST_DB=postgres vitest run"
+    "test:pg": "TEST_DB=postgres vitest run",
+    "admin:grant": "tsx scripts/grant-role.ts"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.5",

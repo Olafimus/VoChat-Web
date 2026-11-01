@@ -4,7 +4,8 @@
  * Diakritika und Null-Breite-Zeichen. Über (Sprache, Schlüssel) verknüpfen sich eigene
  * Vokabeln, Sammlungen und Wörterbuch auch nachträglich automatisch.
  */
-const HARAKAT = /[ً-ٰٟۖ-ۭـ]/g;
+/** Arabische/persische Diakritika (Harakat) und Tatweel. */
+export const HARAKAT = /[ً-ٰٟۖ-ۭـ]/g;
 
 export function lemmaKey(text: string): string {
   return text

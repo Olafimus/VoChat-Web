@@ -17,7 +17,7 @@ import type { Db } from "./db/index.js";
 import { browseLexemes, extractWords, languageStats, lexemeDetail, lexemesByIds, resolveWords, searchLexemes } from "./dictionary.js";
 import { bodyLimit } from "hono/body-limit";
 import { rateLimit } from "./ratelimit.js";
-import { createUser, findUserByEmail, loadProfile, authResponse } from "./users.js";
+import { createUser, findUserByEmail, loadProfile, authResponse, setAvatarSecret, verifyAvatarSignature } from "./users.js";
 import { pullChanges, pushOps } from "./sync.js";
 import {
   DEFAULT_COMMUNITY,
@@ -42,8 +42,8 @@ export interface AppOptions {
   db: Db;
   now?: () => number;
   corsOrigins?: string[];
-  /** E-Mail-Adressen, die beim Anmelden automatisch Admin-Rechte bekommen. */
-  adminEmails?: string[];
+  /** Geheimnis für signierte Links (Avatare). Ohne Angabe: zufällig je Prozess. */
+  appSecret?: string;
   community?: CommunityOptions;
   /** Medien-Speicher (Profilbilder). `null`: Uploads sind deaktiviert. */
   media?: MediaStore | null;
@@ -60,21 +60,22 @@ export function createApp({
   db,
   now = Date.now,
   corsOrigins = ["http://localhost:5173"],
-  adminEmails = [],
+  appSecret,
   community = DEFAULT_COMMUNITY,
   media = null,
   trustProxy = false,
   publicRateLimit = 120,
 }: AppOptions): Hono {
   const app = new Hono();
-  const admins = new Set(adminEmails.map((e) => e.toLowerCase()));
-  const bootstrapAdmin = async (userId: string, email: string) => {
-    if (admins.has(email.toLowerCase())) await grantRole(db, userId, "admin", "", now());
-  };
+  if (appSecret) setAvatarSecret(appSecret);
   const publicLimit = rateLimit({ windowMs: 60_000, max: publicRateLimit, trustProxy, name: "public" });
   const jsonLimit = (maxSize: number) =>
     bodyLimit({ maxSize, onError: (c) => c.json({ error: "payload too large" }, 413) });
   const loginAttempts = new Map<string, { count: number; resetAt: number }>();
+  const pruneLoginAttempts = () => {
+    if (loginAttempts.size < 10_000) return;
+    for (const [k, v] of loginAttempts) if (v.resetAt <= now()) loginAttempts.delete(k);
+  };
 
   app.use("*", cors({ origin: corsOrigins, allowHeaders: ["Authorization", "Content-Type"], allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"] }));
   app.onError((err, c) => {
@@ -98,7 +99,6 @@ export function createApp({
     } catch {
       return c.json({ error: "email already registered" }, 409); // gleichzeitige Registrierung
     }
-    await bootstrapAdmin(userId, email);
     const token = await createSession(db, userId, now());
     return c.json(authResponse(token, (await loadProfile(db, userId))!), 201);
   });
@@ -117,12 +117,12 @@ export function createApp({
     const ok = user ? await verifyPassword(parsed.data.password, user.password_hash) : false;
     if (!user || !ok) {
       const current = loginAttempts.get(email);
+      pruneLoginAttempts();
       if (!current || current.resetAt <= now()) loginAttempts.set(email, { count: 1, resetAt: now() + LOGIN_WINDOW_MS });
       else current.count++;
       return c.json({ error: "invalid credentials" }, 401);
     }
     loginAttempts.delete(email);
-    await bootstrapAdmin(user.id, email);
     const token = await createSession(db, user.id, now());
     return c.json(authResponse(token, (await loadProfile(db, user.id))!));
   });
@@ -190,16 +190,22 @@ export function createApp({
   app.get("/media/avatars/:userId", maybeAuth, async (c) => {
     if (!media) return c.json({ error: "not found" }, 404);
     const id = c.req.param("userId");
-    const row = await db.get<{ avatar_ext: string | null; profile_public: number }>("SELECT avatar_ext, profile_public FROM users WHERE id = ?", [id]);
+    const row = await db.get<{ avatar_ext: string | null; avatar_version: number; profile_public: number }>(
+      "SELECT avatar_ext, avatar_version, profile_public FROM users WHERE id = ?",
+      [id],
+    );
     if (!row?.avatar_ext) return c.json({ error: "not found" }, 404);
+    const isPublic = Number(row.profile_public) === 1;
+    // Sichtbar bei öffentlichem Profil, mit gültigem signiertem Link (den nur berechtigte Betrachter
+    // über die API erhalten) oder für API-Clients mit passendem Token.
+    const signed = verifyAvatarSignature(id, Number(row.avatar_version), c.req.query("s") ?? "");
     const viewer = maybeUserId(c);
-    const visible =
-      Number(row.profile_public) === 1 || viewer === id || (viewer !== undefined && (await followState(db, viewer, id)) === "accepted");
+    const visible = isPublic || signed || viewer === id || (viewer !== undefined && (await followState(db, viewer, id)) === "accepted");
     if (!visible) return c.json({ error: "not found" }, 404);
     const object = await media.get(`avatars/${id}.${row.avatar_ext}`);
     if (!object) return c.json({ error: "not found" }, 404);
     return new Response(object.body as unknown as BodyInit, {
-      headers: { "content-type": object.contentType, "cache-control": "public, max-age=3600" },
+      headers: { "content-type": object.contentType, "cache-control": `${isPublic ? "public" : "private"}, max-age=3600` },
     });
   });
 
@@ -244,8 +250,21 @@ export function createApp({
 
   app.get("/social/friends", auth, async (c) => c.json(await listFriends(db, currentUserId(c))));
   app.get("/social/requests", auth, async (c) => c.json(await listRequests(db, currentUserId(c))));
-  app.get("/social/followers/:id", maybeAuth, async (c) => c.json(await listFollowers(db, c.req.param("id"))));
-  app.get("/social/following/:id", maybeAuth, async (c) => c.json(await listFollowing(db, c.req.param("id"))));
+  /** Listen nur, wenn das Profil öffentlich ist, man es selbst ist oder als Follower zugelassen wurde. */
+  const canSeeConnections = async (viewer: string | undefined, target: string) => {
+    if (viewer === target) return true;
+    const u = await db.get<{ profile_public: number }>("SELECT profile_public FROM users WHERE id = ?", [target]);
+    if (!u) return false;
+    return Number(u.profile_public) === 1 || (viewer !== undefined && (await followState(db, viewer, target)) === "accepted");
+  };
+  app.get("/social/followers/:id", maybeAuth, async (c) => {
+    if (!(await canSeeConnections(maybeUserId(c), c.req.param("id")))) return c.json({ error: "not found" }, 404);
+    return c.json(await listFollowers(db, c.req.param("id")));
+  });
+  app.get("/social/following/:id", maybeAuth, async (c) => {
+    if (!(await canSeeConnections(maybeUserId(c), c.req.param("id")))) return c.json({ error: "not found" }, 404);
+    return c.json(await listFollowing(db, c.req.param("id")));
+  });
   app.get("/social/feed", auth, async (c) => c.json(await feed(db, currentUserId(c), 40)));
 
   // ---- Sync -------------------------------------------------------------

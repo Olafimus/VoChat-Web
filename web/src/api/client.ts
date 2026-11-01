@@ -11,6 +11,9 @@ import type {
 
 const BASE: string = import.meta.env.VITE_API_URL ?? "/api";
 
+/** Vom Server gelieferte Pfade (z. B. Avatar-Links) liegen hinter der API-Basis. */
+export const apiUrl = (path: string): string => (path.startsWith("/") ? BASE + path : path);
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -67,7 +70,7 @@ export const api = {
   paths: (lang: LangCode) => request<CatalogCollection[]>(`/catalog/paths?lang=${lang}`),
   pathDetail: (id: string, native: LangCode) =>
     request<CatalogCollection>(`/catalog/paths/${encodeURIComponent(id)}?native=${native}`),
-  publicCollections: (params: { kind?: string; mediaType?: string; q?: string; sort?: string; owner?: string }, token?: string | null) => {
+  publicCollections: (params: { kind?: string; mediaType?: string; q?: string; sort?: string; owner?: string; lang?: string }, token?: string | null) => {
     const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v) as [string, string][]).toString();
     return request<CatalogCollection[]>(`/catalog/collections${qs ? `?${qs}` : ""}`, { token });
   },

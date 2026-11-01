@@ -89,7 +89,7 @@ describe("follow and friends", () => {
     const accept = await app.request(`/social/follow-requests/${fan.user.id}/accept`, auth(priv.token, "POST"));
     expect(accept.status).toBe(200);
 
-    const followers = await (await app.request(`/social/followers/${priv.user.id}`)).json();
+    const followers = await (await app.request(`/social/followers/${priv.user.id}`, auth(priv.token))).json();
     expect(followers.map((f: { id: string }) => f.id)).toEqual([fan.user.id]);
   });
 
@@ -163,5 +163,32 @@ describe("follow and friends", () => {
     const searcher = await user("searcher@example.com");
     const found = await (await app.request("/social/users?q=Sophie", auth(searcher.token))).json();
     expect(found.map((u: { name: string }) => u.name)).toEqual(["Sophie Public"]);
+  });
+});
+
+describe("privacy fixes from review", () => {
+  it("hides follower lists of private profiles from strangers", async () => {
+    const priv = await user("lists-priv@example.com");
+    await app.request("/me", json({ profilePublic: false }, priv.token, "PATCH"));
+    const fan = await user("lists-fan@example.com");
+    expect((await app.request(`/social/followers/${priv.user.id}`)).status).toBe(404);
+    expect((await app.request(`/social/following/${priv.user.id}`, auth(fan.token))).status).toBe(404);
+    await app.request(`/social/follow/${priv.user.id}`, auth(fan.token, "POST"));
+    await app.request(`/social/follow-requests/${fan.user.id}/accept`, auth(priv.token, "POST"));
+    expect((await app.request(`/social/followers/${priv.user.id}`, auth(fan.token))).status).toBe(200);
+  });
+
+  it("serves private avatars through signed links only", async () => {
+    const priv = await user("avatar-priv@example.com");
+    await app.request("/me", json({ profilePublic: false }, priv.token, "PATCH"));
+    const up = await app.request("/me/avatar", { method: "PUT", headers: { authorization: `Bearer ${priv.token}`, "content-type": "image/png" }, body: PNG });
+    const { avatarUrl } = (await up.json()) as { avatarUrl: string };
+    expect(avatarUrl).toMatch(/[?&]s=/);
+    expect((await app.request(`/media/avatars/${priv.user.id}`)).status).toBe(404);
+    const signed = await app.request(avatarUrl);
+    expect(signed.status).toBe(200);
+    expect(signed.headers.get("cache-control")).toContain("private");
+    const tampered = avatarUrl.replace(/s=[^&]+/, "s=AAAAAAAAAAAAAAAAAAAAAA");
+    expect((await app.request(tampered)).status).toBe(404);
   });
 });

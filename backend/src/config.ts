@@ -6,7 +6,8 @@ export interface Config {
   database: string;
   trustProxy: boolean;
   corsOrigins: string[];
-  adminEmails: string[];
+  /** Geheimnis für signierte Links; ohne Angabe wird eines erzeugt und in der DB abgelegt. */
+  appSecret: string | undefined;
   verifyThreshold: number;
   rejectThreshold: number;
   media: MediaConfig;
@@ -20,7 +21,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     database: env.DATABASE_URL || env.DB_PATH || "data/vochat.db",
     trustProxy: env.TRUST_PROXY === "1" || env.TRUST_PROXY === "true",
     corsOrigins: (env.CORS_ORIGINS ?? "http://localhost:5173").split(",").map((s) => s.trim()).filter(Boolean),
-    adminEmails: (env.ADMIN_EMAILS ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean),
+    appSecret: env.APP_SECRET || undefined,
     verifyThreshold: Number(env.COMMUNITY_VERIFY_THRESHOLD ?? 3),
     rejectThreshold: Number(env.COMMUNITY_REJECT_THRESHOLD ?? 3),
     media: {

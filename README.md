@@ -85,11 +85,14 @@ Medien (Profilbilder):
 | `MEDIA_S3_REGION` | `auto` | Region des Buckets |
 | `MEDIA_S3_ENDPOINT` | – | Für S3-kompatible Dienste (R2, MinIO) |
 
+Rollen (Admin, Experte je Sprache) vergibt der Betreiber per Kommando:
+`npm run admin:grant -w backend -- --email ich@example.com --role admin` bzw. `--role expert --lang fa`.
+
 Zusätzlich für die Community:
 
 | Variable | Standard | Zweck |
 |---|---|---|
-| `ADMIN_EMAILS` | leer | Kommagetrennte E-Mails, die beim Anmelden Admin werden |
+| `APP_SECRET` | wird erzeugt | Geheimnis für signierte Links (Avatare). Ohne Angabe einmalig erzeugt und in der DB gespeichert |
 | `COMMUNITY_VERIFY_THRESHOLD` | `3` | Übereinstimmende Stimmen, damit ein Beitrag verifiziert ist |
 | `COMMUNITY_REJECT_THRESHOLD` | `3` | Übereinstimmende Stimmen, damit ein Beitrag abgelehnt ist |
 
@@ -138,8 +141,10 @@ docker compose run --rm backend npm run seed:songs -w backend
 **Daten:** Die Datenbank liegt im Volume `pgdata`, hochgeladene Medien (Avatare) im Volume `media`
 (`/app/backend/data/media`). `docker compose down` behält beide, `docker compose down -v` löscht sie.
 
-**Admins:** In `.env` die Variable `ADMIN_EMAILS` setzen (kommagetrennt), z. B. `ADMIN_EMAILS=ich@example.com`,
-und mit `docker compose up -d` neu starten. Diese Adressen werden beim Anmelden Admin.
+**Admins und Experten** vergibt der Betreiber per Kommando, nachdem sich die Person registriert hat:
+`docker compose run --rm backend node --import tsx scripts/grant-role.ts --email ich@example.com --role admin`
+(Experten: `--role expert --lang fa`, Entziehen: `--revoke`). Rollen werden bewusst nicht über E-Mail-Listen
+vergeben, weil E-Mail-Adressen nicht verifiziert werden.
 
 **Öffentlich betreiben:** `PUBLIC_ORIGIN` auf die echte URL setzen (z. B. `https://vochat.example.com`), da sie als `CORS_ORIGINS` verwendet wird.
 

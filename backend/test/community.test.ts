@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
+import { grantRole } from "../src/community.js";
 import type { Db } from "../src/db/index.js";
 import { addGloss, addLexeme, testDb } from "./helpers.js";
 
@@ -15,6 +16,13 @@ const post = (path: string, body: unknown, token?: string, method = "POST") =>
   });
 const get = (path: string, token?: string) => app.request(path, { headers: token ? { authorization: `Bearer ${token}` } : {} });
 
+/** Admin wie über das Betreiber-Kommando `admin:grant` ernannt. */
+async function admin(email = "admin@example.com") {
+  const u = await user(email);
+  await grantRole(db, u.user.id, "admin", "", Date.now());
+  return u;
+}
+
 async function user(email: string, nativeLang = "de") {
   const res = await app.request("/auth/register", {
     method: "POST",
@@ -28,7 +36,7 @@ beforeEach(async () => {
   db = await testDb();
   await addLexeme(db, { id: 1, lang: "fa", lemma: "آب", rank: 1 });
   await addGloss(db, 1, "de", "Wasser");
-  app = createApp({ db, adminEmails: ["admin@example.com"], community: OPTS });
+  app = createApp({ db, community: OPTS });
 });
 
 describe("community contributions", () => {
@@ -62,11 +70,11 @@ describe("community contributions", () => {
   });
 
   it("lets a language expert decide alone, and only for their language", async () => {
-    const admin = await user("admin@example.com");
+    const adminUser = await admin();
     const expert = await user("experte@example.com");
     const other = await user("other@example.com");
     const author = await user("a3@example.com");
-    const grant = await post("/admin/roles", { email: "experte@example.com", role: "expert", lang: "fa" }, admin.token);
+    const grant = await post("/admin/roles", { email: "experte@example.com", role: "expert", lang: "fa" }, adminUser.token);
     expect(grant.status).toBe(201);
 
     const { id } = await (await post("/community/contributions", { payload: { kind: "sense", lexemeId: 1, glossLang: "de", gloss: "Wasser (Trink-)" } }, author.token)).json();
@@ -89,20 +97,20 @@ describe("community contributions", () => {
   });
 
   it("lets an expert retract a wrong sense, and an admin can revoke a verified contribution", async () => {
-    const admin = await user("admin@example.com");
-    await post("/admin/roles", { email: "admin@example.com", role: "expert", lang: "fa" }, admin.token);
+    const adminUser = await admin();
+    await post("/admin/roles", { email: "admin@example.com", role: "expert", lang: "fa" }, adminUser.token);
     const author = await user("a5@example.com");
     const { id } = await (await post("/community/contributions", { payload: { kind: "sense", lexemeId: 1, glossLang: "de", gloss: "Quatsch" } }, author.token)).json();
-    await post(`/community/contributions/${id}/decide`, { decision: "verify" }, admin.token);
+    await post(`/community/contributions/${id}/decide`, { decision: "verify" }, adminUser.token);
     expect((await (await get("/dictionary/lexemes/1?native=de")).json()).senses.map((s: { gloss: string }) => s.gloss)).toContain("Quatsch");
 
     const senseRow = (await db.get("SELECT id FROM senses WHERE gloss = 'Wasser'")) as { id: number };
     const retract = await post("/community/contributions", { payload: { kind: "retract", target: "sense", targetId: senseRow.id, reason: "falsche Bedeutung" } }, author.token);
     const rid = (await retract.json()).id;
-    await post(`/community/contributions/${rid}/decide`, { decision: "verify" }, admin.token);
+    await post(`/community/contributions/${rid}/decide`, { decision: "verify" }, adminUser.token);
     expect((await (await get("/dictionary/lexemes/1?native=de")).json()).senses.map((s: { gloss: string }) => s.gloss)).not.toContain("Wasser");
 
-    const revoke = await post(`/community/contributions/${id}/decide`, { decision: "revoke" }, admin.token);
+    const revoke = await post(`/community/contributions/${id}/decide`, { decision: "revoke" }, adminUser.token);
     expect(revoke.status).toBe(200);
     expect((await (await get("/dictionary/lexemes/1?native=de")).json()).senses.map((s: { gloss: string }) => s.gloss)).not.toContain("Quatsch");
   });
@@ -113,10 +121,47 @@ describe("community contributions", () => {
     expect(res.status).toBe(403);
   });
 
-  it("gives configured admin emails the admin role on login", async () => {
+  it("never grants roles from registration, whatever the email address", async () => {
     await user("admin@example.com");
-    const row = (await db.get("SELECT r.role FROM user_roles r JOIN users u ON u.id = r.user_id WHERE u.email = 'admin@example.com'")) as { role: string };
-    expect(row.role).toBe("admin");
+    const row = await db.get("SELECT r.role FROM user_roles r JOIN users u ON u.id = r.user_id WHERE u.email = 'admin@example.com'");
+    expect(row).toBeUndefined();
+  });
+
+  it("revoking a suggested word that already existed does not hide the original entry", async () => {
+    const adminUser = await admin();
+    const author = await user("a6@example.com");
+    // "آب" existiert bereits (id 1); der Vorschlag trifft genau dieses Lexem.
+    const { id } = await (await post("/community/contributions", { payload: { kind: "lexeme", lang: "fa", lemma: "آب", glossLang: "de", gloss: "Wasser (neu)" } }, author.token)).json();
+    await post(`/community/contributions/${id}/decide`, { decision: "verify" }, adminUser.token);
+    await post(`/community/contributions/${id}/decide`, { decision: "revoke" }, adminUser.token);
+    const res = await get("/dictionary/lexemes/1?native=de");
+    expect(res.status).toBe(200);
+    const senses = (await res.json()).senses.map((s: { gloss: string }) => s.gloss);
+    expect(senses).toContain("Wasser");
+    expect(senses).not.toContain("Wasser (neu)");
+  });
+
+  it("revoking a pronunciation keeps a pronunciation that existed before", async () => {
+    const adminUser = await admin();
+    await db.run("UPDATE lexemes SET romanization = 'āb' WHERE id = 1");
+    const author = await user("a7@example.com");
+    const { id } = await (await post("/community/contributions", { payload: { kind: "pronunciation", lexemeId: 1, romanization: "āb" } }, author.token)).json();
+    await post(`/community/contributions/${id}/decide`, { decision: "verify" }, adminUser.token);
+    await post(`/community/contributions/${id}/decide`, { decision: "revoke" }, adminUser.token);
+    expect((await (await get("/dictionary/lexemes/1?native=de")).json()).romanization).toBe("āb");
+  });
+
+  it("applies a contribution only once even if it is decided twice", async () => {
+    const adminUser = await admin();
+    const author = await user("a8@example.com");
+    const { id } = await (await post("/community/contributions", { payload: { kind: "sense", lexemeId: 1, glossLang: "de", gloss: "Nass" } }, author.token)).json();
+    const [a, b] = await Promise.all([
+      post(`/community/contributions/${id}/decide`, { decision: "verify" }, adminUser.token),
+      post(`/community/contributions/${id}/decide`, { decision: "verify" }, adminUser.token),
+    ]);
+    expect([a.status, b.status].sort()).toEqual([200, 409]);
+    const count = await db.get<{ n: number }>("SELECT COUNT(*) AS n FROM senses WHERE gloss = 'Nass'");
+    expect(Number(count?.n)).toBe(1);
   });
 
   it("limits pending contributions per user", async () => {

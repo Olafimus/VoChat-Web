@@ -1,6 +1,6 @@
 import { contributionPayloadSchema, type ContributionPayload, type ContributionStatus, type LangCode } from "@vochat/shared";
 import type { Db, Param } from "./db/index.js";
-import { addExample, addSense, addTranslation, upsertLexeme } from "./importers/common.js";
+import { addExample, addSense, addTranslation, upsertLexemeInfo } from "./importers/common.js";
 
 export interface CommunityOptions {
   verifyThreshold: number;
@@ -81,41 +81,51 @@ export async function submitContribution(db: Db, authorId: string, raw: unknown,
   return { ok: true, id: Number(row!.id) };
 }
 
+/** Was ein angewandter Beitrag tatsächlich verändert hat – nur das wird beim Widerruf zurückgenommen. */
+interface ResultInfo {
+  lexemeId: number | null;
+  createdLexeme?: boolean;
+  setRomanization?: boolean;
+}
+
+/** Setzt ein Feld nur, wenn es leer ist, und meldet, ob es gesetzt wurde. */
+async function fillIfEmpty(db: Db, column: "romanization" | "gender" | "cefr", value: string, lexemeId: number): Promise<boolean> {
+  const r = await db.run(`UPDATE lexemes SET ${column} = ? WHERE id = ? AND ${column} IS NULL`, [value, lexemeId]);
+  return r.changes > 0;
+}
+
 /** Wendet einen verifizierten Beitrag auf das Wörterbuch an. Alle Zeilen tragen die Quelle `community:<id>`. */
-async function apply(db: Db, id: number, payload: ContributionPayload): Promise<number | null> {
+async function apply(db: Db, id: number, payload: ContributionPayload): Promise<ResultInfo> {
   const source = `community:${id}`;
   switch (payload.kind) {
     case "lexeme": {
-      const lexemeId = await upsertLexeme(db, payload.lang, payload.lemma, payload.pos);
-      if (payload.gender) await db.run("UPDATE lexemes SET gender = COALESCE(gender, ?) WHERE id = ?", [payload.gender, lexemeId]);
-      if (payload.cefr) await db.run("UPDATE lexemes SET cefr = COALESCE(cefr, ?) WHERE id = ?", [payload.cefr, lexemeId]);
-      if (payload.romanization) {
-        await db.run("UPDATE lexemes SET romanization = COALESCE(romanization, ?) WHERE id = ?", [payload.romanization, lexemeId]);
-      }
+      const { id: lexemeId, created } = await upsertLexemeInfo(db, payload.lang, payload.lemma, payload.pos);
+      if (payload.gender) await fillIfEmpty(db, "gender", payload.gender, lexemeId);
+      if (payload.cefr) await fillIfEmpty(db, "cefr", payload.cefr, lexemeId);
+      const setRomanization = payload.romanization ? await fillIfEmpty(db, "romanization", payload.romanization, lexemeId) : false;
       await addSense(db, lexemeId, payload.glossLang, payload.gloss, source);
-      return lexemeId;
+      return { lexemeId, createdLexeme: created, setRomanization };
     }
     case "pronunciation":
       // Nur ergänzen, wenn noch keine Aussprache hinterlegt ist; eine bestehende bleibt.
-      await db.run("UPDATE lexemes SET romanization = COALESCE(romanization, ?) WHERE id = ?", [payload.romanization, payload.lexemeId]);
-      return payload.lexemeId;
+      return { lexemeId: payload.lexemeId, setRomanization: await fillIfEmpty(db, "romanization", payload.romanization, payload.lexemeId) };
     case "sense":
       await addSense(db, payload.lexemeId, payload.glossLang, payload.gloss, source);
-      return payload.lexemeId;
+      return { lexemeId: payload.lexemeId };
     case "example":
       await addExample(db, payload.lexemeId, payload.text, payload.translation, payload.translationLang, source);
-      return payload.lexemeId;
+      return { lexemeId: payload.lexemeId };
     case "translation":
       await addTranslation(db, payload.lexemeId, payload.targetLang, payload.targetLemma, source);
-      return payload.lexemeId;
+      return { lexemeId: payload.lexemeId };
     case "retract":
       await db.run(`UPDATE ${TABLE[payload.target]} SET hidden = 1 WHERE id = ?`, [payload.targetId]);
-      return null;
+      return { lexemeId: null };
   }
 }
 
-/** Macht eine angewandte Änderung rückgängig (Admin-Widerruf). Nichts wird gelöscht. */
-async function unapply(db: Db, id: number, payload: ContributionPayload, resultLexemeId: number | null): Promise<void> {
+/** Macht eine angewandte Änderung rückgängig (Widerruf). Nichts wird gelöscht, nur ausgeblendet oder geleert. */
+async function unapply(db: Db, id: number, payload: ContributionPayload, info: ResultInfo): Promise<void> {
   const source = `community:${id}`;
   if (payload.kind === "retract") {
     await db.run(`UPDATE ${TABLE[payload.target]} SET hidden = 0 WHERE id = ?`, [payload.targetId]);
@@ -124,9 +134,14 @@ async function unapply(db: Db, id: number, payload: ContributionPayload, resultL
   for (const table of ["senses", "examples", "translations"]) {
     await db.run(`UPDATE ${table} SET hidden = 1 WHERE source = ?`, [source]);
   }
-  if (payload.kind === "lexeme" && resultLexemeId) await db.run("UPDATE lexemes SET hidden = 1 WHERE id = ?", [resultLexemeId]);
-  if (payload.kind === "pronunciation") {
-    await db.run("UPDATE lexemes SET romanization = NULL WHERE id = ? AND romanization = ?", [payload.lexemeId, payload.romanization]);
+  // Ein Lexem nur ausblenden, wenn dieser Beitrag es angelegt hat – nie einen bestehenden Eintrag.
+  if (payload.kind === "lexeme" && info.createdLexeme && info.lexemeId) {
+    await db.run("UPDATE lexemes SET hidden = 1 WHERE id = ?", [info.lexemeId]);
+  }
+  // Eine Aussprache nur leeren, wenn dieser Beitrag sie gesetzt hat.
+  if (info.setRomanization && info.lexemeId) {
+    const value = payload.kind === "pronunciation" ? payload.romanization : payload.kind === "lexeme" ? payload.romanization : null;
+    if (value) await db.run("UPDATE lexemes SET romanization = NULL WHERE id = ? AND romanization = ?", [info.lexemeId, value]);
   }
 }
 
@@ -141,6 +156,7 @@ interface ContributionRow {
   decided_at: number | null;
   decision_reason: string | null;
   result_lexeme_id: number | null;
+  result_info: string | null;
 }
 
 export function loadContribution(db: Db, id: number) {
@@ -187,7 +203,9 @@ export function vote(db: Db, id: number, voterId: string, value: "verify" | "rej
       if (counts.verify >= opts.verifyThreshold) decision = "verified";
       else if (counts.reject >= opts.rejectThreshold) decision = "rejected";
     }
-    if (decision) await finalize(t, c, decision, voterId, now, expert ? "Experte" : "Community");
+    if (decision && !(await finalize(t, c, decision, voterId, now, expert ? "Experte" : "Community"))) {
+      return { ok: false, status: 409, error: "already decided" };
+    }
     return { ok: true, status: decision ?? "pending" };
   });
 }
@@ -198,32 +216,41 @@ export function decide(db: Db, id: number, deciderId: string, decision: "verify"
     const c = await loadContribution(t, id);
     if (!c) return { ok: false, status: 404, error: "not found" };
     if (decision === "revoke") {
-      if (c.status !== "verified") return { ok: false, status: 409, error: "only verified contributions can be revoked" };
-      await unapply(t, id, JSON.parse(c.payload) as ContributionPayload, c.result_lexeme_id === null ? null : Number(c.result_lexeme_id));
-      await t.run("UPDATE contributions SET status = 'revoked', decided_at = ?, decided_by = ?, decision_reason = 'widerrufen' WHERE id = ?", [
-        now,
-        deciderId,
-        id,
-      ]);
+      // Atomar beanspruchen: nur ein gleichzeitiger Widerruf kommt durch.
+      const claimed = await t.run(
+        "UPDATE contributions SET status = 'revoked', decided_at = ?, decided_by = ?, decision_reason = 'widerrufen' WHERE id = ? AND status = 'verified'",
+        [now, deciderId, id],
+      );
+      if (claimed.changes === 0) return { ok: false, status: 409, error: "only verified contributions can be revoked" };
+      const info: ResultInfo = c.result_info
+        ? (JSON.parse(c.result_info) as ResultInfo)
+        : { lexemeId: c.result_lexeme_id === null ? null : Number(c.result_lexeme_id) };
+      await unapply(t, id, JSON.parse(c.payload) as ContributionPayload, info);
       return { ok: true, status: "revoked" };
     }
     if (c.status !== "pending") return { ok: false, status: 409, error: "already decided" };
     const status = decision === "verify" ? "verified" : "rejected";
-    await finalize(t, c, status, deciderId, now, "Entscheidung");
+    if (!(await finalize(t, c, status, deciderId, now, "Entscheidung"))) return { ok: false, status: 409, error: "already decided" };
     return { ok: true, status };
   });
 }
 
-async function finalize(db: Db, c: ContributionRow, decision: "verified" | "rejected", by: string, now: number, reason: string) {
-  const resultLexemeId = decision === "verified" ? await apply(db, Number(c.id), JSON.parse(c.payload) as ContributionPayload) : null;
-  await db.run("UPDATE contributions SET status = ?, decided_at = ?, decided_by = ?, decision_reason = ?, result_lexeme_id = ? WHERE id = ?", [
-    decision,
-    now,
-    by,
-    reason,
-    resultLexemeId,
-    c.id,
-  ]);
+/**
+ * Entscheidung festschreiben. Zuerst wird der Beitrag atomar von "pending" auf das Ergebnis gesetzt;
+ * nur wer dabei gewinnt, wendet ihn an. So kann ein Beitrag auch bei gleichzeitigen Stimmen nicht
+ * doppelt angewendet werden (unter Postgres wartet die zweite Transaktion auf die Zeilensperre).
+ */
+async function finalize(db: Db, c: ContributionRow, decision: "verified" | "rejected", by: string, now: number, reason: string): Promise<boolean> {
+  const claimed = await db.run(
+    "UPDATE contributions SET status = ?, decided_at = ?, decided_by = ?, decision_reason = ? WHERE id = ? AND status = 'pending'",
+    [decision, now, by, reason, c.id],
+  );
+  if (claimed.changes === 0) return false;
+  if (decision === "verified") {
+    const info = await apply(db, Number(c.id), JSON.parse(c.payload) as ContributionPayload);
+    await db.run("UPDATE contributions SET result_lexeme_id = ?, result_info = ? WHERE id = ?", [info.lexemeId, JSON.stringify(info), c.id]);
+  }
+  return true;
 }
 
 export interface ListFilter {

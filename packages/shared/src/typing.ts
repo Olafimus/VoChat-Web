@@ -3,8 +3,7 @@
  * höchstens ein Fehler je 10 Zeichen (floor(len/10)). Kurze Wörter müssen exakt stimmen.
  */
 
-// Arabische/persische Diakritika (Harakat, Tatweel) entfernen, Schreibvarianten vereinheitlichen.
-const HARAKAT = /[ً-ٰٟۖ-ۭـ]/g;
+import { HARAKAT } from "./keys.js";
 
 export function normalizeAnswer(input: string): string {
   return input

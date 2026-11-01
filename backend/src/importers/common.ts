@@ -17,8 +17,13 @@ export async function clearSource(db: Db, source: string): Promise<void> {
  * Häufigkeitsliste) den Eintrag – so entstehen keine Duplikate wie "haus" neben "Haus".
  */
 export async function upsertLexeme(db: Db, lang: string, lemma: string, pos: string): Promise<number> {
+  return (await upsertLexemeInfo(db, lang, lemma, pos)).id;
+}
+
+/** Wie upsertLexeme, meldet zusätzlich, ob das Lexem neu angelegt wurde. */
+export async function upsertLexemeInfo(db: Db, lang: string, lemma: string, pos: string): Promise<{ id: number; created: boolean }> {
   const exact = await db.get<{ id: number }>("SELECT id FROM lexemes WHERE lang = ? AND lemma = ? AND pos = ?", [lang, lemma, pos]);
-  if (exact) return Number(exact.id);
+  if (exact) return { id: Number(exact.id), created: false };
   const key = lemmaKey(lemma);
 
   if (pos !== "") {
@@ -28,7 +33,7 @@ export async function upsertLexeme(db: Db, lang: string, lemma: string, pos: str
     ]);
     if (bare) {
       await db.run("UPDATE lexemes SET lemma = ?, pos = ? WHERE id = ?", [lemma, pos, bare.id]);
-      return Number(bare.id);
+      return { id: Number(bare.id), created: false };
     }
   }
 
@@ -38,7 +43,7 @@ export async function upsertLexeme(db: Db, lang: string, lemma: string, pos: str
     key,
     pos,
   ]);
-  return Number(inserted!.id);
+  return { id: Number(inserted!.id), created: true };
 }
 
 export async function addForm(db: Db, lexemeId: number, lang: string, form: string): Promise<void> {

@@ -42,18 +42,21 @@ export async function pushOps(db: Db, userId: string, ops: { entity: string; row
         continue;
       }
       const row = parsed.data as { id: string; updatedAt: number; deleted: boolean } & Record<string, unknown>;
+      // Zuerst die Sequenz ziehen: Das sperrt die Zählerzeile bis zum Commit. Gleichzeitige Pushes
+      // warten hier, und die folgende Leseabfrage sieht danach den bereits festgeschriebenen Stand.
+      const seq = (await t.get<{ value: number }>("UPDATE counters SET value = value + 1 WHERE name = 'seq' RETURNING value"))!.value;
       const existing = await t.get<{ updated_at: number }>(
         "SELECT updated_at FROM sync_rows WHERE user_id = ? AND entity = ? AND id = ?",
         [userId, entity, row.id],
       );
       if (existing && Number(existing.updated_at) > row.updatedAt) continue; // Server-Stand ist neuer
-      const seq = (await t.get<{ value: number }>("UPDATE counters SET value = value + 1 WHERE name = 'seq' RETURNING value"))!.value;
       await t.run(
         `INSERT INTO sync_rows (user_id, entity, id, data, attr, updated_at, deleted, seq)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT (user_id, entity, id) DO UPDATE SET
            data = excluded.data, attr = excluded.attr, updated_at = excluded.updated_at,
-           deleted = excluded.deleted, seq = excluded.seq`,
+           deleted = excluded.deleted, seq = excluded.seq
+         WHERE sync_rows.updated_at <= excluded.updated_at`,
         [userId, entity, row.id, JSON.stringify(row), attrOf(entity, row), row.updatedAt, row.deleted ? 1 : 0, seq],
       );
       if (entity === "collections") await syncPublicCollection(t, userId, row as unknown as Collection);
