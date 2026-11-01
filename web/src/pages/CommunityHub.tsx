@@ -6,6 +6,8 @@ import { CommunityPage } from "./CommunityPage";
 import { SocialPage } from "./SocialPage";
 import { ChallengesPage } from "./ChallengesPage";
 import { ReviewPage } from "./ReviewPage";
+import { PageHeader } from "../components/PageHeader";
+import { IconCommunity } from "../components/icons";
 
 type Tab = "mitmachen" | "freunde" | "challenges" | "experten";
 
@@ -33,6 +35,7 @@ export function CommunityHub() {
   ];
   return (
     <div className="stack">
+      <PageHeader icon={<IconCommunity size={22} />} tone="qt-coral" title="Community" subtitle="Challenges, Freunde und das gemeinsame Wörterbuch" />
       <div className={`segmented ${tabs.length === 4 ? "four" : "three"}`} role="tablist">
         {tabs.map((t) => (
           <button key={t.key} className={tab === t.key ? "on" : ""} onClick={() => setTab(t.key)}>{t.label}</button>

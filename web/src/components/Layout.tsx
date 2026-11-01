@@ -6,15 +6,18 @@ import { useConversations } from "../lib/useChats";
 import { useSession, useSyncStatus } from "../session";
 import { useDictionaryLinker } from "../lib/useDictionaryLinker";
 import { useScheduleMigration } from "../lib/useScheduleMigration";
+import { Logo } from "./Logo";
+import { Avatar } from "./Avatar";
+import { IconCards, IconChats, IconCommunity, IconHome, IconPaths, IconProfile, IconScan, IconVocab } from "./icons";
 
 const TABS = [
-  { to: "/", label: "Start", short: "Start", icon: "🏠" },
-  { to: "/chat", label: "Chat", short: "Chat", icon: "💬" },
-  { to: "/vocab", label: "Wortschatz", short: "Wörter", icon: "📚" },
-  { to: "/learn", label: "Lernen", short: "Lernen", icon: "🧠" },
-  { to: "/paths", label: "Lernpfade", short: "Pfade", icon: "🗺️" },
-  { to: "/community", label: "Community", short: "Leute", icon: "🤝" },
-  { to: "/profile", label: "Profil", short: "Profil", icon: "👤" },
+  { to: "/", label: "Start", short: "Start", Icon: IconHome },
+  { to: "/chat", label: "Chats", short: "Chats", Icon: IconChats },
+  { to: "/vocab", label: "Wortschatz", short: "Wörter", Icon: IconVocab },
+  { to: "/learn", label: "Lernen", short: "Lernen", Icon: IconCards },
+  { to: "/paths", label: "Lernpfade", short: "Pfade", Icon: IconPaths },
+  { to: "/community", label: "Community", short: "Leute", Icon: IconCommunity },
+  { to: "/profile", label: "Profil", short: "Profil", Icon: IconProfile },
 ];
 
 export function SyncIndicator() {
@@ -53,19 +56,27 @@ export function Layout() {
   return (
     <div className="app">
       <header className="topbar">
-        <NavLink to="/" className="brand" end>VoChat</NavLink>
+        <NavLink to="/" className="brand" end aria-label="VoChat – Start">
+          <Logo />
+          <span>VoChat</span>
+        </NavLink>
         <nav className="tabs-desktop">
           {TABS.map((t) => (
-            <NavLink key={t.to} to={t.to} end={t.to === "/"} className={({ isActive }) => (isActive ? "active" : undefined)}>
-              {t.label}
+            <NavLink key={t.to} to={t.to} end={t.to === "/"} title={t.label} className={({ isActive }) => (isActive ? "active" : undefined)}>
+              <t.Icon size={17} strokeWidth={2} aria-hidden />
+              <span className="tab-label">{t.label}</span>
               {t.to === "/chat" && unread > 0 && <span className="nav-badge">{unread > 99 ? "99+" : unread}</span>}
             </NavLink>
           ))}
         </nav>
         <div className="topbar-right">
-          <NavLink to="/scan" className="scan-link" aria-label="Foto scannen" title="Foto → Vokabeln">📷</NavLink>
+          <NavLink to="/scan" className="scan-link" aria-label="Foto scannen" title="Foto → Vokabeln">
+            <IconScan size={20} strokeWidth={2} />
+          </NavLink>
           <SyncIndicator />
-          <span className="muted hide-sm">{token ? user.name : "Gast"}</span>
+          <NavLink to="/profile" className="me-link hide-sm" title={token ? user.name : "Gast"}>
+            <Avatar name={token ? user.name : "Gast"} url={token ? (user.avatarUrl ?? null) : null} size={30} />
+          </NavLink>
         </div>
       </header>
       <PwaUpdateBanner />
@@ -76,7 +87,7 @@ export function Layout() {
         {TABS.map((t) => (
           <NavLink key={t.to} to={t.to} end={t.to === "/"} className={({ isActive }) => (isActive ? "active" : undefined)}>
             <span aria-hidden className="nav-icon">
-              {t.icon}
+              <t.Icon size={21} strokeWidth={2} />
               {t.to === "/chat" && unread > 0 && <span className="nav-badge">{unread > 99 ? "99+" : unread}</span>}
             </span>
             <span>{t.short}</span>

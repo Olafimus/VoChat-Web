@@ -5,6 +5,7 @@ import type { CardRow, ReviewRow } from "../local/collections";
 import { markKnown, resetProgress, setIgnored, setPinned, setRetention } from "../lib/cards";
 import { Recordings } from "./Recordings";
 import { formatDays, historyOf, plannerSettings, toPlannerCard, useLearningSettings } from "../lib/learning";
+import { IconPin } from "./icons";
 
 const GRADE_LABEL: Record<Grade, string> = { again: "falsch", hard: "schwer", good: "gut", easy: "leicht" };
 const QUALITY_LABEL = {
@@ -106,7 +107,7 @@ export function CardLearning({ card }: { card: CardRow }) {
         )}
         <button className="small-btn" onClick={() => markKnown(collections, card)}>Kenne ich schon</button>
         <button className="small-btn" aria-pressed={!!card.pinned} onClick={() => setPinned(collections, card, !card.pinned)}>
-          {card.pinned ? "★ vorgezogen" : "Als Nächstes lernen"}
+          <IconPin size={14} aria-hidden /> {card.pinned ? "vorgezogen" : "Als Nächstes lernen"}
         </button>
         <label className="inline small">
           Wiederholen

@@ -5,6 +5,7 @@ import { useSession } from "../session";
 import { CommentThread } from "../components/CommentThread";
 import { Empty, Lemma } from "../components/ui";
 import { SpeakButton } from "../components/SpeakButton";
+import { IconAlert, IconCheck, IconPlay } from "../components/icons";
 
 type Filter = "open" | "suspicious" | "needs_fix" | "approved" | "recordings";
 const FILTERS: { key: Filter; label: string }[] = [
@@ -139,7 +140,7 @@ function ReviewCard({ entry, nativeLang, onAct }: { entry: ReviewEntry; nativeLa
       {entry.suspicions.length > 0 && (
         <div className="warn-box small">
           {entry.suspicions.map((s) => (
-            <div key={s.reason}>⚠ {s.reason}</div>
+            <div key={s.reason} className="icon-line"><IconAlert size={14} aria-hidden /> {s.reason}</div>
           ))}
         </div>
       )}
@@ -201,7 +202,7 @@ function ReviewCard({ entry, nativeLang, onAct }: { entry: ReviewEntry; nativeLa
           {entry.recordings.map((r) => (
             <div key={r.id} className="review-line">
               <span className="review-text">
-                <button className="small-btn" onClick={() => void new Audio(apiUrl(r.url)).play()}>▶ {r.speaker ?? "?"}</button>{" "}
+                <button className="small-btn" onClick={() => void new Audio(apiUrl(r.url)).play()}><IconPlay size={13} aria-hidden /> {r.speaker ?? "?"}</button>{" "}
                 {r.status === "pending" ? <span className="badge subtle">wartet</span> : <span className="muted small">freigegeben</span>}
               </span>
               <span className="review-actions">
@@ -222,7 +223,7 @@ function ReviewCard({ entry, nativeLang, onAct }: { entry: ReviewEntry; nativeLa
         </ul>
       )}
       <div className="row">
-        <button className="small-btn primary" onClick={() => onAct({ action: "approve" })}>✓ Geprüft</button>
+        <button className="small-btn primary" onClick={() => onAct({ action: "approve" })}><IconCheck size={15} aria-hidden /> Geprüft</button>
         <button
           className="small-btn"
           onClick={() => {
@@ -230,7 +231,7 @@ function ReviewCard({ entry, nativeLang, onAct }: { entry: ReviewEntry; nativeLa
             if (note?.trim()) onAct({ action: "flag", note: note.trim() });
           }}
         >
-          ⚑ Fehler melden
+          <IconAlert size={15} aria-hidden /> Fehler melden
         </button>
         <span className="spacer" />
         <button className="link small" onClick={() => setPanel(panel === "history" ? "none" : "history")}>Verlauf</button>

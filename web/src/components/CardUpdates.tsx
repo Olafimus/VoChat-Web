@@ -7,6 +7,7 @@ import { acceptUpdate, ignoreUpdate } from "../lib/cards";
 import { updateSignature } from "../lib/linker";
 import { DiffText } from "./DiffText";
 import { WordView } from "./WordView";
+import { IconEdit } from "./icons";
 
 const FIELD_LABEL = { gloss: "Bedeutung", pronunciation: "Aussprache", cefr: "Niveau" } as const;
 const ACTION_LABEL: Record<string, string> = {
@@ -28,7 +29,7 @@ export function CardUpdates({ cards }: { cards: CardRow[] }) {
   return (
     <section className="card stack updates" aria-label="Korrekturen">
       <div className="row">
-        <h3 style={{ margin: 0 }}>✏️ Korrekturen für deine Wörter ({pending.length})</h3>
+        <h3 style={{ margin: 0 }} className="icon-title"><IconEdit size={18} aria-hidden /> Korrekturen für deine Wörter ({pending.length})</h3>
         <span className="spacer" />
         {pending.length > 1 && (
           <button className="small-btn" onClick={() => pending.forEach((c) => acceptUpdate(collections, c, { resetLearning: false }))}>

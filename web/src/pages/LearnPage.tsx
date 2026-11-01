@@ -21,6 +21,9 @@ import { CefrBadge, Empty } from "../components/ui";
 import { WordView } from "../components/WordView";
 import { useDisplay } from "../lib/display";
 import { playPronunciation } from "../lib/audio";
+import { IconFlame, IconStats } from "../components/icons";
+import { PageHeader } from "../components/PageHeader";
+import { IconCards } from "../components/icons";
 
 const FORMATS: { mode: Mode; label: string; hint: string }[] = [
   { mode: "flip", label: "Karteikarte", hint: "Wort sehen, Bedeutung aufdecken" },
@@ -180,6 +183,7 @@ export function LearnPage() {
 
   return (
     <div className="learn">
+      <PageHeader icon={<IconCards size={22} />} title="Lernen" subtitle="Der Planer wählt, was jetzt am meisten bringt" />
       <div className="learn-controls">
         <div className="segmented three">
           {FORMATS.map((f) => (
@@ -196,7 +200,7 @@ export function LearnPage() {
             Alles für heute
           </button>
         </div>
-        <Link to="/stats" className="small">📊 Statistik & Einstellungen</Link>
+        <Link to="/stats" className="small icon-line"><IconStats size={15} aria-hidden /> Statistik & Einstellungen</Link>
       </div>
       {planNotes.length > 0 && <div className="muted small" role="status">{planNotes.join(" ")}</div>}
 
@@ -210,7 +214,7 @@ export function LearnPage() {
             {score.right + score.wrong > 0 ? `${Math.round((score.right / (score.right + score.wrong)) * 100)} % richtig` : "– % richtig"}
           </span>
           <span key={streak} className={`streak ${streak >= 3 ? "hot" : ""} ${streak > 0 ? "pop" : ""}`}>
-            🔥 {streak} <span className="muted small">(Serie {bestStreak})</span>
+            <IconFlame size={16} aria-hidden /> {streak} <span className="muted small">(Serie {bestStreak})</span>
           </span>
         </div>
       </div>
@@ -218,7 +222,7 @@ export function LearnPage() {
       {!current ? (
         <div className="card center-card celebrate">
           {score.right + score.wrong > 0 && <Confetti />}
-          <h2>{score.right + score.wrong > 0 ? "Fertig 🎉" : "Gerade nichts dran"}</h2>
+          <h2>{score.right + score.wrong > 0 ? "Geschafft!" : "Gerade nichts dran"}</h2>
           <p className="muted">
             {score.right + score.wrong > 0
               ? `${score.right} richtig · ${score.wrong} falsch · beste Serie ${bestStreak} · ${Math.round((score.right / (score.right + score.wrong)) * 100)} % richtig.`
@@ -237,7 +241,7 @@ export function LearnPage() {
                 {KIND_LABEL[planInfo[current.id].kind]} · warum?
               </button>
             )}
-            <span className="muted small">noch {queue.length} · ✓ {score.right} · ✗ {score.wrong}</span>
+            <span className="muted small">noch {queue.length} · {score.right} richtig · {score.wrong} falsch</span>
           </div>
           {showWhy && planInfo[current.id] && (
             <ul className="why-list small">

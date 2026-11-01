@@ -5,6 +5,9 @@ import { chat, social, type PersonRef } from "../api/client";
 import { useSession } from "../session";
 import { useConversations } from "../lib/useChats";
 import { Avatar } from "../components/Avatar";
+import { PageHeader } from "../components/PageHeader";
+import { IconChats, IconGroup, IconPlus } from "../components/icons";
+import { IconClose, IconDictionary } from "../components/icons";
 
 const when = (t: number) => {
   const d = new Date(t);
@@ -22,22 +25,25 @@ export function ChatsPage() {
 
   return (
     <div className="stack chats">
-      <div className="row">
-        <h2 style={{ margin: 0 }}>Chats</h2>
-        <span className="spacer" />
-        {token && (
-          <>
-            <button className="small-btn" onClick={() => setCreating(creating === "dm" ? null : "dm")}>+ Chat</button>
-            <button className="small-btn" onClick={() => setCreating(creating === "group" ? null : "group")}>+ Gruppe</button>
-          </>
-        )}
-      </div>
+      <PageHeader
+        icon={<IconChats size={22} />}
+        title="Chats"
+        subtitle="Mit Freunden schreiben, korrigieren, Wörter sammeln"
+        actions={
+          token && (
+            <>
+              <button className="small-btn" onClick={() => setCreating(creating === "dm" ? null : "dm")}><IconPlus size={15} aria-hidden /> Chat</button>
+              <button className="small-btn" onClick={() => setCreating(creating === "group" ? null : "group")}><IconGroup size={15} aria-hidden /> Gruppe</button>
+            </>
+          )
+        }
+      />
       {creating && <NewChat kind={creating} onClose={() => setCreating(null)} />}
 
       <ul className="conv-list card">
         <li>
           <Link to="/chat/assistant" className="conv-item">
-            <span className="avatar assistant" aria-hidden>📖</span>
+            <span className="avatar assistant" aria-hidden><IconDictionary size={22} /></span>
             <span className="conv-main">
               <b>Wörterbuch-Assistent</b>
               <span className="muted small">Nachschlagen, Texte auswerten, eigene Sätze korrigieren</span>
@@ -113,7 +119,7 @@ function NewChat({ kind, onClose }: { kind: "dm" | "group"; onClose: () => void 
       <div className="row">
         <b>{kind === "dm" ? "Chat mit …" : "Neue Gruppe"}</b>
         <span className="spacer" />
-        <button className="link small" onClick={onClose} aria-label="Schließen">✕</button>
+        <button className="link small" onClick={onClose} aria-label="Schließen"><IconClose size={16} /></button>
       </div>
       {kind === "group" && <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Name der Gruppe" maxLength={80} aria-label="Name der Gruppe" />}
       {friends?.length === 0 && (

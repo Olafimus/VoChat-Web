@@ -67,15 +67,21 @@ const HM_MONTH = new Intl.DateTimeFormat("de-DE", { month: "short" });
 export function Heatmap({ days: allDays }: { days: { day: number; reviews: number }[] }) {
   const t = useTip();
   // Nur so viele Wochen, wie in die Breite passen (Zelle 13 px + 3 px Abstand)
-  const [fit, setFit] = useState(26);
+  // So viele Wochen wie passen (Zellen 11–18 px), Zellgröße füllt die Breite
+  const [layout, setLayout] = useState({ weeks: 26, cell: 13 });
   useEffect(() => {
     const el = t.box.current;
     if (!el || typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver(([e]) => setFit(Math.max(8, Math.floor((e.contentRect.width + 3) / 16) - 1)));
+    const ro = new ResizeObserver(([e]) => {
+      const w = e.contentRect.width;
+      const weeks = Math.max(8, Math.min(Math.ceil(allDays.length / 7), Math.floor((w + 3) / 14)));
+      const cell = Math.max(10, Math.min(18, Math.floor((w - (weeks - 1) * 3) / weeks)));
+      setLayout((prev) => (prev.weeks === weeks - 1 && prev.cell === cell ? prev : { weeks: weeks - 1, cell }));
+    });
     ro.observe(el);
     return () => ro.disconnect();
-  }, [t.box]);
-  const days = useMemo(() => allDays.slice(-Math.min(allDays.length, fit * 7)), [allDays, fit]);
+  }, [t.box, allDays.length]);
+  const days = useMemo(() => allDays.slice(-Math.min(allDays.length, layout.weeks * 7)), [allDays, layout.weeks]);
   const { weeks, months, steps } = useMemo(() => {
     const max = Math.max(1, ...days.map((d) => d.reviews));
     const steps = [0, Math.ceil(max * 0.25), Math.ceil(max * 0.5), Math.ceil(max * 0.75)];
@@ -85,10 +91,14 @@ export function Heatmap({ days: allDays }: { days: { day: number; reviews: numbe
     const cells: ({ day: number; reviews: number; level: number } | null)[] = [...Array(pad).fill(null), ...days.map((d) => ({ ...d, level: level(d.reviews) }))];
     const weeks: (typeof cells)[] = [];
     for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
+    let lastLabel = -3;
     const months = weeks.map((w, i) => {
       const firstDay = w.find(Boolean);
       const prev = weeks[i - 1]?.find(Boolean);
-      return firstDay && (!prev || new Date(prev.day).getMonth() !== new Date(firstDay.day).getMonth()) ? HM_MONTH.format(firstDay.day) : "";
+      const starts = firstDay && prev && new Date(prev.day).getMonth() !== new Date(firstDay.day).getMonth();
+      if (!starts || i - lastLabel < 3) return ""; // Abstand halten, damit sich Monatsnamen nicht überlappen
+      lastLabel = i;
+      return HM_MONTH.format(firstDay!.day);
     });
     return { weeks, months, steps };
   }, [days]);
@@ -97,7 +107,7 @@ export function Heatmap({ days: allDays }: { days: { day: number; reviews: numbe
   return (
     <div className="chart" ref={t.box} onMouseLeave={t.hide}>
       <div className="heatmap-scroll">
-        <div className="heatmap" role="img" aria-label={`${total} Antworten an ${active} von ${days.length} Tagen`}>
+        <div className="heatmap" style={{ ["--cell" as string]: `${layout.cell}px` }} role="img" aria-label={`${total} Antworten an ${active} von ${days.length} Tagen`}>
           <div className="hm-months" aria-hidden>
             {months.map((m, i) => (
               <span key={i}>{m}</span>
@@ -142,8 +152,16 @@ const DATE = new Intl.DateTimeFormat("de-DE", { day: "numeric", month: "short" }
 export function AreaChart({ points, label, unit }: { points: { day: number; total: number }[]; label: string; unit: string }) {
   const t = useTip();
   const [hover, setHover] = useState<number | null>(null);
-  const W = 600;
-  const H = 170;
+  // Breite messen, damit Achsentexte in echter Größe erscheinen (nicht mitskaliert)
+  const [W, setW] = useState(600);
+  useEffect(() => {
+    const el = t.box.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(([e]) => setW(Math.max(280, Math.round(e.contentRect.width))));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [t.box]);
+  const H = 180;
   const P = { l: 34, r: 8, t: 10, b: 22 };
   const max = Math.max(1, ...points.map((p) => p.total));
   const nice = Math.ceil(max / 5) * 5 || 5;

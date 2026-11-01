@@ -5,6 +5,7 @@ import { isEmojiOnly, linkify } from "../../lib/linkify";
 import { DiffText } from "../DiffText";
 import { QUICK_REACTIONS } from "./EmojiPicker";
 import { VoicePlayer } from "./VoicePlayer";
+import { IconAlert, IconCheck, IconCheckCheck, IconClock, IconEdit, IconMore } from "../icons";
 
 export interface BubbleActions {
   reply(m: LocalMessage): void;
@@ -15,6 +16,7 @@ export interface BubbleActions {
   learn(m: LocalMessage): void;
   openImage(url: string): void;
   jumpTo(id: number): void;
+  retry(m: LocalMessage): void;
 }
 
 const time = (t: number) => new Date(t).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
@@ -76,7 +78,7 @@ export const MessageBubble = memo(function MessageBubble({
         {m.body && <div className="msg-text">{linkify(m.body)}</div>}
         {m.correction && (
           <div className="msg-correction">
-            <span className="small muted">✏️ Korrektur{correctorName ? ` von ${correctorName}` : ""}:</span>
+            <span className="small muted icon-line"><IconEdit size={13} aria-hidden /> Korrektur{correctorName ? ` von ${correctorName}` : ""}:</span>
             <div>
               <DiffText before={m.body} after={m.correction.body} />
             </div>
@@ -87,16 +89,16 @@ export const MessageBubble = memo(function MessageBubble({
           <span>{time(m.createdAt)}</span>
           {mine && (
             <span className="ticks" aria-label={m.pending === "sending" ? "wird gesendet" : m.pending === "failed" ? "nicht gesendet" : read ? "gelesen" : "gesendet"}>
-              {m.pending === "sending" ? " ◷" : m.pending === "failed" ? " ⚠" : read ? " ✓✓" : " ✓"}
+              {m.pending === "sending" ? <IconClock size={13} /> : m.pending === "failed" ? <IconAlert size={13} /> : read ? <IconCheckCheck size={14} /> : <IconCheck size={14} />}
             </span>
           )}
         </div>
         <button type="button" className="msg-more" aria-label="Aktionen" onClick={() => setMenu((v) => !v)}>
-          ⋯
+          <IconMore size={16} />
         </button>
       </div>
       {m.pending === "failed" && (
-        <button type="button" className="link small danger" onClick={() => void m.retry?.()}>
+        <button type="button" className="link small danger" onClick={() => actions.retry(m)}>
           Nicht gesendet – erneut versuchen
         </button>
       )}

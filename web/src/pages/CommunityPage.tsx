@@ -3,6 +3,7 @@ import { LANGUAGES, LANG_CODES, type LangCode, type LexemeSummary } from "@vocha
 import { api, ApiError, community, type CommunityRow } from "../api/client";
 import { useSession } from "../session";
 import { CefrBadge, Empty, Lemma } from "../components/ui";
+import { IconCheck } from "../components/icons";
 
 type Tab = "pruefen" | "vorschlagen" | "meine" | "rollen";
 
@@ -107,7 +108,7 @@ function ReviewQueue({ token }: { token: string }) {
             </div>
             <ContributionBody row={r} />
             <div className="row">
-              <button className="primary small-btn" onClick={() => act(r.id, "verify")}>✓ Richtig</button>
+              <button className="primary small-btn" onClick={() => act(r.id, "verify")}><IconCheck size={15} aria-hidden /> Richtig</button>
               <button className="danger small-btn" onClick={() => act(r.id, "reject")}>✗ Falsch</button>
             </div>
           </li>

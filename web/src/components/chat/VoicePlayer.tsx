@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { IconPause, IconPlay } from "../icons";
 
 const fmt = (ms: number) => {
   const s = Math.max(0, Math.round(ms / 1000));
@@ -41,7 +42,7 @@ export function VoicePlayer({ src, durationMs }: { src: string; durationMs?: num
   return (
     <div className="voice">
       <button type="button" className="voice-play" onClick={toggle} aria-label={playing ? "Pause" : "Sprachnachricht abspielen"}>
-        {playing ? "❚❚" : "▶"}
+        {playing ? <IconPause size={16} fill="currentColor" /> : <IconPlay size={16} fill="currentColor" />}
       </button>
       <div
         className="voice-track"

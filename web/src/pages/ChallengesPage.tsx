@@ -10,6 +10,7 @@ import { Avatar } from "../components/Avatar";
 import { CommentThread } from "../components/CommentThread";
 import { Empty } from "../components/ui";
 import { WordView } from "../components/WordView";
+import { IconBack } from "../components/icons";
 
 const fmtDate = (ms: number) => new Date(ms).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" });
 const daysLeft = (end: number) => Math.max(0, Math.ceil((end - Date.now()) / 86_400_000));
@@ -134,7 +135,7 @@ function ChallengeView({ id, onBack }: { id: string; onBack: () => void }) {
 
   return (
     <div className="stack">
-      <button onClick={onBack}>← Zurück</button>
+      <button onClick={onBack}><IconBack size={16} aria-hidden /> Zurück</button>
       <div className="card stack">
         <div className="row">
           <h2>{detail.title}</h2>
@@ -155,7 +156,7 @@ function ChallengeView({ id, onBack }: { id: string; onBack: () => void }) {
         <h2>Rangliste</h2>
         <table className="board">
           <thead>
-            <tr><th>#</th><th>Name</th><th title="bekannte Challenge-Wörter">Wörter</th><th title="richtige Antworten">✓</th><th title="Punkte">Pkt.</th></tr>
+            <tr><th>#</th><th>Name</th><th title="bekannte Challenge-Wörter">Wörter</th><th title="richtige Antworten">Richtig</th><th title="Punkte">Pkt.</th></tr>
           </thead>
           <tbody>
             {detail.leaderboard.map((e, i) => (

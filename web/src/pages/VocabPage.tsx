@@ -11,6 +11,8 @@ import { Empty } from "../components/ui";
 import { WordView } from "../components/WordView";
 import { CardLearning } from "../components/CardLearning";
 import { CardUpdates } from "../components/CardUpdates";
+import { PageHeader } from "../components/PageHeader";
+import { IconVocab } from "../components/icons";
 
 const STATUS_LABEL: Record<CardRow["status"], string> = {
   new: "neu",
@@ -65,6 +67,7 @@ export function VocabPage() {
 
   return (
     <div className="stack">
+      <PageHeader icon={<IconVocab size={22} />} title="Wortschatz" subtitle={`${cards.filter((c) => !c.deleted).length} Wörter in deiner Sammlung`} />
       <CardUpdates cards={cards} />
       <div className="toolbar">
         <input type="search" placeholder="Suchen …" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Wortliste durchsuchen" />

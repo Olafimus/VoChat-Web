@@ -7,17 +7,21 @@ import { useSession } from "../session";
 import { useActiveLang } from "../lib/lang";
 import { onChatEvent } from "../lib/events";
 import {
+  chatMessages,
   discardFailed,
-  loadLatest,
   loadNewer,
   loadOlder,
+  openConversation,
   patchMessage,
   refreshMessages,
+  retry,
   sendMedia,
   sendText,
-  useConversation,
+  useConversationState,
+  cachedConversations,
   type LocalMessage,
 } from "../lib/chatStore";
+import { eq } from "@tanstack/db";
 import { prepareImage } from "../lib/images";
 import { canRecord, startRecording, type ActiveRecorder } from "../lib/recorder";
 import { addCardFromLexeme, addOwnWord, hasCardWord } from "../lib/cards";
@@ -28,6 +32,7 @@ import { EmojiPicker } from "../components/chat/EmojiPicker";
 import { MessageBubble, type BubbleActions } from "../components/chat/MessageBubble";
 import { WordView } from "../components/WordView";
 import { DiffText as DiffPreview } from "../components/DiffText";
+import { IconAttach, IconBack, IconCheck, IconClose, IconDown, IconEmoji, IconMic, IconSend } from "../components/icons";
 
 const MAX_VOICE_MS = 120_000;
 const dayLabel = (t: number) => {
@@ -47,9 +52,18 @@ type Row =
 export function ConversationPage() {
   const { id = "" } = useParams();
   const { token, user } = useSession();
-  const state = useConversation(id);
+  const state = useConversationState(id);
+  // Nachrichten live aus der lokalen Collection (IndexedDB) – sofort da, auch offline
+  const { data: live } = useLiveQuery((q) =>
+    q
+      .from({ m: chatMessages })
+      .where(({ m }) => eq(m.conversationId, id))
+      .orderBy(({ m }) => m.sort, "asc"),
+  );
+  const messages = (live ?? []) as LocalMessage[];
   const [conv, setConv] = useState<ConversationView | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [replyTo, setReplyTo] = useState<LocalMessage | null>(null);
   const [editing, setEditing] = useState<LocalMessage | null>(null);
   const [correcting, setCorrecting] = useState<LocalMessage | null>(null);
@@ -69,15 +83,19 @@ export function ConversationPage() {
         firstUnread.current = found.unread > 0 && mine ? mine.lastReadId : -1;
       }
       if (!found) setError("Chat nicht gefunden.");
+      else setNotice(null);
     } catch (e) {
-      setError(e instanceof ApiError && e.status === 0 ? "Offline – Chats brauchen eine Verbindung." : "Chat konnte nicht geladen werden.");
+      // Offline: Name und Mitglieder aus der zwischengespeicherten Chat-Liste
+      const cached = (await cachedConversations())?.find((c) => c.id === id) ?? null;
+      if (cached) setConv((cur) => cur ?? cached);
+      setNotice(e instanceof ApiError && e.status === 0 ? "Offline – du siehst die gespeicherten Nachrichten." : "Chat konnte nicht aktualisiert werden.");
     }
   }, [token, id, me]);
 
   useEffect(() => {
     if (!token) return;
     void loadConv();
-    void loadLatest(token, id).catch(() => setError("Nachrichten konnten nicht geladen werden."));
+    void openConversation(token, id).catch(() => setNotice("Offline – du siehst die gespeicherten Nachrichten."));
   }, [token, id, loadConv]);
 
   // Echtzeit: neue/geänderte Nachrichten und Lesestand
@@ -105,7 +123,7 @@ export function ConversationPage() {
     let lastDay = "";
     let lastAuthor: string | null | undefined;
     let unreadPlaced = false;
-    for (const m of state.messages) {
+    for (const m of messages) {
       const day = new Date(m.createdAt).toDateString();
       if (day !== lastDay) {
         out.push({ type: "day", key: `d${day}`, label: dayLabel(m.createdAt) });
@@ -116,11 +134,11 @@ export function ConversationPage() {
         out.push({ type: "unread", key: "unread" });
         unreadPlaced = true;
       }
-      out.push({ type: "msg", key: m.clientId ? `c${m.clientId}` : `m${m.id}`, m, showAuthor: conv?.kind === "group" && m.authorId !== lastAuthor });
+      out.push({ type: "msg", key: m.key, m, showAuthor: conv?.kind === "group" && m.authorId !== lastAuthor });
       lastAuthor = m.authorId;
     }
     return out;
-  }, [state.messages, conv?.kind, me]);
+  }, [messages, conv?.kind, me]);
 
   // ---- Virtualisierung ----------------------------------------------------
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -148,12 +166,12 @@ export function ConversationPage() {
 
   // Erstes Laden: ans Ende springen
   useLayoutEffect(() => {
-    if (!initialScrollDone.current && state.loaded && rows.length > 0) {
+    if (!initialScrollDone.current && rows.length > 0) {
       initialScrollDone.current = true;
       scrollToEnd();
       setTimeout(scrollToEnd, 50);
     }
-  }, [state.loaded, rows.length, scrollToEnd]);
+  }, [rows.length, scrollToEnd]);
 
   // Ältere vorne angefügt: Position halten (die vorher oberste Nachricht bleibt, wo sie war)
   const prevLast = useRef<string | undefined>(undefined);
@@ -195,7 +213,7 @@ export function ConversationPage() {
   const lastReadSent = useRef(0);
   useEffect(() => {
     if (!token) return;
-    const newest = [...state.messages].reverse().find((m) => m.id > 0);
+    const newest = [...messages].reverse().find((m) => m.id > 0);
     if (!newest || newest.id <= lastReadSent.current) return;
     const t = setTimeout(() => {
       if (atBottom.current && document.visibilityState === "visible") {
@@ -204,7 +222,7 @@ export function ConversationPage() {
       }
     }, 600);
     return () => clearTimeout(t);
-  }, [state.messages, token, id, showJump]);
+  }, [messages, token, id, showJump]);
 
   // ---- Aktionen ------------------------------------------------------------
   const actions: BubbleActions = useMemo(
@@ -215,7 +233,7 @@ export function ConversationPage() {
       },
       react: (m, emoji) => {
         if (!token) return;
-        patchMessage(id, m.id, (x) => {
+        patchMessage(m, (x) => {
           const has = x.reactions.find((r) => r.emoji === emoji);
           const reactions = has
             ? has.mine
@@ -232,12 +250,13 @@ export function ConversationPage() {
       },
       remove: (m) => {
         if (!token || !window.confirm("Nachricht für alle löschen?")) return;
-        patchMessage(id, m.id, (x) => ({ ...x, deleted: true }));
+        patchMessage(m, (x) => ({ ...x, deleted: true }));
         void chat.remove(token, m.id).catch(() => void refreshMessages(token, id, [m.id]));
       },
       correct: (m) => setCorrecting(m),
       learn: (m) => setLearning(m),
       openImage: (url) => setLightbox(url),
+      retry: (m) => token && retry(token, m),
       jumpTo: (messageId) => {
         const idx = rows.findIndex((r) => r.type === "msg" && r.m.id === messageId);
         if (idx >= 0) virtualizer.scrollToIndex(idx, { align: "center" });
@@ -253,7 +272,7 @@ export function ConversationPage() {
     <div className="conv-page">
       <header className="conv-head">
         <Link to="/chat" className="conv-back" aria-label="Zurück zu den Chats">
-          ←
+          <IconBack size={20} />
         </Link>
         {others[0] && <Avatar name={conv?.kind === "group" ? conv.title : others[0].name} url={conv?.kind === "group" ? null : others[0].avatarUrl} size={32} />}
         <div className="conv-title">
@@ -262,6 +281,7 @@ export function ConversationPage() {
         </div>
       </header>
       {error && <div className="error small">{error}</div>}
+      {notice && <div className="offline-note small">{notice}</div>}
 
       <div className="chat-scroll" ref={scrollRef} onScroll={onScroll} role="log" aria-live="polite" aria-label="Nachrichten">
         {state.loadingOlder && <div className="muted small center">Lade ältere Nachrichten …</div>}
@@ -296,11 +316,11 @@ export function ConversationPage() {
             );
           })}
         </div>
-        {state.loaded && state.messages.length === 0 && <div className="muted center chat-empty">Noch keine Nachrichten. Sag hallo 👋</div>}
+        {state.loaded && messages.length === 0 && <div className="muted center chat-empty">Noch keine Nachrichten. Sag hallo!</div>}
       </div>
       {showJump && (
         <button type="button" className="jump-latest" onClick={() => (scrollToEnd(), setShowJump(false))} aria-label="Zu neuen Nachrichten">
-          ↓ Neue Nachrichten
+          <IconDown size={15} aria-hidden /> Neue Nachrichten
         </button>
       )}
 
@@ -323,10 +343,10 @@ export function ConversationPage() {
           <img src={lightbox} alt="" />
         </div>
       )}
-      {state.messages.some((m) => m.pending === "failed") && (
+      {messages.some((m) => m.pending === "failed") && (
         <div className="muted small center">
           Einige Nachrichten wurden nicht gesendet.{" "}
-          <button className="link small" onClick={() => state.messages.filter((m) => m.pending === "failed").forEach((m) => discardFailed(id, m.clientId))}>
+          <button className="link small" onClick={() => messages.filter((m) => m.pending === "failed").forEach((m) => discardFailed(m))}>
             Verwerfen
           </button>
         </div>
@@ -381,7 +401,7 @@ function Composer({
     if (!body) return;
     if (body.length > 4000) return setMsg("Höchstens 4000 Zeichen.");
     if (editing) {
-      patchMessage(convId, editing.id, (m) => ({ ...m, body, editedAt: Date.now() }));
+      patchMessage(editing, (m) => ({ ...m, body, editedAt: Date.now() }));
       void chat.edit(token, editing.id, body).catch(() => setMsg("Bearbeiten fehlgeschlagen."));
     } else sendText(token, convId, me, body, replyTo);
     setText("");
@@ -447,7 +467,7 @@ function Composer({
           <span className="small">
             {editing ? "Bearbeiten" : `Antwort an ${names.get(replyTo!.authorId ?? "") ?? "?"}`}: <span className="muted">{(editing ?? replyTo)!.body.slice(0, 80) || "Medium"}</span>
           </span>
-          <button type="button" className="link small" onClick={() => (setText(""), onDone())} aria-label="Abbrechen">✕</button>
+          <button type="button" className="link small" onClick={() => (setText(""), onDone())} aria-label="Abbrechen"><IconClose size={16} /></button>
         </div>
       )}
       {msg && <div className="error small">{msg}</div>}
@@ -463,10 +483,10 @@ function Composer({
         />
       )}
       <div className="composer-bar">
-        <button type="button" className="icon-btn" onClick={() => setEmoji((v) => !v)} aria-label="Emoji" aria-expanded={emoji}>😊</button>
+        <button type="button" className="icon-btn" onClick={() => setEmoji((v) => !v)} aria-label="Emoji" aria-expanded={emoji}><IconEmoji size={20} /></button>
         {!editing && (
           <label className="icon-btn" aria-label="Bild senden" title="Bild senden">
-            📎
+            <IconAttach size={19} />
             <input type="file" accept="image/*" hidden onChange={(e) => (void pickImage(e.target.files?.[0]), (e.target.value = ""))} />
           </label>
         )}
@@ -481,9 +501,9 @@ function Composer({
           maxLength={4000}
         />
         {text.trim() || editing ? (
-          <button type="button" className="icon-btn send" onClick={submit} aria-label={editing ? "Speichern" : "Senden"}>➤</button>
+          <button type="button" className="icon-btn send" onClick={submit} aria-label={editing ? "Speichern" : "Senden"}>{editing ? <IconCheck size={20} /> : <IconSend size={19} />}</button>
         ) : canRecord() ? (
-          <button type="button" className="icon-btn" onClick={() => void record()} aria-label="Sprachnachricht aufnehmen">🎤</button>
+          <button type="button" className="icon-btn" onClick={() => void record()} aria-label="Sprachnachricht aufnehmen"><IconMic size={19} /></button>
         ) : null}
       </div>
     </div>
@@ -552,7 +572,7 @@ function LearnDialog({ text, onClose }: { text: string; onClose: () => void }) {
               <li key={m.id} className="row">
                 <WordView lexemeId={m.id} lemma={m.lemma} lang={lang} pronunciation={m.romanization} gloss={m.gloss} cefr={m.cefr} />
                 <span className="spacer" />
-                {has ? <span className="muted small">✓ in deiner Sammlung</span> : <button className="small-btn" onClick={() => addCardFromLexeme(collections, m, lang, "chat")}>+ Lernen</button>}
+                {has ? <span className="muted small icon-line"><IconCheck size={14} /> in deiner Sammlung</span> : <button className="small-btn" onClick={() => addCardFromLexeme(collections, m, lang, "chat")}>+ Lernen</button>}
               </li>
             );
           })}

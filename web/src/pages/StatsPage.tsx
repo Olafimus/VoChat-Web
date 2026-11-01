@@ -1,3 +1,5 @@
+import { IconAlert, IconCards, IconCheck, IconShield, IconStreak, IconTarget } from "../components/icons";
+import type { ReactNode } from "react";
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useLiveQuery } from "@tanstack/react-db";
@@ -57,7 +59,7 @@ export function StatsPage() {
   return (
     <div className="stack">
       <div className="row">
-        <h2 style={{ margin: 0 }}>Statistik</h2>
+        <h1 style={{ margin: 0 }}>Statistik</h1>
         <span className="spacer" />
         {learning.length > 1 && (
           <select value={lang} onChange={(e) => setLang(e.target.value as LangCode)} aria-label="Lernsprache">
@@ -69,12 +71,12 @@ export function StatsPage() {
       </div>
 
       <div className="tiles">
-        <Tile label="Heute dran" value={`${plan.relearn + plan.due + plan.newAllowed}`} hint={`${plan.due + plan.relearn} Wiederholungen · ${plan.newAllowed} neu · ≈ ${plan.minutes} Min.`} />
-        <Tile label="Serie" value={`${stats.streakDays} 🔥`} hint="Tage in Folge gelernt" />
-        <Tile label="Sitzt sicher" value={`${stats.safeNow}`} hint="Erinnerung jetzt ≥ 90 %" />
-        <Tile label="Gefährdet" value={`${stats.atRisk}`} hint="Erinnerung unter 70 %" />
-        <Tile label="Behaltensquote" value={pct(stats.retention.rate)} hint={`nach ≥ 1 Tag Pause · Ziel ${pct(settings.retention)} · ${stats.retention.n} Antworten`} />
-        <Tile label="Heute" value={`${stats.today.reviews}`} hint={`Antworten · ${stats.today.correct} richtig · ${stats.today.minutes} Min.`} />
+        <Tile accent icon={<IconCards size={17} />} label="Heute dran" value={`${plan.relearn + plan.due + plan.newAllowed}`} hint={`${plan.due + plan.relearn} Wiederholungen · ${plan.newAllowed} neu · ≈ ${plan.minutes} Min.`} />
+        <Tile tone="qt-lime" icon={<IconStreak size={17} />} label="Serie" value={`${stats.streakDays}`} hint="Tage in Folge gelernt" />
+        <Tile icon={<IconShield size={17} />} label="Sitzt sicher" value={`${stats.safeNow}`} hint="Erinnerung jetzt ≥ 90 %" />
+        <Tile tone="qt-coral" icon={<IconAlert size={17} />} label="Gefährdet" value={`${stats.atRisk}`} hint="Erinnerung unter 70 %" />
+        <Tile icon={<IconTarget size={17} />} label="Behaltensquote" value={pct(stats.retention.rate)} hint={`nach ≥ 1 Tag Pause · Ziel ${pct(settings.retention)} · ${stats.retention.n} Antworten`} />
+        <Tile tone="qt-lime" icon={<IconCheck size={17} />} label="Heute" value={`${stats.today.reviews}`} hint={`Antworten · ${stats.today.correct} richtig · ${stats.today.minutes} Min.`} />
       </div>
       {plan.notes.length > 0 && <div className="muted small">{plan.notes.join(" ")}</div>}
       <div className="row">
@@ -278,9 +280,10 @@ export function StatsPage() {
   );
 }
 
-function Tile({ label, value, hint }: { label: string; value: string; hint: string }) {
+function Tile({ label, value, hint, icon, accent, tone = "qt-violet" }: { label: string; value: string; hint: string; icon?: ReactNode; accent?: boolean; tone?: string }) {
   return (
-    <div className="tile">
+    <div className={`tile ${accent ? "accent" : ""}`}>
+      {icon && <span className={`tile-icon ${accent ? "" : tone}`}>{icon}</span>}
       <span className="tile-label">{label}</span>
       <span className="tile-value">{value}</span>
       <span className="tile-hint">{hint}</span>

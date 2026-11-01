@@ -131,6 +131,10 @@ neue Follower, Challenge-Einladungen, Antworten auf Kommentare, Kommentare und E
 - **Echtzeit:** `GET /events` (Server-Sent Events, per fetch mit Bearer-Token). Ereignisse enthalten nur IDs; der Client lädt
   gezielt nach (`after=<id>` bzw. `ids=`). Automatischer Neuaufbau mit Backoff, danach Abgleich verpasster Nachrichten.
   Verteiler im Prozess (`ChatHub`); für mehrere Instanzen später Postgres LISTEN/NOTIFY.
+- **Lokal gespeichert mit TanStack DB:** Nachrichten liegen in der Collection `chat-messages` (`web/src/lib/chatStore.ts`),
+  persistiert in IndexedDB. Die Ansicht liest per `useLiveQuery` (nach Chat gefiltert, sortiert). Chats öffnen sofort und auch offline;
+  vom Server kommen nur neuere Nachrichten (`after=`). Ausstehende/fehlgeschlagene Nachrichten (inkl. Bild/Ton als Blob) überstehen
+  einen Neustart und lassen sich erneut senden. Beim Abmelden werden lokale Chats gelöscht. Die Chat-Liste wird ebenfalls zwischengespeichert.
 - **Senden ist idempotent** (`clientId`): Nachrichten erscheinen sofort, bei Verbindungsabbruch „erneut versuchen“, ohne Duplikate.
 - **Performance:** `@tanstack/react-virtual` mit dynamischen Höhen – nur sichtbare Nachrichten im DOM. Ältere Seiten (50)
   werden beim Hochscrollen geladen; die Position bleibt stabil (Anker-Nachricht). Gemessen (Produktions-Build, 10 000 Nachrichten):
@@ -165,6 +169,15 @@ sondern als `pendingUpdate` (synchronisiert) vorgeschlagen:
 **Sicherheits-Header** (`web/security-headers.conf`, von nginx in jedem Block eingebunden und von `vite preview` mitgenutzt):
 strikte CSP ohne Inline-Skripte (`script-src 'self' 'wasm-unsafe-eval'`), `frame-ancestors 'none'`, `nosniff`,
 Mikrofon/Kamera nur für die eigene Seite. Echtzeit-Endpunkt ohne Pufferung (`proxy_buffering off`).
+
+## Gestaltung
+
+„Tinte & Zitrus“: tiefes Violett als Hauptfarbe (Verlauf), Koralle als Zweitfarbe, Limette für Erfolg/Serie; warmer
+Untergrund mit weichen Farbflächen; Überschriften und Zahlen in *Bricolage Grotesque*, Text in *Figtree*, Persisch in
+*Vazirmatn* (alle selbst gehostet über `@fontsource`, keine externen Anfragen). Symbole einheitlich aus **Lucide**
+(`web/src/components/icons.tsx`), eigene Symbole (Serie, Karteikarten) im selben Raster; eigenes Logo (Sprechblase mit
+„V“-Häkchen). Schwebende Glas-Navigation, Seitenköpfe mit farbigem Symbol, Fortschrittsringe, Diagramme mit Verläufen.
+Hell und dunkel jeweils mit eigenen Farbwerten.
 
 ## Statistik-Seite
 

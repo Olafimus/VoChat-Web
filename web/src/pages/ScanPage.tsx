@@ -10,6 +10,7 @@ import { recognize } from "../lib/ocr";
 import type { CardRow } from "../local/collections";
 import { Empty } from "../components/ui";
 import { WordView } from "../components/WordView";
+import { IconScan } from "../components/icons";
 
 const STATUS_LABEL: Record<string, string> = {
   "loading tesseract core": "Lade Texterkennung",
@@ -139,7 +140,7 @@ export function ScanPage() {
   return (
     <div className="stack">
       <section className="card stack">
-        <h2>📷 Foto → Vokabeln</h2>
+        <h2 className="icon-title"><IconScan size={22} aria-hidden /> Foto → Vokabeln</h2>
         <p className="muted small">
           Fotografiere eine Buchseite, ein Schild oder eine Speisekarte. Die Texterkennung läuft auf deinem Gerät; Foto und Text
           werden nicht gespeichert.

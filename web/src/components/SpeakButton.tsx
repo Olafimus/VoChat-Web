@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { LangCode } from "@vochat/shared";
 import { playPronunciation, type PlayResult } from "../lib/audio";
 import { useDisplay } from "../lib/display";
+import { IconMute, IconSpeak } from "./icons";
 
 const TITLE: Record<PlayResult, string> = {
   recording: "Aufnahme (Lingua Libre / Wikimedia Commons)",
@@ -36,7 +37,7 @@ export function SpeakButton({ lang, text, lexemeId }: { lang: LangCode; text: st
         void play(true);
       }}
     >
-      {state.last === "failed" ? "🔇" : "🔊"}
+      {state.last === "failed" ? <IconMute size={16} /> : <IconSpeak size={16} />}
     </button>
   );
 }

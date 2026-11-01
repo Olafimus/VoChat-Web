@@ -3,6 +3,7 @@ import type { AudioRecording } from "@vochat/shared";
 import { ApiError, apiUrl, recordings } from "../api/client";
 import { useSession } from "../session";
 import { canRecord, MAX_RECORDING_MS, MAX_UPLOAD_BYTES, startRecording, type ActiveRecorder, type Recording } from "../lib/recorder";
+import { IconMic, IconPlay, IconSpeak, IconStop, IconTrash } from "./icons";
 
 const play = (url: string) => void new Audio(apiUrl(url)).play().catch(() => undefined);
 
@@ -96,11 +97,11 @@ export function Recordings({ lexemeId, lemma }: { lexemeId: number; lemma: strin
         {others.map((r) => (
           <span key={r.id ?? r.url} className="rec-chip">
             <button className="small-btn" onClick={() => play(r.url)} aria-label={`Aufnahme von ${r.speaker ?? "unbekannt"} abspielen`}>
-              🔊 {r.mine ? "du" : r.speaker ?? (r.source.startsWith("commons") || r.source.startsWith("kaikki") ? "Wikimedia" : "Community")}
+              <IconSpeak size={15} aria-hidden /> {r.mine ? "du" : r.speaker ?? (r.source.startsWith("commons") || r.source.startsWith("kaikki") ? "Wikimedia" : "Community")}
             </button>
             {r.status === "pending" && <span className="badge subtle">wartet auf Freigabe</span>}
             {r.mine && r.id && (
-              <button className="link small danger" onClick={() => remove(r.id!)} aria-label="Eigene Aufnahme löschen">✕</button>
+              <button className="link small danger" onClick={() => remove(r.id!)} aria-label="Eigene Aufnahme löschen"><IconTrash size={14} /></button>
             )}
           </span>
         ))}
@@ -108,15 +109,15 @@ export function Recordings({ lexemeId, lemma }: { lexemeId: number; lemma: strin
       {token && uploads && canRecord() && (
         <div className="row wrap">
           {!active ? (
-            <button className="small-btn" onClick={() => void record()}>🎙 {others.some((r) => r.mine) ? "Neu aufnehmen" : `„${lemma}“ einsprechen`}</button>
+            <button className="small-btn" onClick={() => void record()}><IconMic size={15} aria-hidden /> {others.some((r) => r.mine) ? "Neu aufnehmen" : `„${lemma}“ einsprechen`}</button>
           ) : (
             <button className="small-btn primary recording" onClick={() => active.stop()}>
-              ■ Stopp ({((MAX_RECORDING_MS - elapsed) / 1000).toFixed(1).replace(".", ",")} s)
+              <IconStop size={13} aria-hidden /> Stopp ({((MAX_RECORDING_MS - elapsed) / 1000).toFixed(1).replace(".", ",")} s)
             </button>
           )}
           {take && (
             <>
-              <button className="small-btn" onClick={() => void new Audio(take.url).play()}>▶ Anhören</button>
+              <button className="small-btn" onClick={() => void new Audio(take.url).play()}><IconPlay size={14} aria-hidden /> Anhören</button>
               <button className="small-btn primary" onClick={() => void upload()}>Speichern</button>
               <button className="link small" onClick={() => { URL.revokeObjectURL(take.url); setTake(null); }}>Verwerfen</button>
               <span className="muted small">{(take.durationMs / 1000).toFixed(1).replace(".", ",")} s · {Math.round(take.blob.size / 1024)} KB</span>

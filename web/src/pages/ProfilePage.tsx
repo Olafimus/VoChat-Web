@@ -8,6 +8,7 @@ import { getTheme, setTheme, type Theme } from "../lib/theme";
 import { readDisplay, writeDisplay, type DisplayPrefs } from "../lib/display";
 import { WordView } from "../components/WordView";
 import { InstallApp } from "../components/PwaBanner";
+import { IconSpeak } from "../components/icons";
 
 export function ProfilePage() {
   const { user, token, updateProfile, replaceProfile, connect, disconnect, collections } = useSession();
@@ -245,7 +246,7 @@ function DisplaySettings() {
         {box("cefr", "Niveau (A1–C2)")}
         {box("gender", "Genus")}
         {box("pos", "Wortart")}
-        {box("audio", "🔊 Aussprache zum Anhören")}
+        {box("audio", "Aussprache-Knopf zum Anhören")}
         {box("autoplay", "Beim Lernen automatisch vorlesen")}
       </div>
       <label>

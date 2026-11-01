@@ -10,6 +10,9 @@ import { newMediaCollection, parseItemLines } from "../lib/collections";
 import type { CardRow, MediaCollectionRow } from "../local/collections";
 import { CefrBadge, Empty, Lemma } from "../components/ui";
 import { WordView } from "../components/WordView";
+import { IconBack, IconStar } from "../components/icons";
+import { PageHeader } from "../components/PageHeader";
+import { IconPaths } from "../components/icons";
 
 type Tab = "empfohlen" | "medien" | "meine";
 
@@ -26,6 +29,7 @@ export function PathsPage() {
   const [tab, setTab] = useState<Tab>("empfohlen");
   return (
     <div className="stack">
+      <PageHeader icon={<IconPaths size={22} />} tone="qt-lime" title="Lernpfade" subtitle="Grundwortschatz, Bücher, Lieder und Filme – sieh, was dir noch fehlt" />
       <div className="segmented three" role="tablist">
         <button className={tab === "empfohlen" ? "on" : ""} onClick={() => setTab("empfohlen")}>Empfohlen</button>
         <button className={tab === "medien" ? "on" : ""} onClick={() => setTab("medien")}>Medien</button>
@@ -113,13 +117,13 @@ function PathDetail({ id, lang, native, onBack, cards }: { id: string; lang: Lan
 
   return (
     <div className="stack">
-      <button onClick={onBack}>← Zurück</button>
+      <button onClick={onBack}><IconBack size={16} aria-hidden /> Zurück</button>
       <div className="card stack">
         <h2>{detail.title}</h2>
         <p className="muted">{detail.description}</p>
         <Coverage ratio={cov.ratio} known={cov.known} learning={cov.learning} total={cov.total} />
         <div className="row">
-          <button className="primary" onClick={copyToOwn} disabled={copied}>{copied ? "Übernommen ✓" : "Als eigene Liste übernehmen"}</button>
+          <button className="primary" onClick={copyToOwn} disabled={copied}>{copied ? "Übernommen" : "Als eigene Liste übernehmen"}</button>
           <button onClick={() => missing.forEach((i) => addCardOf(collections, i))} disabled={missing.length === 0}>
             Alle fehlenden lernen ({missing.length})
           </button>
@@ -252,7 +256,7 @@ function MediaDetail({ id, cards, onBack }: { id: string; cards: CardRow[]; onBa
 
   return (
     <div className="stack">
-      <button onClick={onBack}>← Zurück</button>
+      <button onClick={onBack}><IconBack size={16} aria-hidden /> Zurück</button>
       <div className="card stack">
         <div className="row">
           <h2>{detail.title}</h2>
@@ -276,7 +280,7 @@ function MediaDetail({ id, cards, onBack }: { id: string; cards: CardRow[]; onBa
             <div className="row" role="radiogroup" aria-label="Schwierigkeit bewerten">
               {[1, 2, 3, 4, 5].map((d) => (
                 <button key={d} className={`star ${detail.myRating && d <= detail.myRating ? "on" : ""}`} disabled={saving} onClick={() => rate(d)} aria-label={`${d} von 5`}>
-                  ★
+                  <IconStar size={18} fill="currentColor" aria-hidden />
                 </button>
               ))}
               <span className="muted small">{detail.myRating ? `Deine Bewertung: ${detail.myRating}` : "Bewerte die Schwierigkeit"}</span>
@@ -498,7 +502,7 @@ function OwnDetail({ c, cards, onBack, engine, token }: { c: MediaCollectionRow;
   };
   return (
     <div className="stack">
-      <button onClick={onBack}>← Zurück</button>
+      <button onClick={onBack}><IconBack size={16} aria-hidden /> Zurück</button>
       <div className="card stack">
         <h2>{c.title}</h2>
         {c.description && <p className="muted">{c.description}</p>}
@@ -564,7 +568,7 @@ function Difficulty({ value, count }: { value: number | null; count: number }) {
   return (
     <span className="difficulty" title={`${count} Bewertungen`}>
       {[1, 2, 3, 4, 5].map((d) => (
-        <span key={d} className={d <= Math.round(value) ? "on" : ""}>★</span>
+        <IconStar key={d} size={14} className={d <= Math.round(value) ? "star on" : "star"} fill="currentColor" aria-hidden />
       ))}
       <span className="muted small"> {value.toFixed(1)} · {count}</span>
     </span>

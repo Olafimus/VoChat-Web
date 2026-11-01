@@ -5,6 +5,7 @@ import type { CatalogCollection } from "@vochat/shared";
 import { useSession } from "../session";
 import { Avatar } from "../components/Avatar";
 import { Empty } from "../components/ui";
+import { IconStar } from "../components/icons";
 
 /** Öffentliches Profil: Bio, Statistik, Lernfortschritt (für Freunde), öffentliche Sammlungen, Follow/Freundschaft. */
 export function UserPage() {
@@ -52,7 +53,7 @@ export function UserPage() {
             <span>· {view.stats.following} folgt</span>
             <span>· {view.stats.publicCollections} geteilte Sammlungen</span>
             <span>· {view.stats.verifiedContributions} verifizierte Beiträge</span>
-            {typeof view.score === "number" && <span>· ★ {view.score} Punkte</span>}
+            {typeof view.score === "number" && <span className="icon-line">· <IconStar size={14} aria-hidden /> {view.score} Punkte</span>}
           </div>
         )}
         {view.progress && (

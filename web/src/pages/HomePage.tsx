@@ -11,6 +11,7 @@ import { plannerSettings, startOfToday, toPlannerCard, toStatsCard, toStatsRevie
 import { Empty } from "../components/ui";
 import { useConversations } from "../lib/useChats";
 import { InstallApp } from "../components/PwaBanner";
+import { IconBell, IconCards, IconChats, IconCheck, IconDone, IconEdit, IconPlay, IconScan, IconStats, IconStreak, IconTimer, IconTrophy } from "../components/icons";
 
 const SEEN_KEY = "vochat.notificationsSeen";
 const daysLeft = (end: number) => Math.max(0, Math.ceil((end - Date.now()) / 86_400_000));
@@ -53,53 +54,76 @@ export function HomePage() {
 
   return (
     <div className="stack home">
-      <section className="hero card">
-        <div>
-          <h2>Hallo{user.name ? `, ${user.name}` : ""} 👋</h2>
-          <p className="muted small">
-            {streak > 0 ? `🔥 ${streak} ${streak === 1 ? "Tag" : "Tage"} in Folge` : "Heute ist ein guter Tag für eine Serie"}
-            {todayCount > 0 && ` · heute schon ${todayCount} Antworten`}
-          </p>
+      <section className="hero">
+        <div className="hero-text">
+          <span className="eyebrow">{new Date().toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long" })}</span>
+          <h1>
+            Hallo{user.name ? `, ${user.name}` : ""}<span className="hero-dot">.</span>
+          </h1>
+          <div className="hero-chips">
+            <span className={`streak-chip ${streak > 0 ? "on" : ""}`}>
+              <IconStreak size={16} /> {streak > 0 ? `${streak} ${streak === 1 ? "Tag" : "Tage"} Serie` : "Starte heute eine Serie"}
+            </span>
+            {todayCount > 0 && (
+              <span className="soft-chip">
+                <IconCheck size={15} aria-hidden /> heute {todayCount} Antworten
+              </span>
+            )}
+          </div>
         </div>
         <div className="quick">
-          <Link to="/scan" className="button">📷 Foto scannen</Link>
-          <Link to="/chat" className="button">💬 Nachschlagen</Link>
-          <Link to="/stats" className="button">📊 Statistik</Link>
+          <Link to="/scan" className="quick-tile">
+            <span className="qt-icon qt-coral"><IconScan size={20} /></span>
+            Foto scannen
+          </Link>
+          <Link to="/chat" className="quick-tile">
+            <span className="qt-icon qt-violet"><IconChats size={20} /></span>
+            Chats
+          </Link>
+          <Link to="/stats" className="quick-tile">
+            <span className="qt-icon qt-lime"><IconStats size={20} /></span>
+            Statistik
+          </Link>
           <InstallApp compact />
         </div>
       </section>
 
       <section className="stack">
-        <h3>Heute lernen</h3>
+        <h2 className="section-title"><IconCards size={20} aria-hidden /> Heute lernen</h2>
         {perLang.length === 0 && <Empty>Wähle im Profil eine Sprache, die du lernen willst.</Empty>}
         <div className="home-grid">
-          {perLang.map(({ lang, plan, total }) => {
+          {perLang.map(({ lang, plan, total, stats }) => {
             const reviewsDue = plan.due + plan.relearn;
             const nothing = reviewsDue + plan.newAllowed === 0;
+            const done = stats.today.reviews;
+            const goal = done + reviewsDue + plan.newAllowed;
             return (
-              <div key={lang} className="card stack block-card">
-                <div className="row">
-                  <b>{LANGUAGES[lang].name}</b>
-                  <span className="spacer" />
-                  <span className="muted small">{total} Wörter</span>
+              <div key={lang} className="card block-card">
+                <ProgressRing value={goal ? done / goal : 1} label={nothing ? "fertig" : `${Math.round((goal ? done / goal : 1) * 100)} %`} />
+                <div className="stack block-body">
+                  <div className="row">
+                    <b className="block-lang">{LANGUAGES[lang].name}</b>
+                    <span className="spacer" />
+                    <span className="muted small">{total} Wörter</span>
+                  </div>
+                  {total === 0 ? (
+                    <p className="muted small">Noch keine Wörter. <Link to="/paths">Lernpfad wählen</Link> oder <Link to="/scan">Text scannen</Link>.</p>
+                  ) : nothing ? (
+                    <p className="small icon-line"><IconDone size={16} aria-hidden /> Alles erledigt. Morgen fällig: {plan.forecast[1] ?? 0}.</p>
+                  ) : (
+                    <>
+                      <div className="block-numbers">
+                        <span><b>{reviewsDue}</b> wiederholen</span>
+                        <span><b>{plan.newAllowed}</b> neu</span>
+                        <span className="icon-line"><IconTimer size={14} aria-hidden /> <b>{plan.minutes}</b> Min.</span>
+                      </div>
+                      {plan.notes[0] && <p className="muted small">{plan.notes[0]}</p>}
+                      <button className="primary" onClick={() => start(lang)}>
+                        <IconPlay size={16} fill="currentColor" aria-hidden /> Lernblock starten · {Math.min(settings.blockSize, plan.items.length)}
+                      </button>
+                    </>
+                  )}
                 </div>
-                {total === 0 ? (
-                  <p className="muted small">Noch keine Wörter. <Link to="/paths">Lernpfad wählen</Link> oder <Link to="/scan">Text scannen</Link>.</p>
-                ) : nothing ? (
-                  <p className="small">✓ Alles erledigt. Morgen fällig: {plan.forecast[1] ?? 0}.</p>
-                ) : (
-                  <>
-                    <div className="block-numbers">
-                      <span><b>{reviewsDue}</b> wiederholen</span>
-                      <span><b>{plan.newAllowed}</b> neu</span>
-                      <span>≈ <b>{plan.minutes}</b> Min.</span>
-                    </div>
-                    {plan.notes[0] && <p className="muted small">{plan.notes[0]}</p>}
-                    <button className="primary" onClick={() => start(lang)}>
-                      Lernblock starten ({Math.min(settings.blockSize, plan.items.length)})
-                    </button>
-                  </>
-                )}
               </div>
             );
           })}
@@ -110,7 +134,10 @@ export function HomePage() {
         const n = cards.filter((c) => !c.deleted && c.pendingUpdate).length;
         return n > 0 ? (
           <Link to="/vocab" className="card notice-link">
-            ✏️ <b>{n} {n === 1 ? "Wort" : "Wörter"}</b> in deiner Sammlung {n === 1 ? "wurde" : "wurden"} im Wörterbuch korrigiert – ansehen und entscheiden
+            <span className="qt-icon qt-coral"><IconEdit size={18} /></span>
+            <span>
+              <b>{n} {n === 1 ? "Wort" : "Wörter"}</b> in deiner Sammlung {n === 1 ? "wurde" : "wurden"} im Wörterbuch korrigiert – ansehen und entscheiden
+            </span>
           </Link>
         ) : null;
       })()}
@@ -134,7 +161,7 @@ function ChatSection({ token }: { token: string }) {
   return (
     <section className="stack">
       <div className="row">
-        <h3>Nachrichten {unread.length > 0 && <span className="badge">{unread.reduce((n, c) => n + c.unread, 0)} neu</span>}</h3>
+        <h2 className="section-title"><IconChats size={20} aria-hidden /> Nachrichten {unread.length > 0 && <span className="badge">{unread.reduce((n, c) => n + c.unread, 0)} neu</span>}</h2>
         <span className="spacer" />
         <Link to="/chat" className="small">alle Chats</Link>
       </div>
@@ -215,7 +242,7 @@ function SocialSection({ token }: { token: string }) {
     <>
       <section className="stack">
         <div className="row">
-          <h3>Challenges</h3>
+          <h2 className="section-title"><IconTrophy size={20} aria-hidden /> Challenges</h2>
           <span className="spacer" />
           <Link to="/community" className="small">alle</Link>
         </div>
@@ -258,9 +285,9 @@ function SocialSection({ token }: { token: string }) {
       </section>
 
       <section className="stack">
-        <h3>
-          Neuigkeiten {unread > 0 && <span className="badge">{unread} neu</span>}
-        </h3>
+        <h2 className="section-title">
+          <IconBell size={20} aria-hidden /> Neuigkeiten {unread > 0 && <span className="badge">{unread} neu</span>}
+        </h2>
         {news?.length === 0 && <div className="card small muted">Noch nichts Neues.</div>}
         {news && news.length > 0 && (
           <ul className="card news-list">
@@ -283,5 +310,25 @@ function SocialSection({ token }: { token: string }) {
         )}
       </section>
     </>
+  );
+}
+
+/** Fortschrittsring (heute erledigt von geplant) mit Verlauf. */
+function ProgressRing({ value, label }: { value: number; label: string }) {
+  const r = 30;
+  const c = 2 * Math.PI * r;
+  const v = Math.max(0, Math.min(1, value));
+  return (
+    <svg className="ring" width="76" height="76" viewBox="0 0 76 76" role="img" aria-label={`Heute erledigt: ${label}`}>
+      <defs>
+        <linearGradient id="ring-g" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="var(--accent)" />
+          <stop offset="1" stopColor="var(--coral)" />
+        </linearGradient>
+      </defs>
+      <circle cx="38" cy="38" r={r} className="ring-track" />
+      {v > 0 && <circle cx="38" cy="38" r={r} className="ring-value" stroke="url(#ring-g)" strokeDasharray={`${c * v} ${c}`} transform="rotate(-90 38 38)" />}
+      <text x="38" y="43" textAnchor="middle" className="ring-label">{label}</text>
+    </svg>
   );
 }

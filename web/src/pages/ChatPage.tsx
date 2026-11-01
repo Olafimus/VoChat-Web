@@ -11,6 +11,7 @@ import { newId } from "../lib/ids";
 import { LexemeInfo } from "../components/LexemeInfo";
 import { WordView } from "../components/WordView";
 import type { MessageRow, CardRow } from "../local/collections";
+import { IconBack, IconCheck, IconDictionary } from "../components/icons";
 
 interface LookupPayload {
   query: string;
@@ -141,8 +142,8 @@ export function ChatPage() {
   return (
     <div className="chat">
       <div className="chat-head">
-        <Link to="/chat" className="conv-back" aria-label="Zurück zu den Chats">←</Link>
-        <b>📖 Assistent</b>
+        <Link to="/chat" className="conv-back" aria-label="Zurück zu den Chats"><IconBack size={20} /></Link>
+        <b className="icon-line"><IconDictionary size={18} aria-hidden /> Assistent</b>
         <span className="spacer" />
         <label className="inline">
           Lernsprache
@@ -256,7 +257,7 @@ function LookupMessage({
       {payload.results.length === 0 && (
         <div className="row" style={{ marginTop: "0.4rem" }}>
           {ownExists ? (
-            <span className="muted small">✓ als eigenes Wort gespeichert</span>
+            <span className="muted small icon-line"><IconCheck size={14} /> als eigenes Wort gespeichert</span>
           ) : (
             <button className="small-btn" onClick={() => onAddOwn(payload.query)}>Als eigenes Wort speichern</button>
           )}
@@ -271,7 +272,7 @@ function LookupMessage({
             </button>
             <span className="spacer" />
             {isAdded(r.id) ? (
-              <span className="muted small">✓ in Liste</span>
+              <span className="muted small icon-line"><IconCheck size={14} /> in Liste</span>
             ) : (
               <button className="small-btn" onClick={() => onAdd(r)}>+ Lernen</button>
             )}
@@ -308,7 +309,7 @@ function ExtractMessage({
           {fresh.some((f) => f.id === m.id) ? (
             <button className="small-btn" onClick={() => onAdd(m)}>+ Lernen</button>
           ) : (
-            <span className="muted small">✓</span>
+            <span className="muted small"><IconCheck size={14} aria-label="gespeichert" /></span>
           )}
         </div>
       ))}

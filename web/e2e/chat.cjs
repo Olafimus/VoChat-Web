@@ -26,6 +26,17 @@ async function login(page, email) {
   await konto.locator("button.primary").click();
   await page.getByText(/Angemeldet als/).waitFor({ timeout: 15000 });
 }
+/** Aktionsmenü einer Nachricht öffnen und Eintrag wählen (mit Wiederholung, falls die Liste gerade neu misst). */
+async function menu(page, message, item) {
+  for (let i = 0; i < 4; i++) {
+    await message.scrollIntoViewIfNeeded().catch(() => {});
+    await message.locator(".msg-more").click({ force: true });
+    const entry = page.getByRole(item.role ?? "menuitem", { name: item.name });
+    if (await entry.first().isVisible({ timeout: 1500 }).catch(() => false)) return entry.first().click();
+    await page.waitForTimeout(300);
+  }
+  throw new Error(`Menüeintrag „${item.name}“ nicht gefunden`);
+}
 const overflow = (page) =>
   page.evaluate(() => (document.documentElement.scrollWidth > document.documentElement.clientWidth + 1 ? `overflow ${document.documentElement.scrollWidth}` : ""));
 
@@ -141,23 +152,20 @@ const overflow = (page) =>
 
   // Ben antwortet (Antwort-Funktion), reagiert und korrigiert
   const lastFromAnna = b.locator(".msg.theirs").filter({ hasText: "Schau mal" }).last();
-  await lastFromAnna.locator(".msg-more").click({ force: true });
-  await b.getByRole("menuitem", { name: "Antworten" }).click();
+  await menu(b, lastFromAnna, { name: "Antworten" });
   await b.getByLabel("Nachricht schreiben").fill("¡Qué rica! 🥘");
   await b.getByRole("button", { name: "Senden" }).click();
   await a.locator(".reply-quote").last().waitFor({ timeout: 10000 });
   report.push("Antwort mit Zitat: ok");
 
-  await lastFromAnna.locator(".msg-more").click({ force: true });
-  await b.getByRole("button", { name: "Mit 👍 reagieren" }).click();
+  await menu(b, lastFromAnna, { role: "button", name: "Mit 👍 reagieren" });
   await a.locator(".reaction").filter({ hasText: "👍" }).last().waitFor({ timeout: 10000 });
   report.push("Reaktion live bei Anna: ok");
 
   await sendA("Ayer yo comer paella");
   await b.getByText("Ayer yo comer paella").waitFor();
   const wrong = b.locator(".msg.theirs").filter({ hasText: "Ayer yo comer paella" }).last();
-  await wrong.locator(".msg-more").click({ force: true });
-  await b.getByRole("menuitem", { name: "Korrigieren" }).click();
+  await menu(b, wrong, { name: "Korrigieren" });
   await b.getByLabel("Korrigierter Text").fill("Ayer comí paella");
   await b.getByRole("button", { name: "Senden" }).last().click();
   await a.locator(".msg-correction").last().waitFor({ timeout: 10000 });
@@ -186,7 +194,7 @@ const overflow = (page) =>
     const el = document.querySelector(".chat-scroll");
     el.scrollTop = el.scrollHeight;
   });
-  await a.locator(".msg.mine .ticks").filter({ hasText: "✓✓" }).last().waitFor({ timeout: 10000 });
+  await a.locator('.msg.mine .ticks[aria-label="gelesen"]').last().waitFor({ timeout: 10000 });
   report.push("Gelesen-Häkchen ✓✓: ok");
 
   // Emoji-Auswahl
@@ -194,6 +202,16 @@ const overflow = (page) =>
   await b.locator(".emoji-grid button").first().click();
   report.push(`Emoji eingefügt: „${await b.getByLabel("Nachricht schreiben").inputValue()}“`);
   await b.getByRole("button", { name: "Emoji" }).click();
+
+  // Offline: Chat öffnet aus dem lokalen Speicher (TanStack DB / IndexedDB; App-Shell vom Service Worker)
+  if (/:4173/.test(BASE)) {
+    await ctxB.setOffline(true);
+    await b.goto(`${BASE}/chat/${conv}`).catch(() => {});
+    await b.locator(".msg .bubble").last().waitFor({ timeout: 10000 });
+    report.push(`offline: ${await b.locator(".chat-row").count()} Zeilen aus dem lokalen Speicher, letzte „${(await b.locator(".msg .msg-text").last().innerText()).slice(0, 20)}“`);
+    await b.screenshot({ path: `${SHOTS}/chat-offline-mobile.png` });
+    await ctxB.setOffline(false);
+  }
 
   // Screenshots: Ben (Handy), Anna (Desktop), Tablet, Dunkelmodus, Chat-Liste
   await b.waitForTimeout(400);

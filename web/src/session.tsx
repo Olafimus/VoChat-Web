@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { LangCode, UserProfile } from "@vochat/shared";
 import { api, ApiError } from "./api/client";
+import { clearChats } from "./lib/chatStore";
 import { openLocalKv } from "./local/kv";
 import { LocalStore } from "./local/localStore";
 import { SyncEngine, type SyncStatus } from "./local/syncEngine";
@@ -167,6 +168,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       if (store.owner !== "local" && store.owner !== user.id) {
         // Lokale Daten gehören einem anderen Konto: nicht hochladen, sondern verwerfen und neu laden.
         await store.clearAll();
+        await clearChats();
         store.setOwner(user.id);
         await store.flush();
         window.location.reload();
@@ -195,6 +197,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       prefs.set(TOKEN_KEY, null);
       prefs.set("vochat.accountProfile", null);
       if (old) void api.logout(old).catch(() => undefined);
+      // Chats gehören zum Konto (Quelle ist der Server): beim Abmelden lokal immer löschen
+      await clearChats();
       if (opts.clearLocal) {
         await store.clearAll();
         await store.flush();

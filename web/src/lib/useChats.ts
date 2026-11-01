@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { chat, type ConversationView } from "../api/client";
 import { onChatEvent } from "./events";
+import { cacheConversations, cachedConversations } from "./chatStore";
 
 /** Chat-Liste, aktualisiert sich bei Echtzeit-Ereignissen (gebündelt, höchstens alle 500 ms). */
 export function useConversations(token: string | null): { list: ConversationView[] | null; error: boolean; reload: () => void } {
@@ -10,9 +11,16 @@ export function useConversations(token: string | null): { list: ConversationView
   useEffect(() => {
     if (!token) return setList(null);
     let live = true;
+    // Sofort aus dem Zwischenspeicher, dann frisch vom Server
+    void cachedConversations().then((cached) => live && cached && setList((cur) => cur ?? cached));
     chat
       .conversations(token)
-      .then((l) => live && (setList(l), setError(false)))
+      .then((l) => {
+        if (!live) return;
+        setList(l);
+        setError(false);
+        cacheConversations(l);
+      })
       .catch(() => live && setError(true));
     return () => {
       live = false;
