@@ -243,3 +243,36 @@ label.inline input[type="checkbox"] { margin-inline-end: 0.2rem; }
 @media (max-width: 719px) {
   .topbar .sync-label { display: none; }
 }
+
+/* ---- Lernen: Animationen und Fortschritt ---- */
+.pack-stats { display: grid; gap: 0.4rem; }
+.pack-bar { height: 8px; background: var(--surface-2); border-radius: 999px; overflow: hidden; }
+.pack-bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--ok)); border-radius: 999px; transition: width 0.5s ease; }
+.pack-numbers { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; justify-content: space-between; font-size: 0.9rem; }
+.streak { display: inline-block; font-weight: 600; }
+.streak.hot { color: var(--warn); }
+.streak.pop { animation: pop 0.45s cubic-bezier(.2,1.6,.4,1); }
+@keyframes pop { 0% { transform: scale(0.7); } 60% { transform: scale(1.25); } 100% { transform: scale(1); } }
+
+.flip-scene { width: 100%; max-width: 520px; margin: 0 auto; }
+.answer.reveal { animation: reveal 0.45s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes reveal { from { opacity: 0; transform: translateY(10px) scale(0.96); } to { opacity: 1; transform: none; } }
+.flip-scene.fb-wrong { animation: shake 0.45s; }
+.flip-scene.fb-right .flashcard { box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 45%, transparent), var(--shadow); animation: glow 0.6s ease; }
+@keyframes shake { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-10px); } 40% { transform: translateX(9px); } 60% { transform: translateX(-6px); } 80% { transform: translateX(4px); } }
+@keyframes glow { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 60%, transparent); } 100% { box-shadow: 0 0 0 14px transparent; } }
+
+.celebrate { position: relative; overflow: hidden; }
+.confetti { position: absolute; inset: 0; pointer-events: none; }
+.confetti span { position: absolute; top: -12px; width: 9px; height: 14px; border-radius: 2px; opacity: 0.9; animation: fall 1.8s ease-in forwards; }
+@keyframes fall { to { transform: translateY(420px) rotate(540deg); opacity: 0; } }
+
+/* Chat: Aktionen unter eigenen Nachrichten */
+.msg-actions { display: flex; flex-wrap: wrap; gap: 0.4rem 0.8rem; margin-top: 0.35rem; font-size: 0.82rem; }
+button.link.small { font-size: 0.82rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pack-bar span { transition: none; }
+  .streak.pop, .flip-scene.fb-wrong, .flip-scene.fb-right .flashcard, .confetti span, .answer.reveal { animation: none; }
+  .confetti { display: none; }
+}

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useLiveQuery } from "@tanstack/react-db";
 import { coverage, LANGUAGES, MEDIA_TYPES, type CatalogCollection, type Cefr, type LangCode } from "@vochat/shared";
 import { api, ApiError } from "../api/client";
+import { extract } from "../api/client";
 import { useSession, useSyncStatus } from "../session";
 import { useActiveLang } from "../lib/lang";
 import { addCard, hasCardWord } from "../lib/cards";
@@ -346,6 +347,19 @@ function CreateCollection({ onDone, defaultLang }: { onDone: () => void; default
   const [text, setText] = useState("");
   const [share, setShare] = useState(false);
   const items = useMemo(() => parseItemLines(text, lang), [text, lang]);
+  const [extractInfo, setExtractInfo] = useState<string | null>(null);
+
+  /** Ersetzt den Text durch die im Wörterbuch gefundenen Wörter (mit Bedeutung), unbekannte bleiben als Hinweis. */
+  const extractFromText = async () => {
+    try {
+      const { matches, unknown } = await extract(lang, text, user.nativeLang);
+      const lines = matches.map((m) => (m.gloss ? `${m.lemma} = ${m.gloss}` : m.lemma));
+      setText(lines.join("\n"));
+      setExtractInfo(`${matches.length} Treffer übernommen${unknown.length ? ` · ${unknown.length} ohne Eintrag (bitte von Hand ergänzen)` : ""}.`);
+    } catch {
+      setExtractInfo("Extraktion fehlgeschlagen (offline?).");
+    }
+  };
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -413,7 +427,13 @@ function CreateCollection({ onDone, defaultLang }: { onDone: () => void; default
         Wörter (eine Zeile pro Wort, optional „wort = bedeutung“)
         <textarea value={text} onChange={(e) => setText(e.target.value)} rows={8} placeholder={"Haus = house\nLiebe\nHund = dog"} />
       </label>
-      <div className="muted small">{items.length} Wörter erkannt</div>
+      <div className="row">
+        <button type="button" onClick={extractFromText} disabled={!text.trim()}>
+          Aus Text extrahieren (Treffer im Wörterbuch)
+        </button>
+        <span className="muted small">{items.length} Wörter erkannt</span>
+      </div>
+      {extractInfo && <div className="muted small" role="status">{extractInfo}</div>}
       <label className="inline">
         <input type="checkbox" checked={share} onChange={(e) => setShare(e.target.checked)} disabled={!token} />
         Mit anderen teilen {token ? "" : "(Konto nötig)"}

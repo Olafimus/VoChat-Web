@@ -16,3 +16,11 @@ describe("collection and review schemas", () => {
     expect(reviewSchema.safeParse(r).success).toBe(false);
   });
 });
+
+describe("languages", () => {
+  it("includes Japanese as a learning language", async () => {
+    const { isLangCode, LANGUAGES } = await import("../src/index.js");
+    expect(isLangCode("ja")).toBe(true);
+    expect(LANGUAGES.ja.name).toBe("Japanisch");
+  });
+});

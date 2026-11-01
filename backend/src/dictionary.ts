@@ -1,4 +1,4 @@
-import type { Cefr, LangCode, LexemeDetail, LexemeSummary } from "@vochat/shared";
+import type { Cefr, ExtractResult, LangCode, LexemeDetail, LexemeSummary } from "@vochat/shared";
 import type { Db } from "./db.js";
 
 type SummaryRow = {
@@ -148,4 +148,25 @@ export function languageStats(db: Db): { lang: string; lexemes: number; withCefr
        FROM lexemes WHERE hidden = 0 GROUP BY lang ORDER BY lang`,
     )
     .all() as { lang: string; lexemes: number; withCefr: number; withFrequency: number }[];
+}
+
+/**
+ * Wörter aus einem Text extrahieren: Buchstabenfolgen (Unicode), kleingeschrieben und
+ * dedupliziert. Treffer werden exakt (Groß-/Kleinschreibung egal, persische Varianten) gesucht.
+ */
+export function extractWords(db: Db, lang: LangCode, text: string, nativeLang: LangCode, limit = 80): ExtractResult {
+  const tokens = [...new Set((text.normalize("NFC").match(/\p{L}[\p{L}\p{M}'’-]*/gu) ?? []).map((t) => t.replace(/[’-]/g, "'")))].slice(0, limit);
+  const matches: LexemeSummary[] = [];
+  const unknown: string[] = [];
+  const seen = new Set<number>();
+  for (const token of tokens) {
+    const hit = searchLexemes(db, { lang, q: token, nativeLang, limit: 3 }).find(
+      (r) => r.lemma.toLocaleLowerCase("de") === token.toLocaleLowerCase("de") || persianVariants(token).includes(r.lemma),
+    );
+    if (hit && !seen.has(hit.id)) {
+      seen.add(hit.id);
+      matches.push(hit);
+    } else if (!hit) unknown.push(token);
+  }
+  return { matches, unknown };
 }

@@ -4,6 +4,7 @@ export const LANGUAGES = {
   en: { code: "en", name: "Englisch", nativeName: "English", dir: "ltr" },
   es: { code: "es", name: "Spanisch", nativeName: "Español", dir: "ltr" },
   fa: { code: "fa", name: "Persisch", nativeName: "فارسی", dir: "rtl" },
+  ja: { code: "ja", name: "Japanisch", nativeName: "日本語", dir: "ltr" },
 } as const;
 
 export type LangCode = keyof typeof LANGUAGES;

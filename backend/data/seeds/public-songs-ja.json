@@ -1,0 +1,42 @@
+{
+  "id": "public-songs-ja",
+  "note": "Gemeinfreie japanische Kinderlieder. Es sind nur Einzelwörter mit Bedeutung hinterlegt, keine Liedtexte. Bedeutungen bitte von Muttersprachlern gegenprüfen.",
+  "collections": [
+    {
+      "id": "seed-ja-chouchou",
+      "title": "ちょうちょう (Schmetterling)",
+      "mediaType": "song",
+      "description": "Gemeinfreies Kinderlied. Wörter aus dem Lied, mit Bedeutung.",
+      "level": "A1",
+      "items": [
+        { "lemma": "ちょうちょう", "gloss": "Schmetterling" },
+        { "lemma": "なのは", "gloss": "Rapsblatt" },
+        { "lemma": "とまれ", "gloss": "setz dich (Befehlsform von とまる)" },
+        { "lemma": "あいたら", "gloss": "wenn du findest" },
+        { "lemma": "さくら", "gloss": "Kirsche / Kirschblüte" },
+        { "lemma": "はな", "gloss": "Blume, Blüte" },
+        { "lemma": "さく", "gloss": "blühen" },
+        { "lemma": "ころ", "gloss": "Zeit, Zeitpunkt" }
+      ]
+    },
+    {
+      "id": "seed-ja-sakura",
+      "title": "さくら さくら (Kirschblüte)",
+      "mediaType": "song",
+      "description": "Gemeinfreies traditionelles Lied über Kirschblüten. Wörter aus dem Lied, mit Bedeutung.",
+      "level": "A2",
+      "items": [
+        { "lemma": "さくら", "gloss": "Kirschblüte" },
+        { "lemma": "やま", "gloss": "Berg" },
+        { "lemma": "さと", "gloss": "Dorf" },
+        { "lemma": "みわたす", "gloss": "überblicken" },
+        { "lemma": "かすみ", "gloss": "Dunst" },
+        { "lemma": "くも", "gloss": "Wolke" },
+        { "lemma": "あさひ", "gloss": "Morgensonne" },
+        { "lemma": "におう", "gloss": "duften" },
+        { "lemma": "いざや", "gloss": "auf denn (Aufruf)" },
+        { "lemma": "みにゆく", "gloss": "hingehen, um zu sehen" }
+      ]
+    }
+  ]
+}

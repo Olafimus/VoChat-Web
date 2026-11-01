@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useLiveQuery } from "@tanstack/react-db";
-import { LANGUAGES, type LangCode, type LexemeSummary } from "@vochat/shared";
-import { api, ApiError } from "../api/client";
+import { LANGUAGES, type ExtractResult, type LangCode, type LexemeSummary } from "@vochat/shared";
+import { api, ApiError, extract } from "../api/client";
 import { useSession, useSyncStatus } from "../session";
 import { useActiveLang } from "../lib/lang";
-import { addCardFromLexeme, hasCardFor } from "../lib/cards";
+import { addCardFromLexeme, hasCardFor, hasCardWord } from "../lib/cards";
 import { newId } from "../lib/ids";
 import { LexemeInfo } from "../components/LexemeInfo";
 import { CefrBadge, Lemma } from "../components/ui";
@@ -15,19 +15,19 @@ interface LookupPayload {
   results: LexemeSummary[];
 }
 
-/** Chat: Du schreibst ein Wort oder eine Wendung, der Assistent antwortet mit Wörterbuch-Treffern. */
+/** Chat: Wort oder Wendung nachschlagen, eigene Nachrichten korrigieren, Vokabeln aus Text extrahieren. */
 export function ChatPage() {
-  const { collections, user } = useSession();
+  const { token, collections, user } = useSession();
   const status = useSyncStatus();
   const [lang, setLang, learning] = useActiveLang();
-  const messages = useLiveQuery((q) => collections.messages)
-    .data as MessageRow[] | undefined;
-  const cards = useLiveQuery((q) => collections.cards).data as CardRow[] | undefined;
+  const messages = (useLiveQuery((q) => collections.messages).data ?? []) as MessageRow[];
+  const cards = (useLiveQuery((q) => collections.cards).data ?? []) as CardRow[];
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
 
-  const sorted = [...(messages ?? [])].filter((m) => !m.deleted).sort((a, b) => a.createdAt - b.createdAt);
+  const sorted = messages.filter((m) => !m.deleted).sort((a, b) => a.createdAt - b.createdAt);
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ behavior: "smooth" });
@@ -40,8 +40,36 @@ export function ChatPage() {
       updatedAt: now,
       deleted: false,
       createdAt: now,
+      editedAt: null,
       ...row,
     });
+  };
+
+  const offlineHint = () =>
+    post({ role: "assistant", kind: "system", body: "Du bist offline. Nachschlagen braucht eine Verbindung – deine Wortliste funktioniert trotzdem.", payload: null });
+
+  const lookup = async (query: string, targetLang: LangCode) => {
+    if (!status.online) return offlineHint();
+    setBusy(true);
+    try {
+      const results = await api.search(targetLang, query, user.nativeLang);
+      const payload: LookupPayload = { query, results: results.slice(0, 8) };
+      post({
+        role: "assistant",
+        kind: "lookup",
+        body: results.length ? `Treffer für „${query}“ (${LANGUAGES[targetLang].name})` : `Kein Eintrag für „${query}“ in ${LANGUAGES[targetLang].name} gefunden.`,
+        payload,
+      });
+    } catch (err) {
+      post({
+        role: "assistant",
+        kind: "system",
+        body: err instanceof ApiError && err.status === 0 ? "Keine Verbindung – versuch es gleich nochmal." : "Die Suche ist fehlgeschlagen.",
+        payload: null,
+      });
+    } finally {
+      setBusy(false);
+    }
   };
 
   const send = async (e: FormEvent) => {
@@ -50,31 +78,38 @@ export function ChatPage() {
     if (!query || busy) return;
     setText("");
     post({ role: "user", kind: "text", body: query, payload: null });
+    await lookup(query, lang);
+  };
 
-    if (!status.online) {
-      post({ role: "assistant", kind: "system", body: "Du bist offline. Nachschlagen braucht eine Verbindung – deine Wortliste funktioniert trotzdem.", payload: null });
-      return;
-    }
+  /** Korrektur: Text ändern, markieren, bei Suchen erneut nachschlagen. */
+  const saveEdit = async () => {
+    if (!editing) return;
+    const newBody = editing.text.trim();
+    const original = sorted.find((m) => m.id === editing.id);
+    setEditing(null);
+    if (!original || !newBody || newBody === original.body) return;
+    const now = Date.now();
+    collections.messages.update(original.id, (d) => {
+      d.body = newBody;
+      d.editedAt = now;
+      d.updatedAt = now;
+    });
+    post({ role: "assistant", kind: "system", body: `Korrigiert: „${newBody}“ – neu nachgeschlagen.`, payload: null });
+    await lookup(newBody, lang);
+  };
+
+  /** Vokabeln aus einer Nachricht ziehen: Treffer und unbekannte Wörter anzeigen. */
+  const extractFrom = async (m: MessageRow) => {
+    if (!status.online) return offlineHint();
     setBusy(true);
     try {
-      const results = await api.search(lang, query, user.nativeLang);
-      const payload: LookupPayload = { query, results: results.slice(0, 8) };
-      post({
-        role: "assistant",
-        kind: "lookup",
-        body: results.length ? `Treffer für „${query}“ (${LangBadgeText(lang)})` : `Kein Eintrag für „${query}“ in ${LangBadgeText(lang)} gefunden.`,
-        payload,
-      });
-    } catch (err) {
-      const msg = err instanceof ApiError && err.status === 0 ? "Keine Verbindung – versuch es gleich nochmal." : "Die Suche ist fehlgeschlagen.";
-      post({ role: "assistant", kind: "system", body: msg, payload: null });
+      const result: ExtractResult = await extract(lang, m.body, user.nativeLang);
+      post({ role: "assistant", kind: "extract", body: `Wörter aus „${m.body.slice(0, 60)}“`, payload: result });
+    } catch {
+      post({ role: "assistant", kind: "system", body: "Die Wortextraktion ist fehlgeschlagen.", payload: null });
     } finally {
       setBusy(false);
     }
-  };
-
-  const addToLearning = (lexeme: LexemeSummary) => {
-    addCardFromLexeme(collections, lexeme, lang);
   };
 
   if (learning.length === 0) {
@@ -91,9 +126,9 @@ export function ChatPage() {
       <div className="chat-head">
         <label className="inline">
           Lernsprache
-          <select value={lang} onChange={(e) => setLang(e.target.value as typeof lang)}>
+          <select value={lang} onChange={(e) => setLang(e.target.value as LangCode)}>
             {learning.map((l) => (
-              <option key={l} value={l}>{LangBadgeText(l)}</option>
+              <option key={l} value={l}>{LANGUAGES[l].name}</option>
             ))}
           </select>
         </label>
@@ -103,21 +138,51 @@ export function ChatPage() {
       <div className="messages" aria-live="polite">
         {sorted.length === 0 && (
           <div className="bubble assistant">
-            Hallo {user.name}! Schreib ein Wort oder eine Wendung auf {LangBadgeText(lang)} – ich zeige dir Bedeutungen, Beispiele und das Niveau.
+            Hallo {user.name}! Schreib ein Wort oder eine Wendung auf {LANGUAGES[lang].name} – ich zeige dir Bedeutungen, Beispiele und das Niveau. Ganze Sätze kannst du mit „Wörter extrahieren“ durchsuchen.
           </div>
         )}
         {sorted.map((m) => (
           <div key={m.id} className={`bubble ${m.role} kind-${m.kind}`}>
-            {m.kind === "lookup" ? (
+            {m.kind === "lookup" && (
               <LookupMessage
                 body={m.body}
                 payload={m.payload as LookupPayload}
                 lang={lang}
-                isAdded={(id) => hasCardFor(cards ?? [], id)}
-                onAdd={addToLearning}
+                isAdded={(id) => hasCardFor(cards, id)}
+                onAdd={(lexeme) => addCardFromLexeme(collections, lexeme, lang)}
               />
-            ) : (
-              <span>{m.body}</span>
+            )}
+            {m.kind === "extract" && (
+              <ExtractMessage
+                body={m.body}
+                payload={m.payload as ExtractResult}
+                lang={lang}
+                cards={cards}
+                onAdd={(lexeme) => addCardFromLexeme(collections, lexeme, lang)}
+              />
+            )}
+            {(m.kind === "text" || m.kind === "system") && editing?.id !== m.id && <span>{m.body}</span>}
+            {m.kind === "text" && m.role === "user" && editing?.id === m.id && (
+              <div className="stack" style={{ gap: "0.4rem" }}>
+                <input
+                  value={editing.text}
+                  onChange={(e) => setEditing({ id: m.id, text: e.target.value })}
+                  aria-label="Nachricht korrigieren"
+                  onKeyDown={(e) => e.key === "Enter" && void saveEdit()}
+                  dir={lang === "fa" ? "rtl" : "ltr"}
+                />
+                <div className="row">
+                  <button className="small-btn primary" onClick={() => void saveEdit()}>Speichern</button>
+                  <button className="small-btn" onClick={() => setEditing(null)}>Abbrechen</button>
+                </div>
+              </div>
+            )}
+            {m.role === "user" && m.kind === "text" && editing?.id !== m.id && (
+              <div className="msg-actions">
+                {m.editedAt && <span className="muted small">bearbeitet · </span>}
+                <button className="link small" onClick={() => setEditing({ id: m.id, text: m.body })}>Korrigieren</button>
+                <button className="link small" onClick={() => void extractFrom(m)} disabled={busy}>Wörter extrahieren</button>
+              </div>
             )}
           </div>
         ))}
@@ -129,7 +194,7 @@ export function ChatPage() {
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder={`Wort auf ${LangBadgeText(lang)} …`}
+          placeholder={`Wort oder Satz auf ${LANGUAGES[lang].name} …`}
           aria-label="Nachricht"
           dir={lang === "fa" ? "rtl" : "ltr"}
         />
@@ -137,10 +202,6 @@ export function ChatPage() {
       </form>
     </div>
   );
-}
-
-function LangBadgeText(lang: string) {
-  return LANGUAGES[lang as LangCode]?.name ?? lang;
 }
 
 function LookupMessage({
@@ -183,3 +244,42 @@ function LookupMessage({
   );
 }
 
+function ExtractMessage({
+  body,
+  payload,
+  lang,
+  cards,
+  onAdd,
+}: {
+  body: string;
+  payload: ExtractResult;
+  lang: LangCode;
+  cards: CardRow[];
+  onAdd: (lexeme: LexemeSummary) => void;
+}) {
+  const fresh = payload.matches.filter((m) => !hasCardFor(cards, m.id) && !hasCardWord(cards, lang, m.lemma));
+  return (
+    <div className="stack" style={{ gap: "0.4rem" }}>
+      <div className="small muted">{body}</div>
+      {payload.matches.length === 0 && <div>Keine bekannten Wörter gefunden.</div>}
+      {payload.matches.map((m) => (
+        <div key={m.id} className="row">
+          <Lemma lang={lang}>{m.lemma}</Lemma>
+          {m.gloss && <span className="gloss">{m.gloss}</span>}
+          <span className="spacer" />
+          {fresh.some((f) => f.id === m.id) ? (
+            <button className="small-btn" onClick={() => onAdd(m)}>+ Lernen</button>
+          ) : (
+            <span className="muted small">✓</span>
+          )}
+        </div>
+      ))}
+      {fresh.length > 1 && (
+        <button className="small-btn primary" onClick={() => fresh.forEach(onAdd)}>Alle {fresh.length} neuen lernen</button>
+      )}
+      {payload.unknown.length > 0 && (
+        <div className="muted small">Ohne Eintrag: {payload.unknown.slice(0, 30).join(", ")}{payload.unknown.length > 30 ? " …" : ""}</div>
+      )}
+    </div>
+  );
+}

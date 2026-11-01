@@ -175,3 +175,10 @@ export interface PublicUserView {
   progress: { known: number; learning: number } | null;
   relation: { following: "none" | "requested" | "accepted"; followedBy: boolean; friend: "none" | "outgoing" | "incoming" | "accepted" };
 }
+
+/** Wortextraktion ist lesend und funktioniert ohne Konto. */
+export const extract = (lang: LangCode, text: string, native: LangCode) =>
+  request<import("@vochat/shared").ExtractResult>(`/dictionary/extract?native=${native}`, {
+    method: "POST",
+    body: { lang, text },
+  });

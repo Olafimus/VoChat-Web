@@ -70,10 +70,11 @@ export type CardRow = Row & {
 
 export type MessageRow = Row & {
   role: "user" | "assistant";
-  kind: "text" | "lookup" | "system";
+  kind: "text" | "lookup" | "extract" | "system";
   body: string;
   payload: unknown;
   createdAt: number;
+  editedAt: number | null;
 };
 
 export type ReviewRow = Row & {

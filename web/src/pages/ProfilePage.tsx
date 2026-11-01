@@ -4,6 +4,7 @@ import { api, ApiError, media } from "../api/client";
 import { Avatar } from "../components/Avatar";
 import { useSession, useSyncStatus } from "../session";
 import { AuthForm } from "./AuthPage";
+import { getTheme, setTheme, type Theme } from "../lib/theme";
 
 export function ProfilePage() {
   const { user, token, updateProfile, replaceProfile, connect, disconnect, collections } = useSession();
@@ -115,6 +116,18 @@ export function ProfilePage() {
           <button className="primary">Speichern</button>
         </div>
       </form>
+
+      <section className="card stack">
+        <h2>Darstellung</h2>
+        <label>
+          Farbschema
+          <select value={getTheme()} onChange={(e) => setTheme(e.target.value as Theme)}>
+            <option value="system">wie im System</option>
+            <option value="light">hell</option>
+            <option value="dark">dunkel</option>
+          </select>
+        </label>
+      </section>
 
       <section className="card stack">
         <h2>Profilbild & Sichtbarkeit</h2>

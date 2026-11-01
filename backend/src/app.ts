@@ -14,7 +14,7 @@ import {
 import { createSession, deleteSession, hashPassword, requireAuth, optionalAuth, maybeUserId, verifyPassword, currentUserId } from "./auth.js";
 import { builtinPathDetail, builtinPaths, getPublicCollection, listPublicCollections, myRating, upsertRating } from "./catalog.js";
 import { type Db, transaction } from "./db.js";
-import { browseLexemes, languageStats, lexemeDetail, searchLexemes } from "./dictionary.js";
+import { browseLexemes, extractWords, languageStats, lexemeDetail, searchLexemes } from "./dictionary.js";
 import { createUser, findUserByEmail, loadProfile, authResponse } from "./users.js";
 import { pullChanges, pushOps } from "./sync.js";
 import {
@@ -269,6 +269,17 @@ export function createApp({
     const limit = Math.min(100, Math.max(1, Number(c.req.query("limit") ?? 50) || 50));
     const offset = Math.max(0, Number(c.req.query("offset") ?? 0) || 0);
     return c.json(browseLexemes(db, { lang, nativeLang, cefr: cefr as Cefr | undefined, limit, offset }));
+  });
+
+  /** Wörter aus einem Text (Chat-Nachricht, eingefügter Text) gegen das Wörterbuch abgleichen. */
+  app.post("/dictionary/extract", async (c) => {
+    const body = (await c.req.json().catch(() => null)) as { lang?: string; text?: string } | null;
+    if (!body || !isLangCode(body.lang ?? "") || typeof body.text !== "string" || body.text.length > 5000) {
+      return c.json({ error: "invalid input" }, 400);
+    }
+    const lang = body.lang as LangCode;
+    const nativeLang = nativeParam(c.req.query("native"));
+    return c.json(extractWords(db, lang, body.text, nativeLang));
   });
 
   app.get("/dictionary/lexemes/:id", (c) => {

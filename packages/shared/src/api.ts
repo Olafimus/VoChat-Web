@@ -115,3 +115,10 @@ export interface PushResponse {
   rejected: { id: string; reason: string }[];
   cursor: number;
 }
+
+export interface ExtractResult {
+  /** Wörter aus dem Text, die im Wörterbuch vorkommen (je Wort eine Lexem-Zeile). */
+  matches: LexemeSummary[];
+  /** Wörter ohne Treffer. */
+  unknown: string[];
+}

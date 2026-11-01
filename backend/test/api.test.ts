@@ -240,3 +240,26 @@ describe("optional login and catalog", () => {
     expect(pull.changes[0].entity).toBe("reviews");
   });
 });
+
+describe("extraction and Japanese", () => {
+  it("extracts known words from a text and lists unknown ones", async () => {
+    const { token } = await (async () => {
+      const r = await app.request("/auth/register", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email: "ex@example.com", password: "geheimes-passwort", name: "Ex", nativeLang: "de" }) });
+      return (await r.json()) as { token: string };
+    })();
+    db.exec("INSERT INTO lexemes (id, lang, lemma, pos, frequency_rank) VALUES (901, 'de', 'Haus', 'noun', 1), (902, 'de', 'Hund', 'noun', 2)");
+    db.exec("INSERT INTO senses (lexeme_id, position, gloss_lang, gloss, source) VALUES (901, 0, 'de', 'Gebäude', 't')");
+    const res = await app.request("/dictionary/extract?native=de", { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${token}` }, body: JSON.stringify({ lang: "de", text: "Der Hund sieht das Haus. Haus! Zebra." }) });
+    const body = await res.json();
+    expect(body.matches.map((m: { lemma: string }) => m.lemma).sort()).toEqual(["Haus", "Hund"]);
+    expect(body.unknown).toEqual(expect.arrayContaining(["Der", "sieht", "das", "Zebra"]));
+    expect(body.matches.find((m: { lemma: string }) => m.lemma === "Haus").gloss).toBe("Gebäude");
+  });
+
+  it("accepts Japanese as a learning language", async () => {
+    const r = await app.request("/auth/register", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email: "ja@example.com", password: "geheimes-passwort", name: "Ja", nativeLang: "de" }) });
+    const { token } = (await r.json()) as { token: string };
+    const res = await app.request("/me", { method: "PATCH", headers: { "content-type": "application/json", authorization: `Bearer ${token}` }, body: JSON.stringify({ learnLangs: [{ lang: "ja", targetCefr: null }] }) });
+    expect(res.status).toBe(200);
+  });
+});

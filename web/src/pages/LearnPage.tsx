@@ -52,6 +52,10 @@ export function LearnPage() {
   const [typed, setTyped] = useState("");
   const [judgement, setJudgement] = useState<Judgement | null>(null);
   const [score, setScore] = useState({ right: 0, wrong: 0 });
+  const [streak, setStreak] = useState(0);
+  const [bestStreak, setBestStreak] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [feedback, setFeedback] = useState<"right" | "wrong" | null>(null);
   const [sessionKey, setSessionKey] = useState(0);
 
   const langCards = useMemo(() => cards.filter((c) => !c.deleted && c.lang === lang), [cards, lang]);
@@ -69,11 +73,18 @@ export function LearnPage() {
       setReasons({});
     }
     setScore({ right: 0, wrong: 0 });
+    setStreak(0);
+    setBestStreak(0);
+    setFeedback(null);
     setRevealed(false);
     setTyped("");
     setJudgement(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lang, packMode, format, sessionKey]);
+
+  useEffect(() => {
+    setTotal((t) => Math.max(t, queue.length + score.right + score.wrong));
+  }, [queue.length, score.right, score.wrong]);
 
   const current = queue.map((id) => langCards.find((c) => c.id === id)).find(Boolean) as CardRow | undefined;
 
@@ -88,6 +99,12 @@ export function LearnPage() {
     recordAnswer(collections, current, { mode: format, grade, typed: typedValue });
     const wrong = grade === "again";
     setScore((s) => ({ right: s.right + (wrong ? 0 : 1), wrong: s.wrong + (wrong ? 1 : 0) }));
+    setStreak((n) => {
+      const next = wrong ? 0 : n + 1;
+      setBestStreak((b) => Math.max(b, next));
+      return next;
+    });
+    setFeedback(wrong ? "wrong" : "right");
     setQueue((q) => {
       const rest = q.slice(1);
       if (!wrong) return rest;
@@ -132,12 +149,28 @@ export function LearnPage() {
         </label>
       </div>
 
+      <div className="pack-stats" aria-live="polite">
+        <div className="pack-bar" aria-label={`${total - queue.length} von ${total} erledigt`}>
+          <span style={{ width: `${total ? Math.round(((total - queue.length) / total) * 100) : 0}%` }} />
+        </div>
+        <div className="pack-numbers">
+          <span>noch <b>{queue.length}</b> von {total}</span>
+          <span>
+            {score.right + score.wrong > 0 ? `${Math.round((score.right / (score.right + score.wrong)) * 100)} % richtig` : "– % richtig"}
+          </span>
+          <span key={streak} className={`streak ${streak >= 3 ? "hot" : ""} ${streak > 0 ? "pop" : ""}`}>
+            🔥 {streak} <span className="muted small">(Serie {bestStreak})</span>
+          </span>
+        </div>
+      </div>
+
       {!current ? (
-        <div className="card center-card">
+        <div className="card center-card celebrate">
+          {score.right + score.wrong > 0 && <Confetti />}
           <h2>{score.right + score.wrong > 0 ? "Fertig 🎉" : packMode ? "Kein Paket nötig" : "Gerade nichts fällig"}</h2>
           <p className="muted">
             {score.right + score.wrong > 0
-              ? `${score.right} richtig · ${score.wrong} falsch in dieser Runde.`
+              ? `${score.right} richtig · ${score.wrong} falsch · beste Serie ${bestStreak} · ${Math.round((score.right / (score.right + score.wrong)) * 100)} % richtig.`
               : packMode
                 ? "Du hast alles im Griff. Probier ein anderes Format oder füge neue Wörter hinzu."
                 : "Schau später wieder vorbei oder aktiviere das Lernpaket."}
@@ -147,6 +180,7 @@ export function LearnPage() {
           </div>
         </div>
       ) : (
+        <div className={`flip-scene ${feedback ? `fb-${feedback}` : ""}`} key={`${current.id}-${queue.length}`} onAnimationEnd={() => setFeedback(null)}>
         <div className="card flashcard">
           <div className="row center-row">
             {packMode && reasons[current.id] && <span className="badge subtle">{REASON_LABEL[reasons[current.id]]}</span>}
@@ -164,7 +198,7 @@ export function LearnPage() {
                 </button>
               ) : (
                 <>
-                  <div className="answer">
+                  <div className="answer reveal" key="answer">
                     {format === "flip" ? current.gloss ?? <span className="muted">(keine Bedeutung gespeichert)</span> : <Lemma lang={current.lang as LangCode}>{current.lemma}</Lemma>}
                   </div>
                   <div className="grades">
@@ -218,7 +252,28 @@ export function LearnPage() {
           )}
           <CefrBadge level={current.cefr} />
         </div>
+        </div>
       )}
+    </div>
+  );
+}
+
+/** Kleine Konfetti-Explosion am Ende einer Runde. Entfällt bei reduzierter Bewegung (CSS). */
+function Confetti() {
+  const pieces = Array.from({ length: 36 }, (_, i) => i);
+  return (
+    <div className="confetti" aria-hidden>
+      {pieces.map((i) => (
+        <span
+          key={i}
+          style={{
+            left: `${(i * 37) % 100}%`,
+            animationDelay: `${(i % 9) * 0.05}s`,
+            background: ["#f59e0b", "#4f46e5", "#16a34a", "#e11d48", "#0ea5e9"][i % 5],
+            transform: `rotate(${(i * 53) % 360}deg)`,
+          }}
+        />
+      ))}
     </div>
   );
 }

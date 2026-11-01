@@ -32,10 +32,12 @@ export type Card = z.infer<typeof cardSchema>;
 export const messageSchema = z.object({
   id: z.string().min(8).max(64),
   role: z.enum(["user", "assistant"]),
-  kind: z.enum(["text", "lookup", "system"]),
+  kind: z.enum(["text", "lookup", "extract", "system"]),
   body: z.string().max(5000),
   payload: z.unknown().nullable(),
   createdAt: timestamp,
+  /** Zeitpunkt der letzten Korrektur (null = nie korrigiert). */
+  editedAt: timestamp.nullable().default(null),
   updatedAt: timestamp,
   deleted: z.boolean(),
 });
