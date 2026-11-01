@@ -1,11 +1,43 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { CEFR_LEVELS, LANGUAGES, LANG_CODES, type Cefr, type LangCode } from "@vochat/shared";
-import { api, ApiError } from "../api/client";
+import { api, ApiError, media } from "../api/client";
+import { Avatar } from "../components/Avatar";
 import { useSession, useSyncStatus } from "../session";
 import { AuthForm } from "./AuthPage";
 
 export function ProfilePage() {
-  const { user, token, updateProfile, connect, disconnect, collections } = useSession();
+  const { user, token, updateProfile, replaceProfile, connect, disconnect, collections } = useSession();
+  const [bio, setBio] = useState(user.bio);
+  const [profilePublic, setProfilePublic] = useState(user.profilePublic);
+  const [showProgress, setShowProgress] = useState(user.showProgress);
+  const [avatarOn, setAvatarOn] = useState<boolean | null>(null);
+  const [avatarMsg, setAvatarMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    media.features().then((f) => setAvatarOn(f.avatars)).catch(() => setAvatarOn(false));
+  }, []);
+
+  const uploadAvatar = async (file: File) => {
+    if (!token) return;
+    setAvatarMsg(null);
+    try {
+      const next = await media.uploadAvatar(token, file);
+      replaceProfile(next);
+      setAvatarMsg("Profilbild gespeichert.");
+    } catch (err) {
+      setAvatarMsg(
+        err instanceof ApiError && err.status === 413 ? "Das Bild ist zu groß (max. 2 MB)."
+          : err instanceof ApiError && err.status === 415 ? "Nur PNG, JPEG oder WebP."
+          : err instanceof ApiError && err.status === 503 ? "Bildupload ist auf diesem Server noch nicht eingerichtet."
+          : "Upload fehlgeschlagen.",
+      );
+    }
+  };
+
+  const removeAvatar = async () => {
+    if (!token) return;
+    replaceProfile(await media.removeAvatar(token));
+  };
   const status = useSyncStatus();
   const [name, setName] = useState(user.name);
   const [nativeLang, setNativeLang] = useState<LangCode>(user.nativeLang);
@@ -22,7 +54,7 @@ export function ProfilePage() {
     e.preventDefault();
     setSaved(null);
     try {
-      await updateProfile({ name, nativeLang, learnLangs: learn });
+      await updateProfile({ name, nativeLang, learnLangs: learn, bio, profilePublic, showProgress });
       setSaved("Gespeichert.");
     } catch (err) {
       setSaved(err instanceof ApiError && err.status === 0 ? "Offline – nur lokal gespeichert." : "Speichern fehlgeschlagen.");
@@ -85,10 +117,42 @@ export function ProfilePage() {
       </form>
 
       <section className="card stack">
+        <h2>Profilbild & Sichtbarkeit</h2>
+        <div className="row">
+          <Avatar name={user.name} url={user.avatarUrl} size={64} />
+          {token && avatarOn === true && (
+            <div className="row">
+              <label className="file-btn">
+                Bild hochladen
+                <input type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => e.target.files?.[0] && uploadAvatar(e.target.files[0])} />
+              </label>
+              {user.avatarUrl && <button className="small-btn" onClick={removeAvatar}>Entfernen</button>}
+            </div>
+          )}
+        </div>
+        {!token && <div className="muted small">Profilbilder gibt es mit Konto.</div>}
+        {token && avatarOn === false && <div className="muted small">Profilbilder werden aktiviert, sobald der Server einen Medienspeicher hat.</div>}
+        {avatarMsg && <div className="muted small" role="status">{avatarMsg}</div>}
+        <label>
+          Über mich
+          <textarea value={bio} onChange={(e) => setBio(e.target.value)} maxLength={500} rows={2} />
+        </label>
+        <label className="inline">
+          <input type="checkbox" checked={profilePublic} onChange={(e) => setProfilePublic(e.target.checked)} />
+          Öffentliches Profil (auffindbar, ohne Zustimmung folgbar)
+        </label>
+        <label className="inline">
+          <input type="checkbox" checked={showProgress} onChange={(e) => setShowProgress(e.target.checked)} />
+          Lernfortschritt für Freunde sichtbar machen
+        </label>
+      </section>
+
+      <section className="card stack">
         <h2>Konto & Sync</h2>
         {token ? (
           <>
             <div className="muted">Angemeldet als <b>{user.email}</b>. Deine Daten werden zwischen Geräten synchronisiert.</div>
+            {user.id && <a href={`/users/${user.id}`}>Mein öffentliches Profil ansehen</a>}
             <div className="small">Status: {status.error ?? (status.online ? "verbunden" : "offline")} · {status.pending} Änderungen warten</div>
             <div className="row">
               <button className="danger" onClick={logout}>Abmelden</button>

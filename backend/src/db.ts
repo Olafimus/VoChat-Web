@@ -12,7 +12,12 @@ CREATE TABLE IF NOT EXISTS users (
   name TEXT NOT NULL,
   password_hash TEXT NOT NULL,
   native_lang TEXT NOT NULL,
-  created_at INTEGER NOT NULL
+  created_at INTEGER NOT NULL,
+  bio TEXT NOT NULL DEFAULT '',
+  avatar_ext TEXT,
+  avatar_version INTEGER NOT NULL DEFAULT 0,
+  profile_public INTEGER NOT NULL DEFAULT 1,
+  show_progress INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS user_learn_langs (
@@ -120,6 +125,26 @@ CREATE TABLE IF NOT EXISTS lexeme_categories (
   PRIMARY KEY (lexeme_id, category_id)
 );
 CREATE INDEX IF NOT EXISTS lexeme_categories_cat ON lexeme_categories (category_id);
+
+-- Follower-Beziehungen. Bei öffentlichen Profilen sofort "accepted", sonst "requested" bis zur Zustimmung.
+CREATE TABLE IF NOT EXISTS follows (
+  follower_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  followee_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  status TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (follower_id, followee_id)
+);
+CREATE INDEX IF NOT EXISTS follows_followee ON follows (followee_id, status);
+
+-- Freundschaften: user_low < user_high. "pending" mit requested_by zeigt, wer gefragt hat.
+CREATE TABLE IF NOT EXISTS friendships (
+  user_low TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_high TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  status TEXT NOT NULL,
+  requested_by TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (user_low, user_high)
+);
 
 -- Rollen: admin (global), expert (je Sprache). Beiträge und Stimmen der Community.
 CREATE TABLE IF NOT EXISTS user_roles (

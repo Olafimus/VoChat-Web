@@ -33,6 +33,8 @@ import {
   type CommunityOptions,
 } from "./community.js";
 import { decideSchema, grantSchema, submitSchema, voteSchema, type ContributionStatus } from "@vochat/shared";
+import { feed, follow, followState, friendState, listFollowers, listFollowing, listFriends, listRequests, removeFriend, requestFriend, respondFollowRequest, respondFriendRequest, searchUsers, publicUser, unfollow } from "./social.js";
+import { MAX_AVATAR_BYTES, sniffImage, type MediaStore } from "./media.js";
 
 export interface AppOptions {
   db: Db;
@@ -41,6 +43,8 @@ export interface AppOptions {
   /** E-Mail-Adressen, die beim Anmelden automatisch Admin-Rechte bekommen. */
   adminEmails?: string[];
   community?: CommunityOptions;
+  /** Medien-Speicher (Profilbilder). `null`: Uploads sind deaktiviert. */
+  media?: MediaStore | null;
 }
 
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
@@ -52,6 +56,7 @@ export function createApp({
   corsOrigins = ["http://localhost:5173"],
   adminEmails = [],
   community = DEFAULT_COMMUNITY,
+  media = null,
 }: AppOptions): Hono {
   const app = new Hono();
   const admins = new Set(adminEmails.map((e) => e.toLowerCase()));
@@ -129,6 +134,9 @@ export function createApp({
     const userId = currentUserId(c);
     transaction(db, () => {
       if (parsed.data.name) db.prepare("UPDATE users SET name = ? WHERE id = ?").run(parsed.data.name.trim(), userId);
+      if (parsed.data.bio !== undefined) db.prepare("UPDATE users SET bio = ? WHERE id = ?").run(parsed.data.bio.trim(), userId);
+      if (parsed.data.profilePublic !== undefined) db.prepare("UPDATE users SET profile_public = ? WHERE id = ?").run(parsed.data.profilePublic ? 1 : 0, userId);
+      if (parsed.data.showProgress !== undefined) db.prepare("UPDATE users SET show_progress = ? WHERE id = ?").run(parsed.data.showProgress ? 1 : 0, userId);
       if (parsed.data.nativeLang) db.prepare("UPDATE users SET native_lang = ? WHERE id = ?").run(parsed.data.nativeLang, userId);
       if (parsed.data.learnLangs) {
         db.prepare("DELETE FROM user_learn_langs WHERE user_id = ?").run(userId);
@@ -138,6 +146,93 @@ export function createApp({
     });
     return c.json(loadProfile(db, userId));
   });
+
+  // ---- Features & Medien ---------------------------------------------------
+  app.get("/features", (c) => c.json({ avatars: media !== null, mediaDriver: media?.driver ?? null }));
+
+  app.put("/me/avatar", auth, async (c) => {
+    if (!media) return c.json({ error: "media storage not configured" }, 503);
+    const bytes = new Uint8Array(await c.req.arrayBuffer());
+    if (bytes.length === 0 || bytes.length > MAX_AVATAR_BYTES) return c.json({ error: "image too large or empty" }, 413);
+    const image = sniffImage(bytes);
+    if (!image) return c.json({ error: "unsupported image type (png, jpeg, webp)" }, 415);
+    const userId = currentUserId(c);
+    const previous = db.prepare("SELECT avatar_ext FROM users WHERE id = ?").get(userId) as { avatar_ext: string | null } | undefined;
+    await media.put(`avatars/${userId}.${image.ext}`, bytes, image.contentType);
+    if (previous?.avatar_ext && previous.avatar_ext !== image.ext) await media.delete(`avatars/${userId}.${previous.avatar_ext}`);
+    db.prepare("UPDATE users SET avatar_ext = ?, avatar_version = avatar_version + 1 WHERE id = ?").run(image.ext, userId);
+    return c.json(loadProfile(db, userId));
+  });
+
+  app.delete("/me/avatar", auth, async (c) => {
+    const userId = currentUserId(c);
+    const row = db.prepare("SELECT avatar_ext FROM users WHERE id = ?").get(userId) as { avatar_ext: string | null } | undefined;
+    if (media && row?.avatar_ext) await media.delete(`avatars/${userId}.${row.avatar_ext}`);
+    db.prepare("UPDATE users SET avatar_ext = NULL, avatar_version = avatar_version + 1 WHERE id = ?").run(userId);
+    return c.json(loadProfile(db, userId));
+  });
+
+  app.get("/media/avatars/:userId", maybeAuth, async (c) => {
+    if (!media) return c.json({ error: "not found" }, 404);
+    const id = c.req.param("userId");
+    const row = db.prepare("SELECT avatar_ext, profile_public FROM users WHERE id = ?").get(id) as
+      | { avatar_ext: string | null; profile_public: number }
+      | undefined;
+    if (!row?.avatar_ext) return c.json({ error: "not found" }, 404);
+    const viewer = maybeUserId(c);
+    const visible = row.profile_public === 1 || viewer === id || (viewer !== undefined && followState(db, viewer, id) === "accepted");
+    if (!visible) return c.json({ error: "not found" }, 404);
+    const object = await media.get(`avatars/${id}.${row.avatar_ext}`);
+    if (!object) return c.json({ error: "not found" }, 404);
+    return new Response(object.body as unknown as BodyInit, {
+      headers: { "content-type": object.contentType, "cache-control": "public, max-age=3600" },
+    });
+  });
+
+  // ---- Öffentliche Profile & Social ---------------------------------------
+  app.get("/users/:id", maybeAuth, (c) => {
+    const found = publicUser(db, maybeUserId(c) ?? null, c.req.param("id"));
+    return found ? c.json(found) : c.json({ error: "not found" }, 404);
+  });
+
+  app.get("/social/users", auth, (c) => c.json(searchUsers(db, currentUserId(c), c.req.query("q") ?? "")));
+
+  app.post("/social/follow/:id", auth, (c) => {
+    const result = follow(db, currentUserId(c), c.req.param("id"), now());
+    return result.ok ? c.json({ state: result.state }) : c.json({ error: result.error }, result.status as 400);
+  });
+  app.delete("/social/follow/:id", auth, (c) => {
+    unfollow(db, currentUserId(c), c.req.param("id"));
+    return c.json({ state: "none" });
+  });
+
+  app.post("/social/follow-requests/:id/:action", auth, (c) => {
+    const action = c.req.param("action");
+    if (action !== "accept" && action !== "decline") return c.json({ error: "invalid action" }, 400);
+    const ok = respondFollowRequest(db, currentUserId(c), c.req.param("id"), action === "accept");
+    return ok ? c.json({ ok: true }) : c.json({ error: "not found" }, 404);
+  });
+
+  app.post("/social/friends/:id", auth, (c) => {
+    const result = requestFriend(db, currentUserId(c), c.req.param("id"), now());
+    return result.ok ? c.json({ state: result.state }) : c.json({ error: result.error }, result.status as 400);
+  });
+  app.post("/social/friends/:id/:action", auth, (c) => {
+    const action = c.req.param("action");
+    if (action !== "accept" && action !== "decline") return c.json({ error: "invalid action" }, 400);
+    const ok = respondFriendRequest(db, currentUserId(c), c.req.param("id"), action === "accept");
+    return ok ? c.json({ ok: true }) : c.json({ error: "not found" }, 404);
+  });
+  app.delete("/social/friends/:id", auth, (c) => {
+    removeFriend(db, currentUserId(c), c.req.param("id"));
+    return c.json({ state: "none" });
+  });
+
+  app.get("/social/friends", auth, (c) => c.json(listFriends(db, currentUserId(c))));
+  app.get("/social/requests", auth, (c) => c.json(listRequests(db, currentUserId(c))));
+  app.get("/social/followers/:id", maybeAuth, (c) => c.json(listFollowers(db, c.req.param("id"))));
+  app.get("/social/following/:id", maybeAuth, (c) => c.json(listFollowing(db, c.req.param("id"))));
+  app.get("/social/feed", auth, (c) => c.json(feed(db, currentUserId(c), 40)));
 
   // ---- Sync -------------------------------------------------------------
   app.post("/sync/push", auth, async (c) => {
@@ -294,6 +389,7 @@ export function createApp({
         mediaType: c.req.query("mediaType") || undefined,
         lang: lang && isLangCode(lang) ? lang : undefined,
         q: (c.req.query("q") ?? "").slice(0, 80) || undefined,
+        owner: c.req.query("owner") || undefined,
       },
       sort,
       50,

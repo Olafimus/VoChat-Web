@@ -6,7 +6,7 @@ const TABS = [
   { to: "/vocab", label: "Wortschatz", icon: "📚" },
   { to: "/learn", label: "Lernen", icon: "🧠" },
   { to: "/paths", label: "Lernpfade", icon: "🗺️" },
-  { to: "/community", label: "Mitmachen", icon: "🤝" },
+  { to: "/community", label: "Community", icon: "🤝" },
   { to: "/profile", label: "Profil", icon: "👤" },
 ];
 

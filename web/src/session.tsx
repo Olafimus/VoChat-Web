@@ -8,7 +8,14 @@ import { createDeviceCollections, type Collections } from "./local/collections";
 import { prefs } from "./lib/prefs";
 import { newId } from "./lib/ids";
 
-export type ProfilePatch = { name?: string; nativeLang?: LangCode; learnLangs?: UserProfile["learnLangs"] };
+export type ProfilePatch = {
+  name?: string;
+  bio?: string;
+  profilePublic?: boolean;
+  showProgress?: boolean;
+  nativeLang?: LangCode;
+  learnLangs?: UserProfile["learnLangs"];
+};
 
 export interface Session {
   /** Profil: lokal (ohne Konto) oder vom Server (mit Konto). */
@@ -18,6 +25,8 @@ export interface Session {
   collections: Collections;
   engine: SyncEngine;
   updateProfile: (patch: ProfilePatch) => Promise<void>;
+  /** Übernimmt ein vom Server geliefertes Profil (z. B. nach Avatar-Upload). */
+  replaceProfile: (profile: UserProfile) => void;
   /** Verbindet ein Konto (Sync startet). Lokale Daten werden hochgeladen. */
   connect: (token: string, user: UserProfile) => void;
   /** Trennt das Konto. Lokale Daten bleiben erhalten. */
@@ -48,7 +57,17 @@ function readLocalProfile(): UserProfile {
   } catch {
     // beschädigt: neu anlegen
   }
-  const fresh: UserProfile = { id: `local-${newId()}`, email: "", name: "Ich", nativeLang: "de", learnLangs: [] };
+  const fresh: UserProfile = {
+    id: `local-${newId()}`,
+    email: "",
+    name: "Ich",
+    bio: "",
+    avatarUrl: null,
+    nativeLang: "de",
+    learnLangs: [],
+    profilePublic: true,
+    showProgress: false,
+  };
   prefs.set(LOCAL_PROFILE_KEY, JSON.stringify(fresh));
   return fresh;
 }
@@ -161,10 +180,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     [token, profile],
   );
 
+  const replaceProfile = useCallback((next: UserProfile) => {
+    if (token) prefs.set("vochat.accountProfile", JSON.stringify(next));
+    setProfile(next);
+  }, [token]);
+
   const value = useMemo<Session | null>(() => {
     if (!collections || !engine) return null;
-    return { user: profile, token, collections, engine, updateProfile, connect, disconnect };
-  }, [collections, engine, profile, token, updateProfile, connect, disconnect]);
+    return { user: profile, token, collections, engine, updateProfile, replaceProfile, connect, disconnect };
+  }, [collections, engine, profile, token, updateProfile, replaceProfile, connect, disconnect]);
 
   if (!ready || !value) return <div className="center muted">Lade …</div>;
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

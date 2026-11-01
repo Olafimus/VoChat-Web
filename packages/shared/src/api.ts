@@ -6,8 +6,38 @@ export interface UserProfile {
   id: string;
   email: string;
   name: string;
+  bio: string;
+  avatarUrl: string | null;
   nativeLang: LangCode;
   learnLangs: { lang: LangCode; targetCefr: (typeof CEFR_LEVELS)[number] | null }[];
+  /** Öffentliches Profil: auffindbar und ohne Zustimmung folgbar. */
+  profilePublic: boolean;
+  /** Lernfortschritt für Freunde sichtbar. */
+  showProgress: boolean;
+}
+
+export type FollowState = "none" | "requested" | "accepted";
+export type FriendState = "none" | "outgoing" | "incoming" | "accepted";
+
+export interface PublicUser {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+  isPrivate: boolean;
+  /** Nur bei öffentlichen Profilen bzw. für Freunde/Follower gefüllt. */
+  bio: string | null;
+  stats: { followers: number; following: number; publicCollections: number; verifiedContributions: number } | null;
+  progress: { known: number; learning: number } | null;
+  relation: { following: FollowState; followedBy: boolean; friend: FriendState };
+}
+
+export interface FeedItem {
+  type: "collection" | "contribution";
+  userId: string;
+  userName: string;
+  at: number;
+  title: string;
+  detail: string;
 }
 
 export interface AuthResponse {

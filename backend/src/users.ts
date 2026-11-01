@@ -7,12 +7,23 @@ interface UserRow {
   email: string;
   name: string;
   native_lang: string;
+  bio: string;
+  avatar_ext: string | null;
+  avatar_version: number;
+  profile_public: number;
+  show_progress: number;
 }
 
+export const avatarUrl = (row: { id: string; avatar_ext: string | null; avatar_version: number }): string | null =>
+  row.avatar_ext ? `/media/avatars/${row.id}?v=${row.avatar_version}` : null;
+
 export function loadProfile(db: Db, userId: string): UserProfile | null {
-  const user = db.prepare("SELECT id, email, name, native_lang FROM users WHERE id = ?").get(userId) as
-    | UserRow
-    | undefined;
+  const user = db
+    .prepare(
+      `SELECT id, email, name, native_lang, bio, avatar_ext, avatar_version, profile_public, show_progress
+       FROM users WHERE id = ?`,
+    )
+    .get(userId) as UserRow | undefined;
   if (!user) return null;
   const langs = db
     .prepare("SELECT lang, target_cefr FROM user_learn_langs WHERE user_id = ? ORDER BY lang")
@@ -21,8 +32,12 @@ export function loadProfile(db: Db, userId: string): UserProfile | null {
     id: user.id,
     email: user.email,
     name: user.name,
+    bio: user.bio,
+    avatarUrl: avatarUrl(user),
     nativeLang: user.native_lang as LangCode,
     learnLangs: langs.map((l) => ({ lang: l.lang, targetCefr: l.target_cefr })),
+    profilePublic: user.profile_public === 1,
+    showProgress: user.show_progress === 1,
   };
 }
 

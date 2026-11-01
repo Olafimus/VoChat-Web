@@ -217,3 +217,9 @@ button.star.on { color: var(--warn); }
 .lookup-pick { text-align: start; background: var(--surface-2); }
 .status-verified { color: var(--ok); }
 .status-rejected, .status-revoked { color: var(--danger); }
+
+.avatar { border-radius: 50%; object-fit: cover; flex-shrink: 0; display: inline-block; }
+.avatar-fallback { display: inline-grid; place-items: center; background: var(--surface-2); color: var(--accent); font-weight: 700; }
+.person-row { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; padding: 0.6rem 0.8rem; }
+.person-name { font-weight: 600; color: var(--text); text-decoration: none; }
+.file-btn { display: inline-flex; align-items: center; padding: 0.45rem 0.8rem; border-radius: 10px; background: var(--surface-2); cursor: pointer; min-height: 36px; }

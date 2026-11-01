@@ -132,3 +132,33 @@ Nichts wird gelöscht: Angewandte Zeilen tragen die Quelle `community:<id>` und 
 ausblenden (`hidden = 1`). Alle Wörterbuchabfragen filtern ausgeblendete Zeilen heraus.
 
 Community-Schreibvorgänge sind online-only, weil der gemeinsame Bestand zentral entschieden wird.
+
+## Profile, Medien und Social
+
+**Profile:** Name, Bio, Profilbild, Muttersprache und Lernsprachen. Zwei Schalter steuern die Sichtbarkeit:
+`profilePublic` (auffindbar, ohne Zustimmung folgbar) und `showProgress` (Lernfortschritt für Freunde).
+
+**Medien-Dienst** (`backend/src/media.ts`): Dateien liegen hinter einer Schnittstelle `MediaStore` mit drei Treibern.
+
+| `MEDIA_DRIVER` | Wirkung |
+|---|---|
+| `none` (Standard) | Kein Upload. Die App zeigt einen Hinweis, Initialen dienen als Platzhalter. |
+| `local` | Dateien in `MEDIA_LOCAL_DIR` (Standard `data/media`). Für Entwicklung. |
+| `s3` | S3-kompatibler Bucket (AWS S3, R2, MinIO). Braucht `MEDIA_S3_BUCKET`, optional `MEDIA_S3_REGION` und `MEDIA_S3_ENDPOINT`, dazu `npm install @aws-sdk/client-s3 -w backend`. |
+
+Avatare: PNG, JPEG oder WebP, max. 2 MB. Der Typ wird aus den Dateikennung-Bytes erkannt, nicht aus dem Header.
+Ausgeliefert werden sie über `/media/avatars/:userId` (sichtbar, wenn das Profil öffentlich ist oder man folgt).
+
+Der S3-Treiber ist geschrieben, aber **noch nicht gegen einen echten Bucket getestet**.
+
+**Follow:** öffentliche Profile sofort, private nach Zustimmung (`requested` → `accepted`).
+
+**Freundschaft:** gegenseitig. Wer zuerst fragt, wartet; fragt die andere Seite zurück, entsteht die Freundschaft.
+
+**Sichtbarkeit:** Private Profile erscheinen nicht in der Suche. Bio, Statistik und Sammlungen sieht man nur mit Follow-Beziehung.
+Lernfortschritt sieht nur, wer befreundet ist und dessen `showProgress` aktiv ist.
+
+**Feed:** neueste öffentliche Sammlungen und verifizierte Beiträge von Freunden und Gefolgten.
+
+Endpunkte: `/social/users`, `/social/follow/:id`, `/social/follow-requests/:id/:action`, `/social/friends/...`,
+`/social/requests`, `/social/feed`, `/users/:id`, `/me/avatar`, `/media/avatars/:userId`, `/features`.

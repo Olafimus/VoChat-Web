@@ -115,6 +115,9 @@ export const loginSchema = z.object({
 
 export const profileUpdateSchema = z.object({
   name: z.string().min(1).max(100).optional(),
+  bio: z.string().max(500).optional(),
+  profilePublic: z.boolean().optional(),
+  showProgress: z.boolean().optional(),
   nativeLang: langSchema.optional(),
   learnLangs: z
     .array(z.object({ lang: langSchema, targetCefr: cefrSchema.nullable() }))

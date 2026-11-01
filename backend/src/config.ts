@@ -1,3 +1,5 @@
+import type { MediaConfig } from "./media.js";
+
 export interface Config {
   port: number;
   dbPath: string;
@@ -5,9 +7,12 @@ export interface Config {
   adminEmails: string[];
   verifyThreshold: number;
   rejectThreshold: number;
+  media: MediaConfig;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
+  const driver = (env.MEDIA_DRIVER ?? "none") as MediaConfig["driver"];
+  if (!["none", "local", "s3"].includes(driver)) throw new Error(`MEDIA_DRIVER ungültig: ${driver}`);
   return {
     port: Number(env.PORT ?? 8787),
     dbPath: env.DB_PATH ?? "data/vochat.db",
@@ -15,5 +20,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     adminEmails: (env.ADMIN_EMAILS ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean),
     verifyThreshold: Number(env.COMMUNITY_VERIFY_THRESHOLD ?? 3),
     rejectThreshold: Number(env.COMMUNITY_REJECT_THRESHOLD ?? 3),
+    media: {
+      driver,
+      localDir: env.MEDIA_LOCAL_DIR ?? "data/media",
+      s3Bucket: env.MEDIA_S3_BUCKET,
+      s3Region: env.MEDIA_S3_REGION,
+      s3Endpoint: env.MEDIA_S3_ENDPOINT,
+    },
   };
 }

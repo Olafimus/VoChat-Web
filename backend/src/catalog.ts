@@ -17,6 +17,7 @@ interface StoredCollection {
 }
 
 export interface CatalogFilter {
+  owner?: string;
   kind?: "path" | "media";
   mediaType?: string;
   lang?: LangCode;
@@ -56,6 +57,7 @@ export function listPublicCollections(db: Db, filter: CatalogFilter, sort: "new"
          AND (:mediaType IS NULL OR json_extract(data, '$.mediaType') = :mediaType)
          AND (:lang IS NULL OR json_extract(data, '$.lang') = :lang)
          AND (:q IS NULL OR json_extract(data, '$.title') LIKE :qLike)
+         AND (:owner IS NULL OR user_id = :owner)
        ORDER BY updated_at DESC
        LIMIT 500`,
     )
@@ -65,6 +67,7 @@ export function listPublicCollections(db: Db, filter: CatalogFilter, sort: "new"
       lang: filter.lang ?? null,
       q: filter.q ?? null,
       qLike: filter.q ? `%${filter.q}%` : null,
+      owner: filter.owner ?? null,
     }) as { data: string }[];
   const items = rows.map((r) => toCatalog(JSON.parse(r.data) as StoredCollection, db, false));
   if (sort === "rating") {

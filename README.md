@@ -53,6 +53,9 @@ docs/              DICTIONARY_SOURCES.md (Quellen & Status), ARCHITECTURE.md (De
   kürzlich falsch beantworteten Karten (kommen nach einer Wartezeit wieder), Fälligkeit und neuen Wörtern.
   Jede Antwort wird protokolliert (`reviews`).
 - **Lernpfade:** empfohlene Pfade je Sprache und CEFR-Niveau sowie „Top 500“ nach Häufigkeit.
+- **Profile & Social:** Profilbild, Bio, Sichtbarkeit. Folgen (öffentlich sofort, privat mit Zustimmung),
+  Freundschaften, Suche nach öffentlichen Profilen, Feed von Freunden und Gefolgten. Lernfortschritt nur für Freunde,
+  und nur wenn du es freigibst.
 - **Medien-Wortschatz:** eigene Sammlungen zu Büchern, Liedern, Filmen oder Serien. Beim Öffnen siehst du,
   wie viele Wörter du schon kennst und welche dir noch fehlen. Mit Konto teilbar und mit 1–5 Sternen
   nach Schwierigkeit bewertbar.
@@ -63,6 +66,16 @@ Siehe [docs/DICTIONARY_SOURCES.md](docs/DICTIONARY_SOURCES.md): welche Quellen g
 was fehlt und wie du die vollständigen Wiktionary-Daten (kaikki.org) lokal einspielst.
 
 ## Konfiguration
+
+Medien (Profilbilder):
+
+| Variable | Standard | Zweck |
+|---|---|---|
+| `MEDIA_DRIVER` | `none` | `none`, `local` oder `s3` (siehe `docs/ARCHITECTURE.md`) |
+| `MEDIA_LOCAL_DIR` | `data/media` | Ordner für den lokalen Treiber |
+| `MEDIA_S3_BUCKET` | – | Bucket-Name, nur für `s3` |
+| `MEDIA_S3_REGION` | `auto` | Region des Buckets |
+| `MEDIA_S3_ENDPOINT` | – | Für S3-kompatible Dienste (R2, MinIO) |
 
 Zusätzlich für die Community:
 

@@ -67,7 +67,7 @@ export const api = {
   paths: (lang: LangCode) => request<CatalogCollection[]>(`/catalog/paths?lang=${lang}`),
   pathDetail: (id: string, native: LangCode) =>
     request<CatalogCollection>(`/catalog/paths/${encodeURIComponent(id)}?native=${native}`),
-  publicCollections: (params: { kind?: string; mediaType?: string; q?: string; sort?: string }, token?: string | null) => {
+  publicCollections: (params: { kind?: string; mediaType?: string; q?: string; sort?: string; owner?: string }, token?: string | null) => {
     const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v) as [string, string][]).toString();
     return request<CatalogCollection[]>(`/catalog/collections${qs ? `?${qs}` : ""}`, { token });
   },
@@ -106,4 +106,72 @@ export interface CommunityRow {
   createdAt: number;
   decidedAt: number | null;
   decisionReason: string | null;
+}
+
+export interface FeedItem {
+  type: "collection" | "contribution";
+  userId: string;
+  userName: string;
+  at: number;
+  title: string;
+  detail: string;
+}
+
+export interface PersonRef {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+  isPrivate: boolean;
+}
+
+export const media = {
+  features: () => request<{ avatars: boolean; mediaDriver: string | null }>("/features"),
+  async uploadAvatar(token: string, file: Blob): Promise<UserProfile> {
+    let res: Response;
+    try {
+      res = await fetch(`${BASE}/me/avatar`, {
+        method: "PUT",
+        headers: { authorization: `Bearer ${token}`, "content-type": file.type },
+        body: file,
+      });
+    } catch {
+      throw new ApiError(0, "offline");
+    }
+    if (!res.ok) {
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      throw new ApiError(res.status, data.error ?? res.statusText);
+    }
+    return (await res.json()) as UserProfile;
+  },
+  removeAvatar: (token: string) => request<UserProfile>("/me/avatar", { method: "DELETE", token }),
+};
+
+export const social = {
+  feed: (token: string) => request<FeedItem[]>("/social/feed", { token }),
+  friends: (token: string) => request<PersonRef[]>("/social/friends", { token }),
+  requests: (token: string) => request<{ friends: PersonRef[]; follows: PersonRef[] }>("/social/requests", { token }),
+  search: (token: string, q: string) => request<PersonRef[]>(`/social/users?q=${encodeURIComponent(q)}`, { token }),
+  follow: (token: string, id: string) => request<{ state: string }>(`/social/follow/${id}`, { method: "POST", token }),
+  unfollow: (token: string, id: string) => request<{ state: string }>(`/social/follow/${id}`, { method: "DELETE", token }),
+  followRespond: (token: string, id: string, action: "accept" | "decline") =>
+    request<{ ok: boolean }>(`/social/follow-requests/${id}/${action}`, { method: "POST", token }),
+  befriend: (token: string, id: string) => request<{ state: string }>(`/social/friends/${id}`, { method: "POST", token }),
+  friendRespond: (token: string, id: string, action: "accept" | "decline") =>
+    request<{ ok: boolean }>(`/social/friends/${id}/${action}`, { method: "POST", token }),
+  unfriend: (token: string, id: string) => request<{ state: string }>(`/social/friends/${id}`, { method: "DELETE", token }),
+};
+
+export const people = {
+  get: (id: string, token?: string | null) => request<PublicUserView>(`/users/${id}`, { token }),
+};
+
+export interface PublicUserView {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+  isPrivate: boolean;
+  bio: string | null;
+  stats: { followers: number; following: number; publicCollections: number; verifiedContributions: number } | null;
+  progress: { known: number; learning: number } | null;
+  relation: { following: "none" | "requested" | "accepted"; followedBy: boolean; friend: "none" | "outgoing" | "incoming" | "accepted" };
 }
