@@ -1,0 +1,25 @@
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { Layout } from "./components/Layout";
+import { ChatPage } from "./pages/ChatPage";
+import { VocabPage } from "./pages/VocabPage";
+import { LearnPage } from "./pages/LearnPage";
+import { BrowsePage } from "./pages/BrowsePage";
+import { ProfilePage } from "./pages/ProfilePage";
+
+export function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route element={<Layout />}>
+          <Route index element={<Navigate to="/chat" replace />} />
+          <Route path="chat" element={<ChatPage />} />
+          <Route path="vocab" element={<VocabPage />} />
+          <Route path="learn" element={<LearnPage />} />
+          <Route path="browse" element={<BrowsePage />} />
+          <Route path="profile" element={<ProfilePage />} />
+          <Route path="*" element={<Navigate to="/chat" replace />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  );
+}
