@@ -1,108 +1,105 @@
-import { LANG_CODES, type LangCode } from "@vochat/shared";
-import { transaction, type Db } from "../db.js";
+import { LANG_CODES, lemmaKey, type LangCode } from "@vochat/shared";
+import type { Db } from "../db/index.js";
 
 export const isKnownLang = (value: string): value is LangCode => (LANG_CODES as string[]).includes(value);
 
 /** Alle Zeilen einer Quelle vorher entfernen, damit ein erneuter Import idempotent ist. */
-export function clearSource(db: Db, source: string): void {
-  db.prepare("DELETE FROM senses WHERE source = ?").run(source);
-  db.prepare("DELETE FROM examples WHERE source = ?").run(source);
-  db.prepare("DELETE FROM translations WHERE source = ?").run(source);
-  db.prepare(
-    "DELETE FROM lexeme_categories WHERE category_id IN (SELECT id FROM categories WHERE kind = ?)",
-  ).run(source);
+export async function clearSource(db: Db, source: string): Promise<void> {
+  await db.run("DELETE FROM senses WHERE source = ?", [source]);
+  await db.run("DELETE FROM examples WHERE source = ?", [source]);
+  await db.run("DELETE FROM translations WHERE source = ?", [source]);
+  await db.run("DELETE FROM lexeme_categories WHERE category_id IN (SELECT id FROM categories WHERE kind = ?)", [source]);
 }
 
 /**
- * Liefert die Lexem-ID für (Sprache, Lemma, Wortart). Gibt es noch kein Lexem mit
- * dieser Wortart, übernimmt ein Lexem ohne Wortart (z. B. aus der Häufigkeitsliste)
- * den Eintrag – so entstehen keine Duplikate wie "haus" neben "Haus".
+ * Liefert die Lexem-ID für (Sprache, Lemma, Wortart). Gibt es noch kein Lexem mit dieser
+ * Wortart, übernimmt ein Lexem ohne Wortart mit gleichem Wortschlüssel (z. B. aus der
+ * Häufigkeitsliste) den Eintrag – so entstehen keine Duplikate wie "haus" neben "Haus".
  */
-export function upsertLexeme(db: Db, lang: string, lemma: string, pos: string): number {
-  const exact = db.prepare("SELECT id FROM lexemes WHERE lang = ? AND lemma = ? AND pos = ?").get(lang, lemma, pos) as
-    | { id: number }
-    | undefined;
-  if (exact) return exact.id;
+export async function upsertLexeme(db: Db, lang: string, lemma: string, pos: string): Promise<number> {
+  const exact = await db.get<{ id: number }>("SELECT id FROM lexemes WHERE lang = ? AND lemma = ? AND pos = ?", [lang, lemma, pos]);
+  if (exact) return Number(exact.id);
+  const key = lemmaKey(lemma);
 
   if (pos !== "") {
-    const bare = db
-      .prepare("SELECT id FROM lexemes WHERE lang = ? AND pos = '' AND lemma COLLATE NOCASE = ? ORDER BY id LIMIT 1")
-      .get(lang, lemma) as { id: number } | undefined;
+    const bare = await db.get<{ id: number }>("SELECT id FROM lexemes WHERE lang = ? AND pos = '' AND lemma_key = ? ORDER BY id LIMIT 1", [
+      lang,
+      key,
+    ]);
     if (bare) {
-      db.prepare("UPDATE lexemes SET lemma = ?, pos = ? WHERE id = ?").run(lemma, pos, bare.id);
-      return bare.id;
+      await db.run("UPDATE lexemes SET lemma = ?, pos = ? WHERE id = ?", [lemma, pos, bare.id]);
+      return Number(bare.id);
     }
   }
 
-  const inserted = db.prepare("INSERT INTO lexemes (lang, lemma, pos) VALUES (?, ?, ?)").run(lang, lemma, pos);
-  return Number(inserted.lastInsertRowid);
+  const inserted = await db.get<{ id: number }>("INSERT INTO lexemes (lang, lemma, lemma_key, pos) VALUES (?, ?, ?, ?) RETURNING id", [
+    lang,
+    lemma,
+    key,
+    pos,
+  ]);
+  return Number(inserted!.id);
 }
 
-export function nextSensePosition(db: Db, lexemeId: number, glossLang: string): number {
-  const row = db
-    .prepare("SELECT COALESCE(MAX(position), -1) + 1 AS p FROM senses WHERE lexeme_id = ? AND gloss_lang = ?")
-    .get(lexemeId, glossLang) as { p: number };
-  return row.p;
+export async function addForm(db: Db, lexemeId: number, lang: string, form: string): Promise<void> {
+  const key = lemmaKey(form);
+  if (!key) return;
+  await db.run("INSERT INTO lexeme_forms (lexeme_id, lang, form_key) VALUES (?, ?, ?) ON CONFLICT DO NOTHING", [lexemeId, lang, key]);
 }
 
-export function addSense(db: Db, lexemeId: number, glossLang: string, gloss: string, source: string): void {
+export async function addSense(db: Db, lexemeId: number, glossLang: string, gloss: string, source: string): Promise<void> {
   const text = gloss.replace(/\s+/g, " ").trim();
   if (!text) return;
-  const position = nextSensePosition(db, lexemeId, glossLang);
-  db.prepare("INSERT INTO senses (lexeme_id, position, gloss_lang, gloss, source) VALUES (?, ?, ?, ?, ?)").run(
+  const row = await db.get<{ p: number }>("SELECT COALESCE(MAX(position), -1) + 1 AS p FROM senses WHERE lexeme_id = ? AND gloss_lang = ?", [
     lexemeId,
-    position,
+    glossLang,
+  ]);
+  await db.run("INSERT INTO senses (lexeme_id, position, gloss_lang, gloss, source) VALUES (?, ?, ?, ?, ?)", [
+    lexemeId,
+    Number(row?.p ?? 0),
     glossLang,
     text,
     source,
-  );
+  ]);
 }
 
-export function addExample(
+export async function addExample(
   db: Db,
   lexemeId: number,
   text: string,
   translation: string | null,
   translationLang: string | null,
   source: string,
-): void {
+): Promise<void> {
   const t = text.replace(/\s+/g, " ").trim();
   if (!t) return;
-  db.prepare(
-    "INSERT INTO examples (lexeme_id, text, translation, translation_lang, source) VALUES (?, ?, ?, ?, ?)",
-  ).run(lexemeId, t, translation?.trim() || null, translationLang, source);
+  await db.run("INSERT INTO examples (lexeme_id, text, translation, translation_lang, source) VALUES (?, ?, ?, ?, ?)", [
+    lexemeId,
+    t,
+    translation?.trim() || null,
+    translationLang,
+    source,
+  ]);
 }
 
-export function addTranslation(db: Db, lexemeId: number, targetLang: string, targetLemma: string, source: string): void {
+export async function addTranslation(db: Db, lexemeId: number, targetLang: string, targetLemma: string, source: string): Promise<void> {
   const lemma = targetLemma.trim();
   if (!lemma || !isKnownLang(targetLang)) return;
-  db.prepare(
+  await db.run(
     `INSERT INTO translations (lexeme_id, target_lang, target_lemma, source) VALUES (?, ?, ?, ?)
      ON CONFLICT (lexeme_id, target_lang, target_lemma) DO NOTHING`,
-  ).run(lexemeId, targetLang, lemma, source);
-}
-
-export function addCategory(db: Db, lexemeId: number, name: string, kind: string): void {
-  db.prepare("INSERT INTO categories (name, kind) VALUES (?, ?) ON CONFLICT (name, kind) DO NOTHING").run(name, kind);
-  const cat = db.prepare("SELECT id FROM categories WHERE name = ? AND kind = ?").get(name, kind) as { id: number };
-  db.prepare("INSERT INTO lexeme_categories (lexeme_id, category_id) VALUES (?, ?) ON CONFLICT DO NOTHING").run(
-    lexemeId,
-    cat.id,
+    [lexemeId, targetLang, lemma, source],
   );
 }
 
-export function recordRun(db: Db, source: string, lang: string | null, file: string, rows: number): void {
-  db.prepare("INSERT INTO import_runs (source, lang, file, rows, imported_at) VALUES (?, ?, ?, ?, ?)").run(
-    source,
-    lang,
-    file,
-    rows,
-    Date.now(),
-  );
+export async function addCategory(db: Db, lexemeId: number, name: string, kind: string): Promise<void> {
+  await db.run("INSERT INTO categories (name, kind) VALUES (?, ?) ON CONFLICT (name, kind) DO NOTHING", [name, kind]);
+  const cat = await db.get<{ id: number }>("SELECT id FROM categories WHERE name = ? AND kind = ?", [name, kind]);
+  await db.run("INSERT INTO lexeme_categories (lexeme_id, category_id) VALUES (?, ?) ON CONFLICT DO NOTHING", [lexemeId, cat!.id]);
 }
 
-export function inTransaction<T>(db: Db, fn: () => T): T {
-  return transaction(db, fn);
+export async function recordRun(db: Db, source: string, lang: string | null, file: string, rows: number): Promise<void> {
+  await db.run("INSERT INTO import_runs (source, lang, file, rows, imported_at) VALUES (?, ?, ?, ?, ?)", [source, lang, file, rows, Date.now()]);
 }
 
 /** Minimaler CSV-Parser (RFC 4180, mit Anführungszeichen). */

@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
-import { openDb } from "../src/db.js";
+import type { Db } from "../src/db/index.js";
+import { addGloss, addLexeme, testDb } from "./helpers.js";
 
 const OPTS = { verifyThreshold: 2, rejectThreshold: 2, maxPendingPerUser: 5 };
-let db: ReturnType<typeof openDb>;
+let db: Db;
 let app: ReturnType<typeof createApp>;
 
 const post = (path: string, body: unknown, token?: string, method = "POST") =>
@@ -23,10 +24,10 @@ async function user(email: string, nativeLang = "de") {
   return (await res.json()) as { token: string; user: { id: string } };
 }
 
-beforeEach(() => {
-  db = openDb(":memory:");
-  db.exec("INSERT INTO lexemes (id, lang, lemma, pos, frequency_rank) VALUES (1, 'fa', 'آب', '', 1)");
-  db.exec("INSERT INTO senses (lexeme_id, position, gloss_lang, gloss, source) VALUES (1, 0, 'de', 'Wasser', 'test')");
+beforeEach(async () => {
+  db = await testDb();
+  await addLexeme(db, { id: 1, lang: "fa", lemma: "آب", rank: 1 });
+  await addGloss(db, 1, "de", "Wasser");
   app = createApp({ db, adminEmails: ["admin@example.com"], community: OPTS });
 });
 
@@ -95,7 +96,7 @@ describe("community contributions", () => {
     await post(`/community/contributions/${id}/decide`, { decision: "verify" }, admin.token);
     expect((await (await get("/dictionary/lexemes/1?native=de")).json()).senses.map((s: { gloss: string }) => s.gloss)).toContain("Quatsch");
 
-    const senseRow = db.prepare("SELECT id FROM senses WHERE gloss = 'Wasser'").get() as { id: number };
+    const senseRow = (await db.get("SELECT id FROM senses WHERE gloss = 'Wasser'")) as { id: number };
     const retract = await post("/community/contributions", { payload: { kind: "retract", target: "sense", targetId: senseRow.id, reason: "falsche Bedeutung" } }, author.token);
     const rid = (await retract.json()).id;
     await post(`/community/contributions/${rid}/decide`, { decision: "verify" }, admin.token);
@@ -114,7 +115,7 @@ describe("community contributions", () => {
 
   it("gives configured admin emails the admin role on login", async () => {
     await user("admin@example.com");
-    const row = db.prepare("SELECT r.role FROM user_roles r JOIN users u ON u.id = r.user_id WHERE u.email = 'admin@example.com'").get() as { role: string };
+    const row = (await db.get("SELECT r.role FROM user_roles r JOIN users u ON u.id = r.user_id WHERE u.email = 'admin@example.com'")) as { role: string };
     expect(row.role).toBe("admin");
   });
 

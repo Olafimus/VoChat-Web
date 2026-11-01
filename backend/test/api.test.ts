@@ -1,13 +1,14 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import { createApp } from "../src/app.js";
-import { openDb } from "../src/db.js";
+import type { Db } from "../src/db/index.js";
+import { addGloss, addLexeme, testDb } from "./helpers.js";
 import { importLegacyFaDe } from "../src/importers/legacy-fa-de.js";
 import { importWordhoard } from "../src/importers/wordhoard.js";
 import { searchLexemes } from "../src/dictionary.js";
 
 let now = 1_700_000_000_000;
 let app: ReturnType<typeof createApp>;
-let db: ReturnType<typeof openDb>;
+let db: Db;
 
 const json = (body: unknown, token?: string) => ({
   method: "POST",
@@ -42,9 +43,9 @@ const card = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
-beforeEach(() => {
+beforeEach(async () => {
   now = 1_700_000_000_000;
-  db = openDb(":memory:");
+  db = await testDb();
   app = createApp({ db, now: () => now });
 });
 
@@ -132,10 +133,13 @@ describe("sync", () => {
 });
 
 describe("dictionary", () => {
-  beforeEach(() => {
-    db.exec("INSERT INTO lexemes (id, lang, lemma, pos, frequency_rank) VALUES (1, 'de', 'Haus', 'noun', 226), (2, 'de', 'Hausa', '', NULL), (3, 'de', 'Hund', 'noun', 900)");
-    db.exec("INSERT INTO senses (lexeme_id, position, gloss_lang, gloss, source) VALUES (1, 0, 'en', 'house', 't'), (1, 1, 'fa', 'خانه', 't')");
-    db.exec("INSERT INTO translations (lexeme_id, target_lang, target_lemma, source) VALUES (1, 'en', 'house', 't')");
+  beforeEach(async () => {
+    await addLexeme(db, { id: 1, lang: "de", lemma: "Haus", pos: "noun", rank: 226 });
+    await addLexeme(db, { id: 2, lang: "de", lemma: "Hausa", rank: null });
+    await addLexeme(db, { id: 3, lang: "de", lemma: "Hund", pos: "noun", rank: 900 });
+    await addGloss(db, 1, "en", "house", 0);
+    await addGloss(db, 1, "fa", "خانه", 1);
+    await db.run("INSERT INTO translations (lexeme_id, target_lang, target_lemma, source) VALUES (1, 'en', 'house', 't')");
   });
 
   it("finds exact matches first, case-insensitively, with a gloss in the native language", async () => {
@@ -155,31 +159,31 @@ describe("dictionary", () => {
 
   it("filters by CEFR level", async () => {
     const { token } = await register("k@example.com");
-    db.exec("UPDATE lexemes SET cefr = 'A1' WHERE id = 1");
+    await db.run("UPDATE lexemes SET cefr = 'A1' WHERE id = 1");
     const res = await (await app.request("/dictionary/browse?lang=de&cefr=A1", get(token))).json();
     expect(res.map((r: { id: number }) => r.id)).toEqual([1]);
   });
 
-  it("imports legacy Farsi data and wordhoard CSV", () => {
-    importLegacyFaDe(db, "test", JSON.stringify([{ vocLanguage: "Farsi", vocab: ["آب"], pronunciation: ["āb"], translation: ["Wasser"], hints: [{ voc: "آب آشامیدنی [āb-e āšāmidani]", trans: ["Trinkwasserخنثی | Neutrum n"] }] }]));
-    const row = db.prepare("SELECT id, romanization FROM lexemes WHERE lang = 'fa' AND lemma = 'آب'").get() as { id: number; romanization: string };
+  it("imports legacy Farsi data and wordhoard CSV", async () => {
+    await importLegacyFaDe(db, "test", JSON.stringify([{ vocLanguage: "Farsi", vocab: ["آب"], pronunciation: ["āb"], translation: ["Wasser"], hints: [{ voc: "آب آشامیدنی [āb-e āšāmidani]", trans: ["Trinkwasserخنثی | Neutrum n"] }] }]));
+    const row = (await db.get("SELECT id, romanization FROM lexemes WHERE lang = 'fa' AND lemma = 'آب'")) as { id: number; romanization: string };
     expect(row.romanization).toBe("āb");
-    const ex = db.prepare("SELECT text, translation FROM examples WHERE lexeme_id = ?").get(row.id) as { text: string; translation: string };
+    const ex = (await db.get("SELECT text, translation FROM examples WHERE lexeme_id = ?", [row.id])) as { text: string; translation: string };
     expect(ex).toEqual({ text: "آب آشامیدنی", translation: "Trinkwasser" });
 
-    importWordhoard(db, "de", 'lemma,pos,gender,frequency_rank,frequency_count,cefr_estimate,notes,forms\nHaus,NOUN,das,226,1000,A1,x,\n', "test");
-    const haus = db.prepare("SELECT gender, cefr, frequency_rank FROM lexemes WHERE lang = 'de' AND lemma = 'Haus' AND pos = 'noun'").get();
+    await importWordhoard(db, "de", 'lemma,pos,gender,frequency_rank,frequency_count,cefr_estimate,notes,forms\nHaus,NOUN,das,226,1000,A1,x,\n', "test");
+    const haus = await db.get("SELECT gender, cefr, frequency_rank FROM lexemes WHERE lang = 'de' AND lemma = 'Haus' AND pos = 'noun'");
     expect(haus).toEqual({ gender: "n", cefr: "A1", frequency_rank: 226 });
   });
 });
 
 describe("persian search", () => {
-  it("finds lemmas written with Arabic yeh/kaf when searching with Persian letters", () => {
-    db.exec("INSERT INTO lexemes (id, lang, lemma, pos, frequency_rank) VALUES (50, 'fa', 'ميپريد', '', 12)");
-    db.exec("INSERT INTO lexemes (id, lang, lemma, pos, frequency_rank) VALUES (51, 'fa', 'کتاب', '', 3)");
-    const persian = searchLexemes(db, { lang: "fa", q: "می", nativeLang: "de", limit: 10 });
+  it("finds lemmas written with Arabic yeh/kaf when searching with Persian letters", async () => {
+    await addLexeme(db, { id: 50, lang: "fa", lemma: "ميپريد", rank: 12 });
+    await addLexeme(db, { id: 51, lang: "fa", lemma: "کتاب", rank: 3 });
+    const persian = await searchLexemes(db, { lang: "fa", q: "می", nativeLang: "de", limit: 10 });
     expect(persian.map((r) => r.id)).toContain(50);
-    const kaf = searchLexemes(db, { lang: "fa", q: "كتا", nativeLang: "de", limit: 10 });
+    const kaf = await searchLexemes(db, { lang: "fa", q: "كتا", nativeLang: "de", limit: 10 });
     expect(kaf.map((r) => r.id)).toEqual([51]);
   });
 });
@@ -193,7 +197,7 @@ describe("optional login and catalog", () => {
   });
 
   it("serves dictionary and catalog without any login", async () => {
-    db.exec("INSERT INTO lexemes (id, lang, lemma, pos, frequency_rank) VALUES (1, 'de', 'Haus', 'noun', 1)");
+    await addLexeme(db, { id: 1, lang: "de", lemma: "Haus", pos: "noun", rank: 1 });
     expect((await app.request("/dictionary/search?lang=de&q=Ha")).status).toBe(200);
     expect((await app.request("/catalog/paths?lang=de")).status).toBe(200);
     expect((await app.request("/sync/changes?since=0")).status).toBe(401);
@@ -247,8 +251,9 @@ describe("extraction and Japanese", () => {
       const r = await app.request("/auth/register", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email: "ex@example.com", password: "geheimes-passwort", name: "Ex", nativeLang: "de" }) });
       return (await r.json()) as { token: string };
     })();
-    db.exec("INSERT INTO lexemes (id, lang, lemma, pos, frequency_rank) VALUES (901, 'de', 'Haus', 'noun', 1), (902, 'de', 'Hund', 'noun', 2)");
-    db.exec("INSERT INTO senses (lexeme_id, position, gloss_lang, gloss, source) VALUES (901, 0, 'de', 'Gebäude', 't')");
+    await addLexeme(db, { id: 901, lang: "de", lemma: "Haus", pos: "noun", rank: 1 });
+    await addLexeme(db, { id: 902, lang: "de", lemma: "Hund", pos: "noun", rank: 2 });
+    await addGloss(db, 901, "de", "Gebäude");
     const res = await app.request("/dictionary/extract?native=de", { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${token}` }, body: JSON.stringify({ lang: "de", text: "Der Hund sieht das Haus. Haus! Zebra." }) });
     const body = await res.json();
     expect(body.matches.map((m: { lemma: string }) => m.lemma).sort()).toEqual(["Haus", "Hund"]);

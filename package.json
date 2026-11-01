@@ -2,12 +2,18 @@
   "name": "vochat",
   "private": true,
   "type": "module",
-  "workspaces": ["packages/shared", "backend", "web"],
+  "workspaces": [
+    "packages/shared",
+    "backend",
+    "web"
+  ],
   "scripts": {
     "dev:backend": "npm run dev -w backend",
     "dev:web": "npm run dev -w web",
     "build": "npm run build -w packages/shared && npm run build -w backend && npm run build -w web",
-    "test": "npm run test -w packages/shared && npm run test -w backend"
+    "test": "npm run test -w packages/shared && npm run test -w backend && npm run test:pg -w backend"
   },
-  "engines": { "node": ">=22.13" }
+  "engines": {
+    "node": ">=22.13"
+  }
 }

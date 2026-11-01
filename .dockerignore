@@ -1,0 +1,10 @@
+**/node_modules
+**/dist
+backend/data/*.db*
+backend/data/cache
+backend/data/media
+.git
+e2e-shots
+docs/ui-screenshots
+*.log
+.env*

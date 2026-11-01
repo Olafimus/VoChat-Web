@@ -5,7 +5,7 @@ legst sie in deine Liste und lernst sie mit Wiederholungsplan. Funktioniert offl
 synchronisiert, sobald eine Verbindung besteht.
 
 - **Sprachen:** Deutsch, Englisch, Spanisch, Persisch (erweiterbar)
-- **Stack:** TypeScript · Backend: Hono + eingebautes `node:sqlite` · Web: React, Vite, TanStack DB, IndexedDB
+- **Stack:** TypeScript · Backend: Hono, PostgreSQL oder SQLite · Web: React, Vite, TanStack DB, IndexedDB
 - **Konto optional:** Alles funktioniert lokal ohne Anmeldung. Ein Konto braucht man nur für Synchronisation,
   das Teilen von Sammlungen und das Bewerten. Die API nutzt Bearer-Tokens (kein Cookie), damit spätere
   native Apps dieselbe API verwenden können.
@@ -21,12 +21,17 @@ npm run dev:backend                               # API auf http://localhost:878
 npm run dev:web                                   # App auf http://localhost:5173
 ```
 
-Die Datenbank liegt in `backend/data/vochat.db` (wird automatisch angelegt, nicht versioniert).
+Datenbank: Ohne weitere Angabe nutzt das Backend SQLite (`backend/data/vochat.db`). Mit
+`DATABASE_URL=postgres://…` läuft es gegen PostgreSQL, mit `DATABASE_URL=pglite:` gegen ein
+eingebettetes Postgres (ohne Server). Das Schema wird beim Start über Migrationen
+(`backend/migrations/<dialekt>/`) automatisch angelegt und aktualisiert.
+
+> Datenbanken aus Versionen vor den Migrationen bitte einmal löschen und neu importieren.
 
 Tests:
 
 ```bash
-npm test                                          # Shared + Backend (Auth, Sync, Wörterbuch, Importer)
+npm test                                          # Shared + Backend auf SQLite und auf Postgres (PGlite)
 npm run build                                     # Typprüfung + Produktionsbuild der Web-App
 ```
 
@@ -92,7 +97,9 @@ Datenbank löschen und `starter` erneut ausführen.
 | Variable | Standard | Zweck |
 |---|---|---|
 | `PORT` | `8787` | Port der API |
-| `DB_PATH` | `data/vochat.db` | SQLite-Datei |
+| `DATABASE_URL` | – | `postgres://…` (Postgres), `pglite:[pfad]` (eingebettet); leer = SQLite |
+| `DB_PATH` | `data/vochat.db` | SQLite-Datei, wenn `DATABASE_URL` leer ist |
+| `TRUST_PROXY` | – | `1` hinter einem Proxy (nginx): Client-IP aus `X-Real-IP` für die Ratenbegrenzung |
 | `CORS_ORIGINS` | `http://localhost:5173` | Erlaubte Web-Origins (kommagetrennt) |
 | `VITE_BACKEND_URL` | `http://localhost:8787` | Ziel des Dev-Proxys `/api` |
 | `VITE_API_URL` | `/api` | API-Basis für Produktionsbuilds |
@@ -100,3 +107,37 @@ Datenbank löschen und `starter` erneut ausführen.
 ## Status
 
 Erster Wurf. Geplant: Bild- und Spracheingabe mit Extraktion neuer Vokabeln (siehe `docs/ARCHITECTURE.md`).
+
+## Docker
+
+Komplettes Setup (Postgres, Backend, Web mit nginx) per Docker Compose:
+
+```bash
+cp .env.example .env          # Werte anpassen, v. a. POSTGRES_PASSWORD
+docker compose up -d --build
+```
+
+Danach ist die App unter http://localhost:8080 erreichbar (Port über `WEB_PORT` änderbar).
+nginx liefert die Web-App aus und leitet `/api/` an das Backend weiter; Migrationen laufen beim Start automatisch.
+
+Wörterbuch einmalig importieren (lädt Frequenzlisten aus dem Internet):
+
+```bash
+docker compose run --rm backend npm run import:dictionary -w backend -- starter
+```
+
+Optional Beispiel-Songs einspielen:
+
+```bash
+docker compose run --rm backend npm run seed:songs -w backend
+```
+
+**Daten:** Die Datenbank liegt im Volume `pgdata`, hochgeladene Medien (Avatare) im Volume `media`
+(`/app/backend/data/media`). `docker compose down` behält beide, `docker compose down -v` löscht sie.
+
+**Admins:** In `.env` die Variable `ADMIN_EMAILS` setzen (kommagetrennt), z. B. `ADMIN_EMAILS=ich@example.com`,
+und mit `docker compose up -d` neu starten. Diese Adressen werden beim Anmelden Admin.
+
+**Öffentlich betreiben:** `PUBLIC_ORIGIN` auf die echte URL setzen (z. B. `https://vochat.example.com`), da sie als `CORS_ORIGINS` verwendet wird.
+
+**S3-Medien:** Der Treiber `MEDIA_DRIVER=s3` braucht `@aws-sdk/client-s3` im Backend-Image; das Paket ist standardmäßig nicht enthalten und muss selbst nachinstalliert werden.

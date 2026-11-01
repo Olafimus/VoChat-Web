@@ -2,7 +2,9 @@ import type { MediaConfig } from "./media.js";
 
 export interface Config {
   port: number;
-  dbPath: string;
+  /** postgres://… (Server), pglite:[pfad] (eingebettet) oder SQLite-Datei. */
+  database: string;
+  trustProxy: boolean;
   corsOrigins: string[];
   adminEmails: string[];
   verifyThreshold: number;
@@ -15,7 +17,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   if (!["none", "local", "s3"].includes(driver)) throw new Error(`MEDIA_DRIVER ungültig: ${driver}`);
   return {
     port: Number(env.PORT ?? 8787),
-    dbPath: env.DB_PATH ?? "data/vochat.db",
+    database: env.DATABASE_URL || env.DB_PATH || "data/vochat.db",
+    trustProxy: env.TRUST_PROXY === "1" || env.TRUST_PROXY === "true",
     corsOrigins: (env.CORS_ORIGINS ?? "http://localhost:5173").split(",").map((s) => s.trim()).filter(Boolean),
     adminEmails: (env.ADMIN_EMAILS ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean),
     verifyThreshold: Number(env.COMMUNITY_VERIFY_THRESHOLD ?? 3),

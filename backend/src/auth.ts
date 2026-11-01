@@ -1,7 +1,7 @@
 import { createHash, randomBytes, scrypt as scryptCb, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 import type { Context, MiddlewareHandler } from "hono";
-import type { Db } from "./db.js";
+import type { Db } from "./db/index.js";
 
 const scrypt = promisify(scryptCb) as (password: string, salt: Buffer, keylen: number) => Promise<Buffer>;
 
@@ -23,54 +23,59 @@ export async function verifyPassword(password: string, stored: string): Promise<
 
 const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
 
-/** Erstellt eine Session und gibt den Klartext-Token zurück (nur die Hash-Summe wird gespeichert). */
-export function createSession(db: Db, userId: string, now: number): string {
+/** Erstellt eine Session und gibt den Klartext-Token zurück (gespeichert wird nur der Hash). */
+export async function createSession(db: Db, userId: string, now: number): Promise<string> {
   const token = randomBytes(32).toString("base64url");
-  db.prepare("INSERT INTO sessions (token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)").run(
+  await db.run("INSERT INTO sessions (token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)", [
     sha256(token),
     userId,
     now,
     now + SESSION_TTL_MS,
-  );
+  ]);
   return token;
 }
 
-export function deleteSession(db: Db, token: string): void {
-  db.prepare("DELETE FROM sessions WHERE token_hash = ?").run(sha256(token));
+export async function deleteSession(db: Db, token: string): Promise<void> {
+  await db.run("DELETE FROM sessions WHERE token_hash = ?", [sha256(token)]);
+}
+
+const bearer = (c: Context) => {
+  const header = c.req.header("authorization") ?? "";
+  return header.startsWith("Bearer ") ? header.slice(7).trim() : "";
+};
+
+async function sessionUser(db: Db, token: string, now: number): Promise<string | null> {
+  const row = await db.get<{ user_id: string; expires_at: number }>(
+    "SELECT user_id, expires_at FROM sessions WHERE token_hash = ?",
+    [sha256(token)],
+  );
+  return row && row.expires_at >= now ? row.user_id : null;
 }
 
 export function requireAuth(db: Db, now: () => number): MiddlewareHandler {
   return async (c, next) => {
-    const header = c.req.header("authorization") ?? "";
-    const token = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
-    if (!token) return c.json({ error: "unauthorized" }, 401);
-    const row = db
-      .prepare("SELECT user_id, expires_at FROM sessions WHERE token_hash = ?")
-      .get(sha256(token)) as { user_id: string; expires_at: number } | undefined;
-    if (!row || row.expires_at < now()) return c.json({ error: "unauthorized" }, 401);
-    c.set("userId", row.user_id);
+    const token = bearer(c);
+    const userId = token ? await sessionUser(db, token, now()) : null;
+    if (!userId) return c.json({ error: "unauthorized" }, 401);
+    c.set("userId" as never, userId as never);
     await next();
   };
 }
 
-export const currentUserId = (c: Context): string => c.get("userId" as never) as string;
-
 /**
- * Optionale Anmeldung: Öffentliche Endpunkte (Wörterbuch, Katalog) funktionieren
- * ohne Konto. Ist ein gültiger Token mitgeschickt, steht die Nutzer-ID bereit.
+ * Optionale Anmeldung: Öffentliche Endpunkte (Wörterbuch, Katalog) funktionieren ohne Konto.
+ * Ist ein gültiger Token mitgeschickt, steht die Nutzer-ID bereit.
  */
 export function optionalAuth(db: Db, now: () => number): MiddlewareHandler {
   return async (c, next) => {
-    const header = c.req.header("authorization") ?? "";
-    const token = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
+    const token = bearer(c);
     if (token) {
-      const row = db
-        .prepare("SELECT user_id, expires_at FROM sessions WHERE token_hash = ?")
-        .get(sha256(token)) as { user_id: string; expires_at: number } | undefined;
-      if (row && row.expires_at >= now()) c.set("userId", row.user_id);
+      const userId = await sessionUser(db, token, now());
+      if (userId) c.set("userId" as never, userId as never);
     }
     await next();
   };
 }
 
+export const currentUserId = (c: Context): string => c.get("userId" as never) as string;
 export const maybeUserId = (c: Context): string | undefined => c.get("userId" as never) as string | undefined;

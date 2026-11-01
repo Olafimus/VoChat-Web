@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
-import { openDb } from "../src/db.js";
+import type { Db } from "../src/db/index.js";
+import { addGloss, addLexeme, testDb } from "./helpers.js";
 
-let db: ReturnType<typeof openDb>;
+let db: Db;
 let app: ReturnType<typeof createApp>;
 
 const json = (body: unknown, token?: string) => ({
@@ -16,10 +17,10 @@ async function user(email: string) {
   return (await r.json()) as { token: string; user: { id: string } };
 }
 
-beforeEach(() => {
-  db = openDb(":memory:");
-  db.exec("INSERT INTO lexemes (id, lang, lemma, pos, frequency_rank) VALUES (1, 'fa', 'آب', '', 1), (2, 'fa', 'کتاب', '', 2)");
-  db.exec("UPDATE lexemes SET romanization = 'āb' WHERE id = 1");
+beforeEach(async () => {
+  db = await testDb();
+  await addLexeme(db, { id: 1, lang: "fa", lemma: "آب", rank: 1, romanization: "āb" });
+  await addLexeme(db, { id: 2, lang: "fa", lemma: "کتاب", rank: 2 });
   app = createApp({ db, community: { verifyThreshold: 1, rejectThreshold: 1, maxPendingPerUser: 5 } });
 });
 

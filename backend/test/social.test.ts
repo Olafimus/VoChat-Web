@@ -3,10 +3,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
-import { openDb } from "../src/db.js";
+import type { Db } from "../src/db/index.js";
+import { addGloss, addLexeme, testDb } from "./helpers.js";
 import { LocalMediaStore } from "../src/media.js";
 
-let db: ReturnType<typeof openDb>;
+let db: Db;
 let app: ReturnType<typeof createApp>;
 let mediaDir: string;
 
@@ -25,8 +26,8 @@ async function user(email: string, name = email.split("@")[0]) {
 
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]);
 
-beforeEach(() => {
-  db = openDb(":memory:");
+beforeEach(async () => {
+  db = await testDb();
   mediaDir = mkdtempSync(join(tmpdir(), "vochat-media-"));
   app = createApp({ db, media: new LocalMediaStore(mediaDir) });
 });
@@ -42,7 +43,7 @@ describe("profile and avatar", () => {
   });
 
   it("reports the avatar feature as disabled without a media store", async () => {
-    const off = createApp({ db: openDb(":memory:") });
+    const off = createApp({ db: await testDb() });
     expect(await (await off.request("/features")).json()).toEqual({ avatars: false, mediaDriver: null });
     const reg = await off.request("/auth/register", json({ email: "p2@example.com", password: "geheimes-passwort", name: "p2", nativeLang: "de" }));
     const a = (await reg.json()) as { token: string };
@@ -117,9 +118,10 @@ describe("follow and friends", () => {
     const a = await user("prog-a@example.com");
     const b = await user("prog-b@example.com");
     await app.request("/me", json({ showProgress: true }, a.token, "PATCH"));
-    db.prepare(
-      "INSERT INTO sync_rows (user_id, entity, id, data, updated_at, deleted, seq) VALUES (?, 'cards', 'c1', ?, 1, 0, 1)",
-    ).run(a.user.id, JSON.stringify({ id: "c1", status: "review", deleted: false }));
+    await db.run(
+      "INSERT INTO sync_rows (user_id, entity, id, data, attr, updated_at, deleted, seq) VALUES (?, 'cards', 'c1', ?, 'review', 1, 0, 1)",
+      [a.user.id, JSON.stringify({ id: "c1", status: "review", deleted: false })],
+    );
     const before = await (await app.request(`/users/${a.user.id}`, auth(b.token))).json();
     expect(before.progress).toBeNull();
     await app.request(`/social/friends/${a.user.id}`, auth(b.token, "POST"));

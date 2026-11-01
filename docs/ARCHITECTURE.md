@@ -162,3 +162,23 @@ Lernfortschritt sieht nur, wer befreundet ist und dessen `showProgress` aktiv is
 
 Endpunkte: `/social/users`, `/social/follow/:id`, `/social/follow-requests/:id/:action`, `/social/friends/...`,
 `/social/requests`, `/social/feed`, `/users/:id`, `/me/avatar`, `/media/avatars/:userId`, `/features`.
+
+## Datenbank
+
+Eine asynchrone Schnittstelle (`backend/src/db/`) mit drei Treibern:
+
+| Ziel | Treiber | Einsatz |
+|---|---|---|
+| `postgres://…` | `pg` (Pool) | Produktion, Docker |
+| `pglite:[pfad]` | PGlite (Postgres in WebAssembly) | Tests, Entwicklung ohne Server |
+| Dateipfad | `node:sqlite` | Einzelplatz, Entwicklung |
+
+Regeln für portables SQL: `?`-Platzhalter (für Postgres in `$n` umgewandelt), keine benannten Parameter,
+keine `COLLATE NOCASE`, keine JSON-Funktionen in Abfragen, camelCase-Aliase vermeiden (Postgres schreibt
+unquotierte Namen klein). Zeitstempel sind Millisekunden (`BIGINT`). Migrationen liegen je Dialekt in
+`backend/migrations/` und laufen beim Start. Die Tests laufen gegen SQLite und Postgres (`npm test`).
+
+**Wortschlüssel (`lemma_key`):** normalisierte Schreibung eines Lemmas (klein, persische/arabische Varianten
+vereinheitlicht, ohne Diakritika und Null-Breite-Zeichen). Suche, Formen-Abgleich und das Verknüpfen eigener
+Vokabeln laufen darüber. **Formen (`lexeme_forms`):** gebeugte Formen aus wordhoard und kaikki, damit die
+Extraktion aus Texten auch „ist“ → „sein“ erkennt.

@@ -1,5 +1,5 @@
 import { contributionPayloadSchema, type ContributionPayload, type ContributionStatus, type LangCode } from "@vochat/shared";
-import { transaction, type Db } from "./db.js";
+import type { Db, Param } from "./db/index.js";
 import { addExample, addSense, addTranslation, upsertLexeme } from "./importers/common.js";
 
 export interface CommunityOptions {
@@ -14,30 +14,32 @@ const TABLE: Record<string, string> = { lexeme: "lexemes", sense: "senses", exam
 
 /* ---------- Rollen ---------- */
 
-export function grantRole(db: Db, userId: string, role: "admin" | "expert", lang: string, now: number): void {
-  db.prepare(
+export async function grantRole(db: Db, userId: string, role: "admin" | "expert", lang: string, now: number): Promise<void> {
+  await db.run(
     `INSERT INTO user_roles (user_id, role, lang, granted_at) VALUES (?, ?, ?, ?)
      ON CONFLICT (user_id, role, lang) DO NOTHING`,
-  ).run(userId, role, role === "admin" ? "" : lang, now);
+    [userId, role, role === "admin" ? "" : lang, now],
+  );
 }
 
-export function revokeRole(db: Db, userId: string, role: "admin" | "expert", lang: string): void {
-  db.prepare("DELETE FROM user_roles WHERE user_id = ? AND role = ? AND lang = ?").run(userId, role, role === "admin" ? "" : lang);
+export async function revokeRole(db: Db, userId: string, role: "admin" | "expert", lang: string): Promise<void> {
+  await db.run("DELETE FROM user_roles WHERE user_id = ? AND role = ? AND lang = ?", [userId, role, role === "admin" ? "" : lang]);
 }
 
-export function rolesOf(db: Db, userId: string): { role: string; lang: string }[] {
-  return db.prepare("SELECT role, lang FROM user_roles WHERE user_id = ? ORDER BY role, lang").all(userId) as { role: string; lang: string }[];
+export function rolesOf(db: Db, userId: string) {
+  return db.all<{ role: string; lang: string }>("SELECT role, lang FROM user_roles WHERE user_id = ? ORDER BY role, lang", [userId]);
 }
 
-export function isAdmin(db: Db, userId: string): boolean {
-  return !!db.prepare("SELECT 1 FROM user_roles WHERE user_id = ? AND role = 'admin'").get(userId);
+export async function isAdmin(db: Db, userId: string): Promise<boolean> {
+  return !!(await db.get("SELECT 1 AS ok FROM user_roles WHERE user_id = ? AND role = 'admin'", [userId]));
 }
 
 /** Admins und Experten der Sprache dürfen verbindlich entscheiden. */
-export function canDecide(db: Db, userId: string, lang: string): boolean {
-  return !!db
-    .prepare("SELECT 1 FROM user_roles WHERE user_id = ? AND (role = 'admin' OR (role = 'expert' AND lang = ?)) LIMIT 1")
-    .get(userId, lang);
+export async function canDecide(db: Db, userId: string, lang: string): Promise<boolean> {
+  return !!(await db.get(
+    "SELECT 1 AS ok FROM user_roles WHERE user_id = ? AND (role = 'admin' OR (role = 'expert' AND lang = ?)) LIMIT 1",
+    [userId, lang],
+  ));
 }
 
 /* ---------- Beiträge ---------- */
@@ -45,79 +47,86 @@ export function canDecide(db: Db, userId: string, lang: string): boolean {
 export type SubmitResult = { ok: true; id: number } | { ok: false; status: number; error: string };
 
 /** Sprache eines Beitrags ergibt sich aus dem Ziel (Lexem, Eintrag). */
-function langFor(db: Db, payload: ContributionPayload): string | null {
+async function langFor(db: Db, payload: ContributionPayload): Promise<string | null> {
   if (payload.kind === "lexeme") return payload.lang;
   if (payload.kind === "retract") {
-    if (payload.target === "lexeme") return (db.prepare("SELECT lang FROM lexemes WHERE id = ?").get(payload.targetId) as { lang: string } | undefined)?.lang ?? null;
-    const row = db
-      .prepare(`SELECT l.lang FROM ${TABLE[payload.target]} t JOIN lexemes l ON l.id = t.lexeme_id WHERE t.id = ?`)
-      .get(payload.targetId) as { lang: string } | undefined;
+    if (payload.target === "lexeme") {
+      return (await db.get<{ lang: string }>("SELECT lang FROM lexemes WHERE id = ?", [payload.targetId]))?.lang ?? null;
+    }
+    const row = await db.get<{ lang: string }>(
+      `SELECT l.lang FROM ${TABLE[payload.target]} t JOIN lexemes l ON l.id = t.lexeme_id WHERE t.id = ?`,
+      [payload.targetId],
+    );
     return row?.lang ?? null;
   }
-  return (db.prepare("SELECT lang FROM lexemes WHERE id = ?").get(payload.lexemeId) as { lang: string } | undefined)?.lang ?? null;
+  return (await db.get<{ lang: string }>("SELECT lang FROM lexemes WHERE id = ?", [payload.lexemeId]))?.lang ?? null;
 }
 
-export function submitContribution(db: Db, authorId: string, raw: unknown, now: number, opts: CommunityOptions): SubmitResult {
+export async function submitContribution(db: Db, authorId: string, raw: unknown, now: number, opts: CommunityOptions): Promise<SubmitResult> {
   const parsed = contributionPayloadSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, status: 400, error: "invalid payload" };
   const payload = parsed.data;
 
-  const pending = (db.prepare("SELECT COUNT(*) AS n FROM contributions WHERE author_id = ? AND status = 'pending'").get(authorId) as { n: number }).n;
-  if (pending >= opts.maxPendingPerUser) return { ok: false, status: 429, error: "too many pending contributions" };
+  const pending = await db.get<{ n: number }>("SELECT COUNT(*) AS n FROM contributions WHERE author_id = ? AND status = 'pending'", [authorId]);
+  if (Number(pending?.n ?? 0) >= opts.maxPendingPerUser) return { ok: false, status: 429, error: "too many pending contributions" };
 
-  const lang = langFor(db, payload);
+  const lang = await langFor(db, payload);
   if (!lang) return { ok: false, status: 404, error: "target not found" };
   if (payload.kind === "translation" && payload.targetLang === lang) return { ok: false, status: 400, error: "same language" };
 
-  const result = db
-    .prepare("INSERT INTO contributions (kind, lang, payload, status, author_id, created_at) VALUES (?, ?, ?, 'pending', ?, ?)")
-    .run(payload.kind, lang, JSON.stringify(payload), authorId, now);
-  return { ok: true, id: Number(result.lastInsertRowid) };
+  const row = await db.get<{ id: number }>(
+    "INSERT INTO contributions (kind, lang, payload, status, author_id, created_at) VALUES (?, ?, ?, 'pending', ?, ?) RETURNING id",
+    [payload.kind, lang, JSON.stringify(payload), authorId, now],
+  );
+  return { ok: true, id: Number(row!.id) };
 }
 
 /** Wendet einen verifizierten Beitrag auf das Wörterbuch an. Alle Zeilen tragen die Quelle `community:<id>`. */
-function apply(db: Db, id: number, payload: ContributionPayload): number | null {
+async function apply(db: Db, id: number, payload: ContributionPayload): Promise<number | null> {
   const source = `community:${id}`;
   switch (payload.kind) {
     case "lexeme": {
-      const lexemeId = upsertLexeme(db, payload.lang, payload.lemma, payload.pos);
-      if (payload.gender) db.prepare("UPDATE lexemes SET gender = COALESCE(gender, ?) WHERE id = ?").run(payload.gender, lexemeId);
-      if (payload.cefr) db.prepare("UPDATE lexemes SET cefr = COALESCE(cefr, ?) WHERE id = ?").run(payload.cefr, lexemeId);
-      addSense(db, lexemeId, payload.glossLang, payload.gloss, source);
+      const lexemeId = await upsertLexeme(db, payload.lang, payload.lemma, payload.pos);
+      if (payload.gender) await db.run("UPDATE lexemes SET gender = COALESCE(gender, ?) WHERE id = ?", [payload.gender, lexemeId]);
+      if (payload.cefr) await db.run("UPDATE lexemes SET cefr = COALESCE(cefr, ?) WHERE id = ?", [payload.cefr, lexemeId]);
+      if (payload.romanization) {
+        await db.run("UPDATE lexemes SET romanization = COALESCE(romanization, ?) WHERE id = ?", [payload.romanization, lexemeId]);
+      }
+      await addSense(db, lexemeId, payload.glossLang, payload.gloss, source);
       return lexemeId;
     }
     case "pronunciation":
-      // Nur ergänzen, wenn noch keine Aussprache hinterlegt ist. Eine bestehende wird nicht überschrieben.
-      db.prepare("UPDATE lexemes SET romanization = COALESCE(romanization, ?) WHERE id = ?").run(payload.romanization, payload.lexemeId);
+      // Nur ergänzen, wenn noch keine Aussprache hinterlegt ist; eine bestehende bleibt.
+      await db.run("UPDATE lexemes SET romanization = COALESCE(romanization, ?) WHERE id = ?", [payload.romanization, payload.lexemeId]);
       return payload.lexemeId;
     case "sense":
-      addSense(db, payload.lexemeId, payload.glossLang, payload.gloss, source);
+      await addSense(db, payload.lexemeId, payload.glossLang, payload.gloss, source);
       return payload.lexemeId;
     case "example":
-      addExample(db, payload.lexemeId, payload.text, payload.translation, payload.translationLang, source);
+      await addExample(db, payload.lexemeId, payload.text, payload.translation, payload.translationLang, source);
       return payload.lexemeId;
     case "translation":
-      addTranslation(db, payload.lexemeId, payload.targetLang, payload.targetLemma, source);
+      await addTranslation(db, payload.lexemeId, payload.targetLang, payload.targetLemma, source);
       return payload.lexemeId;
     case "retract":
-      db.prepare(`UPDATE ${TABLE[payload.target]} SET hidden = 1 WHERE id = ?`).run(payload.targetId);
+      await db.run(`UPDATE ${TABLE[payload.target]} SET hidden = 1 WHERE id = ?`, [payload.targetId]);
       return null;
   }
 }
 
 /** Macht eine angewandte Änderung rückgängig (Admin-Widerruf). Nichts wird gelöscht. */
-function unapply(db: Db, id: number, payload: ContributionPayload, resultLexemeId: number | null): void {
+async function unapply(db: Db, id: number, payload: ContributionPayload, resultLexemeId: number | null): Promise<void> {
   const source = `community:${id}`;
   if (payload.kind === "retract") {
-    db.prepare(`UPDATE ${TABLE[payload.target]} SET hidden = 0 WHERE id = ?`).run(payload.targetId);
+    await db.run(`UPDATE ${TABLE[payload.target]} SET hidden = 0 WHERE id = ?`, [payload.targetId]);
     return;
   }
   for (const table of ["senses", "examples", "translations"]) {
-    db.prepare(`UPDATE ${table} SET hidden = 1 WHERE source = ?`).run(source);
+    await db.run(`UPDATE ${table} SET hidden = 1 WHERE source = ?`, [source]);
   }
-  if (payload.kind === "lexeme" && resultLexemeId) db.prepare("UPDATE lexemes SET hidden = 1 WHERE id = ?").run(resultLexemeId);
+  if (payload.kind === "lexeme" && resultLexemeId) await db.run("UPDATE lexemes SET hidden = 1 WHERE id = ?", [resultLexemeId]);
   if (payload.kind === "pronunciation") {
-    db.prepare("UPDATE lexemes SET romanization = NULL WHERE id = ? AND romanization = ?").run(payload.lexemeId, payload.romanization);
+    await db.run("UPDATE lexemes SET romanization = NULL WHERE id = ? AND romanization = ?", [payload.lexemeId, payload.romanization]);
   }
 }
 
@@ -134,76 +143,87 @@ interface ContributionRow {
   result_lexeme_id: number | null;
 }
 
-export function loadContribution(db: Db, id: number): ContributionRow | undefined {
-  return db.prepare("SELECT * FROM contributions WHERE id = ?").get(id) as ContributionRow | undefined;
+export function loadContribution(db: Db, id: number) {
+  return db.get<ContributionRow>("SELECT * FROM contributions WHERE id = ?", [id]);
 }
 
-export function tally(db: Db, id: number, userId: string | null) {
-  const counts = db
-    .prepare("SELECT SUM(vote = 'verify') AS verify, SUM(vote = 'reject') AS reject FROM votes WHERE contribution_id = ?")
-    .get(id) as { verify: number | null; reject: number | null };
+export async function tally(db: Db, id: number, userId: string | null) {
+  const counts = await db.get<{ verify: number | null; reject: number | null }>(
+    `SELECT SUM(CASE WHEN vote = 'verify' THEN 1 ELSE 0 END) AS verify,
+            SUM(CASE WHEN vote = 'reject' THEN 1 ELSE 0 END) AS reject
+     FROM votes WHERE contribution_id = ?`,
+    [id],
+  );
   const mine = userId
-    ? ((db.prepare("SELECT vote FROM votes WHERE contribution_id = ? AND user_id = ?").get(id, userId) as { vote: string } | undefined)?.vote ?? null)
+    ? ((await db.get<{ vote: string }>("SELECT vote FROM votes WHERE contribution_id = ? AND user_id = ?", [id, userId]))?.vote ?? null)
     : null;
-  return { verify: counts.verify ?? 0, reject: counts.reject ?? 0, myVote: mine };
+  return { verify: Number(counts?.verify ?? 0), reject: Number(counts?.reject ?? 0), myVote: mine };
 }
 
 export type VoteResult = { ok: true; status: ContributionStatus } | { ok: false; status: number; error: string };
 
 /**
- * Stimme abgeben. Experten der Sprache entscheiden sofort. Andere Nutzer brauchen
- * so viele übereinstimmende Stimmen wie konfiguriert. Eigene Beiträge kann man nicht bewerten.
+ * Stimme abgeben. Experten der Sprache entscheiden sofort. Andere Nutzer brauchen so viele
+ * übereinstimmende Stimmen wie konfiguriert. Eigene Beiträge kann man nicht bewerten.
  */
-export function vote(db: Db, id: number, voterId: string, value: "verify" | "reject", now: number, opts: CommunityOptions): VoteResult {
-  return transaction(db, () => {
-    const c = loadContribution(db, id);
-    if (!c) return { ok: false, status: 404, error: "not found" } as const;
-    if (c.author_id === voterId) return { ok: false, status: 403, error: "own contribution" } as const;
-    if (c.status !== "pending") return { ok: false, status: 409, error: "already decided" } as const;
+export function vote(db: Db, id: number, voterId: string, value: "verify" | "reject", now: number, opts: CommunityOptions): Promise<VoteResult> {
+  return db.tx(async (t): Promise<VoteResult> => {
+    const c = await loadContribution(t, id);
+    if (!c) return { ok: false, status: 404, error: "not found" };
+    if (c.author_id === voterId) return { ok: false, status: 403, error: "own contribution" };
+    if (c.status !== "pending") return { ok: false, status: 409, error: "already decided" };
 
-    const expert = canDecide(db, voterId, c.lang);
-    db.prepare(
+    const expert = await canDecide(t, voterId, c.lang);
+    await t.run(
       `INSERT INTO votes (contribution_id, user_id, vote, is_expert, created_at) VALUES (?, ?, ?, ?, ?)
        ON CONFLICT (contribution_id, user_id) DO UPDATE SET vote = excluded.vote, is_expert = excluded.is_expert, created_at = excluded.created_at`,
-    ).run(id, voterId, value, expert ? 1 : 0, now);
+      [id, voterId, value, expert ? 1 : 0, now],
+    );
 
     let decision: "verified" | "rejected" | null = null;
     if (expert) decision = value === "verify" ? "verified" : "rejected";
     else {
-      const t = tally(db, id, null);
-      if (t.verify >= opts.verifyThreshold) decision = "verified";
-      else if (t.reject >= opts.rejectThreshold) decision = "rejected";
+      const counts = await tally(t, id, null);
+      if (counts.verify >= opts.verifyThreshold) decision = "verified";
+      else if (counts.reject >= opts.rejectThreshold) decision = "rejected";
     }
-    if (decision) finalize(db, c, decision, voterId, now, expert ? "Experte" : "Community");
-    return { ok: true, status: decision ?? "pending" } as const;
+    if (decision) await finalize(t, c, decision, voterId, now, expert ? "Experte" : "Community");
+    return { ok: true, status: decision ?? "pending" };
   });
 }
 
 /** Admin- bzw. Expertenentscheid: verifizieren, ablehnen oder einen angewandten Beitrag widerrufen. */
-export function decide(db: Db, id: number, deciderId: string, decision: "verify" | "reject" | "revoke", now: number): VoteResult {
-  return transaction(db, () => {
-    const c = loadContribution(db, id);
-    if (!c) return { ok: false, status: 404, error: "not found" } as const;
+export function decide(db: Db, id: number, deciderId: string, decision: "verify" | "reject" | "revoke", now: number): Promise<VoteResult> {
+  return db.tx(async (t): Promise<VoteResult> => {
+    const c = await loadContribution(t, id);
+    if (!c) return { ok: false, status: 404, error: "not found" };
     if (decision === "revoke") {
-      if (c.status !== "verified") return { ok: false, status: 409, error: "only verified contributions can be revoked" } as const;
-      unapply(db, id, JSON.parse(c.payload) as ContributionPayload, c.result_lexeme_id);
-      db.prepare("UPDATE contributions SET status = 'revoked', decided_at = ?, decided_by = ?, decision_reason = 'widerrufen' WHERE id = ?").run(now, deciderId, id);
-      return { ok: true, status: "revoked" } as const;
+      if (c.status !== "verified") return { ok: false, status: 409, error: "only verified contributions can be revoked" };
+      await unapply(t, id, JSON.parse(c.payload) as ContributionPayload, c.result_lexeme_id === null ? null : Number(c.result_lexeme_id));
+      await t.run("UPDATE contributions SET status = 'revoked', decided_at = ?, decided_by = ?, decision_reason = 'widerrufen' WHERE id = ?", [
+        now,
+        deciderId,
+        id,
+      ]);
+      return { ok: true, status: "revoked" };
     }
-    if (c.status !== "pending") return { ok: false, status: 409, error: "already decided" } as const;
-    finalize(db, c, decision === "verify" ? "verified" : "rejected", deciderId, now, "Entscheidung");
-    return { ok: true, status: decision === "verify" ? "verified" : "rejected" } as const;
+    if (c.status !== "pending") return { ok: false, status: 409, error: "already decided" };
+    const status = decision === "verify" ? "verified" : "rejected";
+    await finalize(t, c, status, deciderId, now, "Entscheidung");
+    return { ok: true, status };
   });
 }
 
-function finalize(db: Db, c: ContributionRow, decision: "verified" | "rejected", by: string, now: number, reason: string) {
-  let resultLexemeId: number | null = null;
-  if (decision === "verified") {
-    resultLexemeId = apply(db, c.id, JSON.parse(c.payload) as ContributionPayload);
-  }
-  db.prepare(
-    "UPDATE contributions SET status = ?, decided_at = ?, decided_by = ?, decision_reason = ?, result_lexeme_id = ? WHERE id = ?",
-  ).run(decision, now, by, reason, resultLexemeId, c.id);
+async function finalize(db: Db, c: ContributionRow, decision: "verified" | "rejected", by: string, now: number, reason: string) {
+  const resultLexemeId = decision === "verified" ? await apply(db, Number(c.id), JSON.parse(c.payload) as ContributionPayload) : null;
+  await db.run("UPDATE contributions SET status = ?, decided_at = ?, decided_by = ?, decision_reason = ?, result_lexeme_id = ? WHERE id = ?", [
+    decision,
+    now,
+    by,
+    reason,
+    resultLexemeId,
+    c.id,
+  ]);
 }
 
 export interface ListFilter {
@@ -213,26 +233,37 @@ export interface ListFilter {
   limit: number;
 }
 
-export function listContributions(db: Db, f: ListFilter) {
-  const rows = db
-    .prepare(
-      `SELECT c.id, c.kind, c.lang, c.payload, c.status, c.created_at, c.decided_at, c.decision_reason, u.name AS author
-       FROM contributions c JOIN users u ON u.id = c.author_id
-       WHERE (:status IS NULL OR c.status = :status)
-         AND (:lang IS NULL OR c.lang = :lang)
-         AND (:mine IS NULL OR c.author_id = :mine)
-       ORDER BY c.id DESC LIMIT :limit`,
-    )
-    .all({ status: f.status ?? null, lang: f.lang ?? null, mine: f.mine ?? null, limit: f.limit }) as (Omit<ContributionRow, "author_id"> & { author: string; payload: string })[];
+export async function listContributions(db: Db, f: ListFilter) {
+  const where: string[] = [];
+  const params: Param[] = [];
+  if (f.status) {
+    where.push("c.status = ?");
+    params.push(f.status);
+  }
+  if (f.lang) {
+    where.push("c.lang = ?");
+    params.push(f.lang);
+  }
+  if (f.mine) {
+    where.push("c.author_id = ?");
+    params.push(f.mine);
+  }
+  const rows = await db.all<ContributionRow & { author: string }>(
+    `SELECT c.id, c.kind, c.lang, c.payload, c.status, c.created_at, c.decided_at, c.decision_reason, u.name AS author
+     FROM contributions c JOIN users u ON u.id = c.author_id
+     ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
+     ORDER BY c.id DESC LIMIT ?`,
+    [...params, f.limit],
+  );
   return rows.map((r) => ({
-    id: r.id,
+    id: Number(r.id),
     kind: r.kind,
     lang: r.lang,
     payload: JSON.parse(r.payload) as unknown,
     status: r.status,
     author: r.author,
-    createdAt: r.created_at,
-    decidedAt: r.decided_at,
+    createdAt: Number(r.created_at),
+    decidedAt: r.decided_at === null ? null : Number(r.decided_at),
     decisionReason: r.decision_reason,
   }));
 }

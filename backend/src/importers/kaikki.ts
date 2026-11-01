@@ -1,9 +1,11 @@
-import { transaction, type Db } from "../db.js";
 import { LANG_CODES } from "@vochat/shared";
-import { addExample, addCategory, addSense, addTranslation, clearSource, recordRun, upsertLexeme } from "./common.js";
+import type { Db } from "../db/index.js";
+import { addCategory, addExample, addForm, addSense, addTranslation, clearSource, recordRun, upsertLexeme } from "./common.js";
 
 const GENDER_TAGS: Record<string, string> = { masculine: "m", feminine: "f", neuter: "n" };
 const KNOWN_LANG_CODES = new Set<string>(LANG_CODES);
+// Formen-Tags, die keine echten Wortformen sind (Tabellenköpfe, Umschriften o. Ä.).
+const SKIP_FORM_TAGS = new Set(["table-tags", "inflection-template", "romanization", "class"]);
 
 interface KaikkiExample {
   text?: string;
@@ -23,25 +25,27 @@ interface KaikkiEntry {
   tags?: string[];
   senses?: KaikkiSense[];
   translations?: { lang_code?: string; word?: string }[];
+  forms?: { form?: string; tags?: string[] }[];
+  sounds?: { roman?: string }[];
 }
 
 /**
- * Wiktextract/kaikki.org-JSONL (eine Zeile = ein Wörterbucheintrag). Die Datei
- * pro Sprache (z. B. "German") enthält Lemmata der Sprache mit englischen
- * Glossen. Bedeutungen, Beispiele (mit Übersetzung), Übersetzungen, Genus und
- * Themen werden übernommen. Limits halten die Datenbank schlank.
+ * Wiktextract/kaikki.org-JSONL (eine Zeile = ein Eintrag). Die Datei pro Sprache enthält Lemmata
+ * mit englischen Glossen. Übernommen werden Bedeutungen, Beispiele (mit Übersetzung),
+ * Übersetzungen, Genus, Themen, gebeugte Formen und – falls vorhanden – eine Umschrift.
+ * Limits halten die Datenbank schlank.
  */
-export function importKaikki(
+export async function importKaikki(
   db: Db,
   opts: { lang: string; glossLang: string; file: string; text: string; maxSenses?: number; maxExamples?: number },
-): number {
+): Promise<number> {
   const source = `kaikki:${opts.lang}`;
   const maxSenses = opts.maxSenses ?? 12;
   const maxExamples = opts.maxExamples ?? 4;
   let rows = 0;
 
-  transaction(db, () => {
-    clearSource(db, source);
+  await db.tx(async (t) => {
+    await clearSource(t, source);
     for (const line of opts.text.split("\n")) {
       if (!line.trim()) continue;
       let entry: KaikkiEntry;
@@ -52,32 +56,34 @@ export function importKaikki(
       }
       if (!entry.word || (entry.lang_code && entry.lang_code !== opts.lang)) continue;
 
-      const pos = entry.pos ?? "";
-      const id = upsertLexeme(db, opts.lang, entry.word, pos);
+      const id = await upsertLexeme(t, opts.lang, entry.word, entry.pos ?? "");
       const entryGender = genderFrom(entry.tags);
-      if (entryGender) db.prepare("UPDATE lexemes SET gender = COALESCE(gender, ?) WHERE id = ?").run(entryGender, id);
+      if (entryGender) await t.run("UPDATE lexemes SET gender = COALESCE(gender, ?) WHERE id = ?", [entryGender, id]);
+      const roman = entry.sounds?.find((s) => s.roman)?.roman;
+      if (roman) await t.run("UPDATE lexemes SET romanization = COALESCE(romanization, ?) WHERE id = ?", [roman, id]);
 
       for (const sense of (entry.senses ?? []).slice(0, maxSenses)) {
         const gloss = sense.glosses?.at(-1);
-        if (gloss) addSense(db, id, opts.glossLang, gloss, source);
+        if (gloss) await addSense(t, id, opts.glossLang, gloss, source);
         const g = genderFrom(sense.tags);
-        if (g) db.prepare("UPDATE lexemes SET gender = COALESCE(gender, ?) WHERE id = ?").run(g, id);
-        for (const topic of sense.topics ?? []) addCategory(db, id, topic, source);
+        if (g) await t.run("UPDATE lexemes SET gender = COALESCE(gender, ?) WHERE id = ?", [g, id]);
+        for (const topic of sense.topics ?? []) await addCategory(t, id, topic, source);
         for (const ex of (sense.examples ?? []).slice(0, maxExamples)) {
           if (!ex.text) continue;
           const translation = ex.english ?? ex.translation ?? null;
-          addExample(db, id, ex.text, translation, translation ? opts.glossLang : null, source);
+          await addExample(t, id, ex.text, translation, translation ? opts.glossLang : null, source);
         }
       }
-
-      for (const t of entry.translations ?? []) {
-        if (t.lang_code && KNOWN_LANG_CODES.has(t.lang_code) && t.word) {
-          addTranslation(db, id, t.lang_code, t.word, source);
-        }
+      for (const f of entry.forms ?? []) {
+        if (!f.form || f.form === entry.word || (f.tags ?? []).some((tag) => SKIP_FORM_TAGS.has(tag))) continue;
+        await addForm(t, id, opts.lang, f.form);
+      }
+      for (const tr of entry.translations ?? []) {
+        if (tr.lang_code && KNOWN_LANG_CODES.has(tr.lang_code) && tr.word) await addTranslation(t, id, tr.lang_code, tr.word, source);
       }
       rows++;
     }
-    recordRun(db, "kaikki", opts.lang, opts.file, rows);
+    await recordRun(t, "kaikki", opts.lang, opts.file, rows);
   });
   return rows;
 }

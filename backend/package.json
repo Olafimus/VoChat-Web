@@ -9,15 +9,19 @@
     "build": "tsc --noEmit -p .",
     "import:dictionary": "tsx scripts/import-dictionary.ts",
     "test": "vitest run",
-    "seed:songs": "tsx scripts/seed-public-songs.ts"
+    "seed:songs": "tsx scripts/seed-public-songs.ts",
+    "test:pg": "TEST_DB=postgres vitest run"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.5",
     "hono": "^4.13.16",
+    "pg": "^8.23.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.14",
     "@types/node": "^22.20.5",
+    "@types/pg": "^8.23.1",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3",
     "vitest": "^4.1.12"

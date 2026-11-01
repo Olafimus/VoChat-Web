@@ -22,6 +22,7 @@ export const contributionPayloadSchema = z.discriminatedUnion("kind", [
     cefr: cefrSchema.nullable().default(null),
     glossLang: langSchema,
     gloss: z.string().trim().min(1).max(500),
+    romanization: z.string().trim().max(200).nullable().default(null),
   }),
   z.object({
     kind: z.literal("pronunciation"),

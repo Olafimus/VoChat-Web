@@ -1,0 +1,50 @@
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: vochat
+      POSTGRES_USER: vochat
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vochat}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vochat -d vochat"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://vochat:${POSTGRES_PASSWORD:-vochat}@db:5432/vochat
+      PORT: "8787"
+      # Hinter nginx: X-Real-IP liefert die Client-Adresse (für die Ratenbegrenzung).
+      TRUST_PROXY: "1"
+      CORS_ORIGINS: ${PUBLIC_ORIGIN:-http://localhost:8080}
+      MEDIA_DRIVER: ${MEDIA_DRIVER:-local}
+      MEDIA_LOCAL_DIR: /app/backend/data/media
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+    volumes:
+      - media:/app/backend/data/media
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  media:
