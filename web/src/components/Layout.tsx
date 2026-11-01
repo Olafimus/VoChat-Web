@@ -1,8 +1,10 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useSession, useSyncStatus } from "../session";
 import { useDictionaryLinker } from "../lib/useDictionaryLinker";
+import { useScheduleMigration } from "../lib/useScheduleMigration";
 
 const TABS = [
+  { to: "/", label: "Start", short: "Start", icon: "🏠" },
   { to: "/chat", label: "Chat", short: "Chat", icon: "💬" },
   { to: "/vocab", label: "Wortschatz", short: "Wörter", icon: "📚" },
   { to: "/learn", label: "Lernen", short: "Lernen", icon: "🧠" },
@@ -35,13 +37,14 @@ export function SyncIndicator() {
 export function Layout() {
   const { user, token } = useSession();
   useDictionaryLinker();
+  useScheduleMigration();
   return (
     <div className="app">
       <header className="topbar">
-        <strong className="brand">VoChat</strong>
+        <NavLink to="/" className="brand" end>VoChat</NavLink>
         <nav className="tabs-desktop">
           {TABS.map((t) => (
-            <NavLink key={t.to} to={t.to} className={({ isActive }) => (isActive ? "active" : undefined)}>
+            <NavLink key={t.to} to={t.to} end={t.to === "/"} className={({ isActive }) => (isActive ? "active" : undefined)}>
               {t.label}
             </NavLink>
           ))}
@@ -57,7 +60,7 @@ export function Layout() {
       </main>
       <nav className="tabs-mobile" aria-label="Hauptnavigation">
         {TABS.map((t) => (
-          <NavLink key={t.to} to={t.to} className={({ isActive }) => (isActive ? "active" : undefined)}>
+          <NavLink key={t.to} to={t.to} end={t.to === "/"} className={({ isActive }) => (isActive ? "active" : undefined)}>
             <span aria-hidden>{t.icon}</span>
             <span>{t.short}</span>
           </NavLink>

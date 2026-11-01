@@ -25,6 +25,22 @@ export const cardSchema = z.object({
   dueAt: timestamp,
   reps: z.number().int().nonnegative(),
   lapses: z.number().int().nonnegative(),
+  /** Gedächtnismodell: Stabilität (Tage) und Schwierigkeit (1–10), aus der Historie berechnet. */
+  stability: z.number().min(0).max(36500).default(0),
+  difficulty: z.number().min(1).max(10).default(5),
+  lastReviewAt: timestamp.nullable().default(null),
+  /** Vom Nutzer ausgeblendet: wird nie geplant, bleibt aber in der Sammlung. */
+  ignored: z.boolean().default(false),
+  /** Eigene Zielquote für diese Karte (z. B. 0,95 = öfter üben), null = Standard. */
+  retention: z.number().min(0.7).max(0.98).nullable().default(null),
+  /** Vom Nutzer vorgezogen: kommt im nächsten Lernblock zuerst. */
+  pinned: z.boolean().default(false),
+  /** Fortschritt zurückgesetzt: Antworten davor zählen für das Gedächtnismodell nicht mehr. */
+  resetAt: timestamp.nullable().default(null),
+  /** Häufigkeitsrang aus dem Wörterbuch (kleiner = wichtiger). */
+  rank: z.number().int().positive().nullable().default(null),
+  /** Herkunft, z. B. "scan", "chat", "challenge:<id>", "collection:<id>" – fließt in die Priorität ein. */
+  origin: z.string().max(80).nullable().default(null),
   createdAt: timestamp,
   updatedAt: timestamp,
   deleted: z.boolean(),
@@ -53,7 +69,12 @@ export const reviewSchema = z.object({
   lang: langSchema,
   lemma: z.string().max(200),
   outcome: z.enum(["right", "wrong"]),
-  mode: z.enum(["flip", "reverse", "type"]),
+  /** Feinere Bewertung (nochmal/schwer/gut/leicht); ältere Einträge haben nur `outcome`. */
+  grade: z.enum(["again", "hard", "good", "easy"]).nullable().default(null),
+  /** Antwortzeit in ms (vom Anzeigen bis zur Antwort), sofern gemessen. */
+  responseMs: z.number().int().min(0).max(3_600_000).nullable().default(null),
+  /** "manual": vom Nutzer als bekannt markiert (keine echte Abfrage). */
+  mode: z.enum(["flip", "reverse", "type", "manual"]),
   typed: z.string().max(200).nullable(),
   at: timestamp,
   updatedAt: timestamp,

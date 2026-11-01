@@ -1,43 +1,15 @@
-/** Lernereignisse: jede Antwort wird protokolliert, daraus entstehen Trefferquoten und Lernpakete. */
+/** Lernereignisse: jede Antwort wird protokolliert (append-only) und speist das Gedächtnismodell. */
+import type { Grade } from "./memory.js";
 
-export type Mode = "flip" | "reverse" | "type";
+/** "manual" = vom Nutzer als bekannt markiert, keine echte Abfrage. */
+export type Mode = "flip" | "reverse" | "type" | "manual";
 export type Outcome = "right" | "wrong";
 
 export interface ReviewEvent {
   cardId: string;
   outcome: Outcome;
+  grade?: Grade | null;
   mode: Mode;
   at: number;
-}
-
-export interface Accuracy {
-  right: number;
-  wrong: number;
-  /** Trefferquote im Zeitfenster, null wenn keine Antworten vorliegen. */
-  rate: number | null;
-  lastWrongAt: number | null;
-  /** Ergebnis der jüngsten Antwort im Zeitfenster. */
-  lastOutcome: Outcome | null;
-}
-
-export function accuracyFor(events: ReviewEvent[], cardId: string, now: number, windowMs: number): Accuracy {
-  let right = 0;
-  let wrong = 0;
-  let lastWrongAt: number | null = null;
-  let lastAt = -Infinity;
-  let lastOutcome: Outcome | null = null;
-  for (const e of events) {
-    if (e.cardId !== cardId || e.at < now - windowMs) continue;
-    if (e.at >= lastAt) {
-      lastAt = e.at;
-      lastOutcome = e.outcome;
-    }
-    if (e.outcome === "right") right++;
-    else {
-      wrong++;
-      if (lastWrongAt === null || e.at > lastWrongAt) lastWrongAt = e.at;
-    }
-  }
-  const total = right + wrong;
-  return { right, wrong, rate: total === 0 ? null : right / total, lastWrongAt, lastOutcome };
+  responseMs?: number | null;
 }

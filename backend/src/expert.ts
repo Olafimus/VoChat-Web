@@ -11,7 +11,7 @@ import { addSense, addTranslation } from "./importers/common.js";
  */
 
 export type ReviewStatus = "unreviewed" | "approved" | "needs_fix";
-export type QueueFilter = "open" | "suspicious" | "needs_fix" | "approved";
+export type QueueFilter = "open" | "suspicious" | "needs_fix" | "approved" | "recordings";
 
 const SUSPICION_LIMIT = 50;
 
@@ -65,19 +65,22 @@ export interface QueueEntry {
   senses: { id: number; glossLang: string; gloss: string; source: string }[];
   translations: { id: number; targetLang: string; targetLemma: string; source: string }[];
   examples: { id: number; text: string; translation: string | null; source: string }[];
+  /** Eigene Aufnahmen von Nutzern (freigegeben oder ausstehend). */
+  recordings: { id: number; url: string; speaker: string | null; status: string; createdAt: number }[];
 }
 
 export async function reviewQueue(db: Db, opts: { lang: LangCode; filter: QueueFilter; limit: number; offset: number }): Promise<QueueEntry[]> {
   const where = ["l.lang = ?", "l.hidden = 0"];
   const params: Param[] = [opts.lang];
   // Nur Einträge mit Inhalt (Bedeutung, Übersetzung oder Aussprache) – reine Häufigkeitszeilen lohnen keine Prüfung.
-  where.push(`(l.romanization IS NOT NULL
+  if (opts.filter !== "recordings") where.push(`(l.romanization IS NOT NULL
     OR EXISTS (SELECT 1 FROM senses s WHERE s.lexeme_id = l.id AND s.hidden = 0)
     OR EXISTS (SELECT 1 FROM translations t WHERE t.lexeme_id = l.id AND t.hidden = 0))`);
   if (opts.filter === "open") where.push("(r.status IS NULL OR r.status = 'needs_fix' OR sp.score IS NOT NULL)");
   if (opts.filter === "suspicious") where.push("sp.score IS NOT NULL");
   if (opts.filter === "needs_fix") where.push("r.status = 'needs_fix'");
   if (opts.filter === "approved") where.push("r.status = 'approved'");
+  if (opts.filter === "recordings") where.push("EXISTS (SELECT 1 FROM lexeme_audio a WHERE a.lexeme_id = l.id AND a.status = 'pending')");
 
   const rows = await db.all<{
     id: number;
@@ -106,7 +109,7 @@ export async function reviewQueue(db: Db, opts: { lang: LangCode; filter: QueueF
   if (rows.length === 0) return [];
   const ids = rows.map((r) => Number(r.id));
   const marks = ids.map(() => "?").join(",");
-  const [senses, translations, examples, suspicions] = await Promise.all([
+  const [senses, translations, examples, suspicions, recordings] = await Promise.all([
     db.all<{ id: number; lexeme_id: number; gloss_lang: string; gloss: string; source: string }>(
       `SELECT id, lexeme_id, gloss_lang, gloss, source FROM senses WHERE hidden = 0 AND lexeme_id IN (${marks}) ORDER BY lexeme_id, gloss_lang, position`,
       ids,
@@ -121,6 +124,11 @@ export async function reviewQueue(db: Db, opts: { lang: LangCode; filter: QueueF
     ),
     db.all<{ lexeme_id: number; reason: string; score: number }>(
       `SELECT lexeme_id, reason, MAX(score) AS score FROM suspicions WHERE resolved = 0 AND lexeme_id IN (${marks}) GROUP BY lexeme_id, reason`,
+      ids,
+    ),
+    db.all<{ id: number; lexeme_id: number; url: string; speaker: string | null; status: string; created_at: number }>(
+      `SELECT a.id, a.lexeme_id, a.url, u.name AS speaker, a.status, a.created_at FROM lexeme_audio a LEFT JOIN users u ON u.id = a.user_id
+       WHERE a.user_id IS NOT NULL AND a.status <> 'hidden' AND a.lexeme_id IN (${marks}) ORDER BY a.lexeme_id, a.id`,
       ids,
     ),
   ]);
@@ -141,6 +149,7 @@ export async function reviewQueue(db: Db, opts: { lang: LangCode; filter: QueueF
       senses: by(senses, id).map((s) => ({ id: Number(s.id), glossLang: s.gloss_lang, gloss: s.gloss, source: s.source })),
       translations: by(translations, id).map((t) => ({ id: Number(t.id), targetLang: t.target_lang, targetLemma: t.target_lemma, source: t.source })),
       examples: by(examples, id).slice(0, 5).map((e) => ({ id: Number(e.id), text: e.text, translation: e.translation, source: e.source })),
+      recordings: by(recordings, id).map((a) => ({ id: Number(a.id), url: a.url, speaker: a.speaker, status: a.status, createdAt: Number(a.created_at) })),
     };
   });
 }
@@ -166,7 +175,9 @@ export type ExpertAction =
   | { action: "addSense"; glossLang: string; gloss: string }
   | { action: "addTranslation"; targetLang: string; targetLemma: string }
   | { action: "hideTranslation"; translationId: number; reason?: string }
-  | { action: "setPronunciation"; romanization: string | null };
+  | { action: "setPronunciation"; romanization: string | null }
+  | { action: "approveRecording"; recordingId: number }
+  | { action: "hideRecording"; recordingId: number };
 
 export type ActionResult = { ok: true; suspicious: number } | { ok: false; status: number; error: string };
 
@@ -244,6 +255,18 @@ export function expertAction(db: Db, actorId: string, lexemeId: number, a: Exper
         const related = await sameTranslation(t, lang, tr.target_lang, tr.target_lemma, lexemeId);
         await markSuspicious(t, related, `Die Übersetzung „${tr.target_lemma}“ wurde bei einem anderen Eintrag als falsch entfernt`, 3, auditId, now);
         suspicious = related.length;
+        break;
+      }
+      case "approveRecording":
+      case "hideRecording": {
+        const rec = await t.get<{ status: string }>("SELECT status FROM lexeme_audio WHERE id = ? AND lexeme_id = ? AND user_id IS NOT NULL", [
+          a.recordingId,
+          lexemeId,
+        ]);
+        if (!rec) return { ok: false, status: 404, error: "recording not found" };
+        const status = a.action === "approveRecording" ? "approved" : "hidden";
+        await t.run("UPDATE lexeme_audio SET status = ? WHERE id = ?", [status, a.recordingId]);
+        await audit(`recording.${status === "approved" ? "approve" : "hide"}`, { from: rec.status, to: status }, "recording", a.recordingId);
         break;
       }
       case "setPronunciation": {

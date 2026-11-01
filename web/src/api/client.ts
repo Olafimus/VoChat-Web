@@ -224,6 +224,7 @@ export interface ReviewEntry {
   reviewedBy: string | null;
   reviewedAt: number | null;
   suspicions: { reason: string; score: number }[];
+  recordings: { id: number; url: string; speaker: string | null; status: string; createdAt: number }[];
   senses: { id: number; glossLang: string; gloss: string; source: string }[];
   translations: { id: number; targetLang: string; targetLemma: string; source: string }[];
   examples: { id: number; text: string; translation: string | null; source: string }[];
@@ -265,4 +266,37 @@ export const comments = {
     request<{ id: number }>("/comments", { method: "POST", body: { target, body, parentId }, token }),
   vote: (token: string, id: number, value: -1 | 0 | 1) => request<{ ok: boolean }>(`/comments/${id}/vote`, { method: "POST", body: { value }, token }),
   remove: (token: string, id: number) => request<{ ok: boolean }>(`/comments/${id}`, { method: "DELETE", token }),
+};
+
+export interface NotificationView {
+  kind: "friend_request" | "follow_request" | "new_follower" | "challenge_invite" | "comment_reply" | "comment_on_contribution" | "contribution_decided";
+  at: number;
+  actor: { id: string; name: string } | null;
+  target: string | null;
+  text: string;
+}
+
+export const notifications = {
+  list: (token: string) => request<NotificationView[]>("/notifications", { token }),
+};
+
+export const recordings = {
+  list: (lexemeId: number, token: string | null) =>
+    request<{ recordings: import("@vochat/shared").AudioRecording[]; uploads: boolean }>(`/audio/lexemes/${lexemeId}`, { token }),
+  remove: (token: string, id: number) => request<{ ok: boolean }>(`/audio/recordings/${id}`, { method: "DELETE", token }),
+  /** Rohdaten hochladen (kein JSON). */
+  upload: async (token: string, lexemeId: number, blob: Blob, durationMs: number) => {
+    let res: Response;
+    try {
+      res = await fetch(apiUrl(`/audio/lexemes/${lexemeId}/recordings`), {
+        method: "POST",
+        headers: { authorization: `Bearer ${token}`, "content-type": blob.type || "application/octet-stream", "x-duration-ms": String(durationMs) },
+        body: blob,
+      });
+    } catch {
+      throw new ApiError(0, "offline");
+    }
+    if (!res.ok) throw new ApiError(res.status, ((await res.json().catch(() => ({}))) as { error?: string }).error ?? res.statusText);
+    return (await res.json()) as import("@vochat/shared").AudioRecording;
+  },
 };

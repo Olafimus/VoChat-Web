@@ -149,9 +149,9 @@ export function ChatPage() {
                 payload={m.payload as LookupPayload}
                 lang={lang}
                 isAdded={(id) => hasCardFor(cards, id)}
-                onAdd={(lexeme) => addCardFromLexeme(collections, lexeme, lang)}
+                onAdd={(lexeme) => addCardFromLexeme(collections, lexeme, lang, "chat")}
                 ownExists={hasCardWord(cards, lang, (m.payload as LookupPayload).query)}
-                onAddOwn={(word) => addOwnWord(collections, { lang, lemma: word })}
+                onAddOwn={(word) => addOwnWord(collections, { lang, lemma: word, origin: "chat" })}
               />
             )}
             {m.kind === "extract" && (
@@ -160,7 +160,7 @@ export function ChatPage() {
                 payload={m.payload as ExtractResult}
                 lang={lang}
                 cards={cards}
-                onAdd={(lexeme) => addCardFromLexeme(collections, lexeme, lang)}
+                onAdd={(lexeme) => addCardFromLexeme(collections, lexeme, lang, "chat")}
               />
             )}
             {(m.kind === "text" || m.kind === "system") && editing?.id !== m.id && <span>{m.body}</span>}

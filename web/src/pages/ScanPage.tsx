@@ -102,8 +102,8 @@ export function ScanPage() {
   const learnSelected = () => {
     if (!analysis) return;
     let n = 0;
-    for (const m of analysis.fresh) if (selected.has(`l:${m.id}`) && !hasCardWord(cards, lang, m.lemma, m.id)) (addCardFromLexeme(collections, m, lang), n++);
-    for (const w of analysis.missing) if (selected.has(`w:${w}`) && !hasCardWord(cards, lang, w)) (addOwnWord(collections, { lang, lemma: w }), n++);
+    for (const m of analysis.fresh) if (selected.has(`l:${m.id}`) && !hasCardWord(cards, lang, m.lemma, m.id)) (addCardFromLexeme(collections, m, lang, "scan"), n++);
+    for (const w of analysis.missing) if (selected.has(`w:${w}`) && !hasCardWord(cards, lang, w)) (addOwnWord(collections, { lang, lemma: w, origin: "scan" }), n++);
     setMsg(`${n} Wörter zum Lernen hinzugefügt.`);
     setSelected(new Set());
   };

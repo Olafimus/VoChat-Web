@@ -12,6 +12,8 @@ type SummaryRow = {
   romanization: string | null;
   gloss: string | null;
   translation: string | null;
+  /** Rückfall, wenn es keine Bedeutung in der Muttersprache gibt (die meisten Quellen glossieren englisch). */
+  gloss_en?: string | null;
 };
 
 /** Zusammenfassung eines Lexems; die beiden ersten Parameter sind jeweils die Muttersprache. */
@@ -20,7 +22,9 @@ const SUMMARY_SELECT = `
     (SELECT s.gloss FROM senses s WHERE s.lexeme_id = l.id AND s.hidden = 0 AND s.gloss_lang = ?
       ORDER BY s.position LIMIT 1) AS gloss,
     (SELECT t.target_lemma FROM translations t WHERE t.lexeme_id = l.id AND t.hidden = 0 AND t.target_lang = ?
-      ORDER BY t.id LIMIT 1) AS translation
+      ORDER BY t.id LIMIT 1) AS translation,
+    (SELECT s.gloss FROM senses s WHERE s.lexeme_id = l.id AND s.hidden = 0 AND s.gloss_lang = 'en'
+      ORDER BY s.position LIMIT 1) AS gloss_en
   FROM lexemes l`;
 
 function toSummary(row: SummaryRow): LexemeSummary {
@@ -33,7 +37,7 @@ function toSummary(row: SummaryRow): LexemeSummary {
     cefr: row.cefr,
     frequencyRank: row.frequency_rank === null ? null : Number(row.frequency_rank),
     romanization: row.romanization,
-    gloss: row.gloss ?? row.translation,
+    gloss: row.gloss ?? row.translation ?? (row.gloss_en ? `(en) ${row.gloss_en}` : null),
   };
 }
 
@@ -192,7 +196,7 @@ export async function lexemeDetail(db: Db, id: number, nativeLang: LangCode): Pr
 
 export async function lexemeAudio(db: Db, id: number): Promise<AudioRecording[]> {
   const rows = await db.all<{ url: string; license: string | null; speaker: string | null; region: string | null; source: string }>(
-    "SELECT url, license, speaker, region, source FROM lexeme_audio WHERE lexeme_id = ? ORDER BY id LIMIT 5",
+    "SELECT url, license, speaker, region, source FROM lexeme_audio WHERE lexeme_id = ? AND status = 'approved' ORDER BY CASE WHEN user_id IS NULL THEN 0 ELSE 1 END, id LIMIT 5",
     [id],
   );
   return rows.map((r) => ({ url: r.url, license: r.license, speaker: r.speaker, region: r.region, source: r.source }));

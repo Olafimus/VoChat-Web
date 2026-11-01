@@ -291,8 +291,8 @@ function MediaDetail({ id, cards, onBack }: { id: string; cards: CardRow[]; onBa
   );
 }
 
-function addCardOf(collections: Parameters<typeof addCard>[0], i: { lang: string; lemma: string; lexemeId?: number | null; gloss: string | null; pronunciation?: string | null; cefr: string | null }) {
-  addCard(collections, { lang: i.lang as LangCode, lemma: i.lemma, lexemeId: i.lexemeId ?? null, gloss: i.gloss, pronunciation: i.pronunciation ?? null, cefr: (i.cefr as Cefr | null) ?? null });
+function addCardOf(collections: Parameters<typeof addCard>[0], i: { lang: string; lemma: string; lexemeId?: number | null; gloss: string | null; pronunciation?: string | null; cefr: string | null; rank?: number | null }) {
+  addCard(collections, { lang: i.lang as LangCode, lemma: i.lemma, lexemeId: i.lexemeId ?? null, gloss: i.gloss, pronunciation: i.pronunciation ?? null, cefr: (i.cefr as Cefr | null) ?? null, origin: "collection:", rank: i.rank ?? null });
 }
 
 /* ---------- Meine Sammlungen ---------- */

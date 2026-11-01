@@ -153,15 +153,24 @@ export async function builtinPathDetail(db: Db, id: string, nativeLang: LangCode
   if (!isTop && !(CEFR_LEVELS as readonly string[]).includes(level)) return null;
   const base = (await builtinPaths(db, lang as LangCode)).find((p) => p.id === id);
   if (!base) return null;
-  const rows = await browseLexemes(db, {
+  const want = isTop ? 500 : 300;
+  const fetched = await browseLexemes(db, {
     lang: lang as LangCode,
     nativeLang,
     cefr: isTop ? undefined : (level as (typeof CEFR_LEVELS)[number]),
-    limit: isTop ? 500 : 300,
+    limit: want * 2,
     offset: 0,
   });
+  // Gleiches Wort mit mehreren Wortarten (z. B. „acuerdo“) nur einmal – das häufigste, bevorzugt mit Bedeutung.
+  const seen = new Map<string, (typeof fetched)[number]>();
+  for (const r of fetched) {
+    const key = lemmaKey(r.lemma);
+    const prev = seen.get(key);
+    if (!prev || (!prev.gloss && r.gloss)) seen.set(key, r);
+  }
+  const rows = [...seen.values()].slice(0, want);
   return {
     ...base,
-    items: rows.map((r) => ({ lemma: r.lemma, lang: r.lang, lexemeId: r.id, gloss: r.gloss, pronunciation: r.romanization, cefr: r.cefr })),
+    items: rows.map((r) => ({ lemma: r.lemma, lang: r.lang, lexemeId: r.id, gloss: r.gloss, pronunciation: r.romanization, cefr: r.cefr, rank: r.frequencyRank })),
   };
 }

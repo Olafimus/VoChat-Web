@@ -70,7 +70,7 @@ export async function playPronunciation(opts: {
   if (!text.trim()) return "failed";
   if (mode === "auto" && lexemeId && !slow) {
     const recs = await recordings(lexemeId);
-    if (recs.length > 0 && (await playUrl(recs[0].url))) return "recording";
+    if (recs.length > 0 && (await playUrl(apiUrl(recs[0].url)))) return "recording";
   }
   if (mode !== "generated" && speak(lang, text, slow)) return "device";
   if (mode === "device" && typeof speechSynthesis !== "undefined" && speechSynthesis.getVoices().length > 0) return "failed";

@@ -9,6 +9,7 @@ import { useActiveLang } from "../lib/lang";
 import { linkWithDictionary } from "../lib/linker";
 import { Empty } from "../components/ui";
 import { WordView } from "../components/WordView";
+import { CardLearning } from "../components/CardLearning";
 
 const STATUS_LABEL: Record<CardRow["status"], string> = {
   new: "neu",
@@ -121,7 +122,12 @@ export function VocabPage() {
               </button>
             </div>
             {editing !== c.id && c.note && <div className="muted small">{c.note}</div>}
-            {editing === c.id && <CardEditor card={c} onDone={() => setEditing(null)} />}
+            {editing === c.id && (
+              <>
+                <CardEditor card={c} onDone={() => setEditing(null)} />
+                <CardLearning card={c} />
+              </>
+            )}
           </li>
         ))}
       </ul>

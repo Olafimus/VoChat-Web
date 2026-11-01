@@ -246,6 +246,16 @@ describe("optional login and catalog", () => {
   });
 });
 
+describe("built-in paths", () => {
+  it("lists each word only once even with several parts of speech", async () => {
+    await addLexeme(db, { id: 801, lang: "es", lemma: "acuerdo", pos: "noun", rank: 5 });
+    await addLexeme(db, { id: 802, lang: "es", lemma: "acuerdo", pos: "verb", rank: 6 });
+    await addLexeme(db, { id: 803, lang: "es", lemma: "casa", pos: "noun", rank: 7 });
+    const res = await (await app.request("/catalog/paths/builtin:es:top500?native=de")).json();
+    expect(res.items.map((i: { lemma: string }) => i.lemma)).toEqual(["acuerdo", "casa"]);
+  });
+});
+
 describe("extraction and Japanese", () => {
   it("extracts known words from a text and lists unknown ones", async () => {
     const { token } = await (async () => {

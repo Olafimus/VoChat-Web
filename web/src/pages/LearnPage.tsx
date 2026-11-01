@@ -1,19 +1,21 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { useLiveQuery } from "@tanstack/react-db";
 import {
-  buildSmartPack,
-  isDue,
+  buildPlan,
   judgeAnswer,
   splitAnswers,
   type Grade,
   type Judgement,
   type LangCode,
   type Mode,
-  type PackReason,
+  type Cefr,
+  type PlanItem,
 } from "@vochat/shared";
 import { useSession } from "../session";
 import { useActiveLang } from "../lib/lang";
-import { recordAnswer } from "../lib/cards";
+import { markKnown, recordAnswer, setIgnored } from "../lib/cards";
+import { formatDays, plannerSettings, scheduleFor, startOfToday, toPlannerCard, useLearningSettings } from "../lib/learning";
 import type { CardRow, ReviewRow } from "../local/collections";
 import { CefrBadge, Empty } from "../components/ui";
 import { WordView } from "../components/WordView";
@@ -33,24 +35,26 @@ const GRADES: { grade: Grade; label: string; hint: string }[] = [
   { grade: "easy", label: "Leicht", hint: "sehr sicher" },
 ];
 
-const REASON_LABEL: Record<PackReason, string> = {
-  schwach: "schwach",
-  wiederholen: "wiederholen",
-  fällig: "fällig",
-  neu: "neu",
-};
+const KIND_LABEL: Record<PlanItem["kind"], string> = { relearn: "festigen", review: "wiederholen", new: "neu" };
 
-/** Lernseite: drei Formate, fällige Karten oder ein Lernpaket aus Schwächen und Wiederholungen. */
+/**
+ * Lernseite: drei Formate. Was drankommt, entscheidet der Planer (Gedächtnismodell + Wichtigkeit);
+ * jede Karte zeigt auf Wunsch, warum sie jetzt dran ist.
+ */
 export function LearnPage() {
-  const { collections } = useSession();
+  const { collections, user } = useSession();
+  const settings = useLearningSettings();
   const [lang] = useActiveLang();
   const cards = (useLiveQuery((q) => collections.cards).data ?? []) as CardRow[];
   const reviews = (useLiveQuery((q) => collections.reviews).data ?? []) as ReviewRow[];
 
   const [format, setFormat] = useState<Mode>("flip");
-  const [packMode, setPackMode] = useState(false);
+  const [scope, setScope] = useState<"block" | "all">("block");
   const [queue, setQueue] = useState<string[]>([]);
-  const [reasons, setReasons] = useState<Record<string, PackReason>>({});
+  const [planInfo, setPlanInfo] = useState<Record<string, PlanItem>>({});
+  const [planNotes, setPlanNotes] = useState<string[]>([]);
+  const [showWhy, setShowWhy] = useState(false);
+  const shownAt = useRef(Date.now());
   const [revealed, setRevealed] = useState(false);
   const [typed, setTyped] = useState("");
   const [judgement, setJudgement] = useState<Judgement | null>(null);
@@ -66,15 +70,20 @@ export function LearnPage() {
   // Warteschlange nur bei Wechsel von Sprache, Format oder Modus neu aufbauen (nicht bei jeder Änderung).
   useEffect(() => {
     const now = Date.now();
-    if (packMode) {
-      const items = buildSmartPack(langCards, reviews.map(toEvent), { now, size: 15 });
-      setQueue(items.map((i) => i.cardId));
-      setReasons(Object.fromEntries(items.map((i) => [i.cardId, i.reason])));
-    } else {
-      const due = langCards.filter((c) => isDue(c, now)).sort((a, b) => a.dueAt - b.dueAt);
-      setQueue(due.map((c) => c.id));
-      setReasons({});
-    }
+    const ids = new Set(langCards.map((c) => c.id));
+    const targetCefr = (user.learnLangs.find((l) => l.lang === lang)?.targetCefr ?? null) as Cefr | null;
+    const activeOrigins = [...new Set(langCards.map((c) => c.origin).filter((o): o is string => !!o?.startsWith("challenge:")))];
+    const plan = buildPlan(
+      langCards.map(toPlannerCard),
+      reviews.filter((r) => ids.has(r.cardId)),
+      plannerSettings(settings, { targetCefr, activeOrigins }),
+      now,
+      startOfToday(now),
+    );
+    const items = scope === "block" ? plan.items.slice(0, settings.blockSize) : plan.items;
+    setQueue(items.map((i) => i.cardId));
+    setPlanInfo(Object.fromEntries(items.map((i) => [i.cardId, i])));
+    setPlanNotes(plan.notes);
     setScore({ right: 0, wrong: 0 });
     setStreak(0);
     setBestStreak(0);
@@ -83,7 +92,7 @@ export function LearnPage() {
     setTyped("");
     setJudgement(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lang, packMode, format, sessionKey]);
+  }, [lang, scope, format, sessionKey]);
 
   useEffect(() => {
     setTotal((t) => Math.max(t, queue.length + score.right + score.wrong));
@@ -99,15 +108,34 @@ export function LearnPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [display.autoplay, targetVisible, current?.id, queue.length]);
 
+  useEffect(() => {
+    shownAt.current = Date.now();
+    setShowWhy(false);
+  }, [current?.id, queue.length]);
+
   const resetCard = () => {
     setRevealed(false);
     setTyped("");
     setJudgement(null);
   };
 
-  const finish = (grade: Grade, typedValue: string | null) => {
+  const dropCurrent = () => {
     if (!current) return;
-    recordAnswer(collections, current, { mode: format, grade, typed: typedValue });
+    setQueue((q) => q.filter((id) => id !== current.id));
+    resetCard();
+  };
+
+  /** Vorschau: wann käme die Karte bei dieser Bewertung wieder? */
+  const preview = (grade: Grade) => {
+    if (!current) return "";
+    const now = Date.now();
+    const next = scheduleFor(current, reviews, settings, { at: now, grade });
+    return formatDays((next.dueAt - now) / 86_400_000);
+  };
+
+  const finish = (grade: Grade, typedValue: string | null, responseMs = Date.now() - shownAt.current) => {
+    if (!current) return;
+    recordAnswer(collections, current, { mode: format, grade, typed: typedValue, responseMs });
     const wrong = grade === "again";
     setScore((s) => ({ right: s.right + (wrong ? 0 : 1), wrong: s.wrong + (wrong ? 1 : 0) }));
     setStreak((n) => {
@@ -134,13 +162,16 @@ export function LearnPage() {
     const result = judgeAnswer(accepted, typed);
     setJudgement(result);
     setRevealed(true);
-    if (result.verdict === "correct") finish("good", typed);
+    // Richtig, aber sehr langsam (> 20 s) zählt als „schwer“.
+    const ms = Date.now() - shownAt.current;
+    if (result.verdict === "correct") finish(ms > 20_000 ? "hard" : "good", typed, ms);
     // Tippfehler: Korrektur zeigen, Nutzer bestätigt mit "Weiter" (wird als richtig gewertet)
   };
 
   const continueAfterTypo = () => {
     if (!current || !judgement) return;
-    finish(judgement.verdict === "typo" ? "good" : "again", typed);
+    // Tippfehler: richtig, aber unsicher → „schwer“ (kleinerer Zuwachs als „gut“).
+    finish(judgement.verdict === "typo" ? "hard" : "again", typed);
   };
 
   if (langCards.length === 0) {
@@ -157,10 +188,17 @@ export function LearnPage() {
             </button>
           ))}
         </div>
-        <label className="inline">
-          <input type="checkbox" checked={packMode} onChange={(e) => setPackMode(e.target.checked)} /> Lernpaket (15)
-        </label>
+        <div className="segmented">
+          <button className={scope === "block" ? "on" : ""} onClick={() => setScope("block")} title="Die wichtigsten Karten jetzt">
+            Lernblock ({settings.blockSize})
+          </button>
+          <button className={scope === "all" ? "on" : ""} onClick={() => setScope("all")} title="Alles, was heute dran ist">
+            Alles für heute
+          </button>
+        </div>
+        <Link to="/stats" className="small">📊 Statistik & Einstellungen</Link>
       </div>
+      {planNotes.length > 0 && <div className="muted small" role="status">{planNotes.join(" ")}</div>}
 
       <div className="pack-stats" aria-live="polite">
         <div className="pack-bar" aria-label={`${total - queue.length} von ${total} erledigt`}>
@@ -180,13 +218,11 @@ export function LearnPage() {
       {!current ? (
         <div className="card center-card celebrate">
           {score.right + score.wrong > 0 && <Confetti />}
-          <h2>{score.right + score.wrong > 0 ? "Fertig 🎉" : packMode ? "Kein Paket nötig" : "Gerade nichts fällig"}</h2>
+          <h2>{score.right + score.wrong > 0 ? "Fertig 🎉" : "Gerade nichts dran"}</h2>
           <p className="muted">
             {score.right + score.wrong > 0
               ? `${score.right} richtig · ${score.wrong} falsch · beste Serie ${bestStreak} · ${Math.round((score.right / (score.right + score.wrong)) * 100)} % richtig.`
-              : packMode
-                ? "Du hast alles im Griff. Probier ein anderes Format oder füge neue Wörter hinzu."
-                : "Schau später wieder vorbei oder aktiviere das Lernpaket."}
+              : "Alle fälligen Wörter sitzen, und das Tageslimit für neue Wörter ist erreicht. Mehr dazu in der Statistik."}
           </p>
           <div className="row center-row">
             <button className="primary" onClick={() => setSessionKey((k) => k + 1)}>Nochmal starten</button>
@@ -196,9 +232,25 @@ export function LearnPage() {
         <div className={`flip-scene ${feedback ? `fb-${feedback}` : ""}`} key={`${current.id}-${queue.length}`} onAnimationEnd={() => setFeedback(null)}>
         <div className="card flashcard">
           <div className="row center-row">
-            {packMode && reasons[current.id] && <span className="badge subtle">{REASON_LABEL[reasons[current.id]]}</span>}
+            {planInfo[current.id] && (
+              <button className="badge subtle why" onClick={() => setShowWhy((v) => !v)} aria-expanded={showWhy} title="Warum jetzt?">
+                {KIND_LABEL[planInfo[current.id].kind]} · warum?
+              </button>
+            )}
             <span className="muted small">noch {queue.length} · ✓ {score.right} · ✗ {score.wrong}</span>
           </div>
+          {showWhy && planInfo[current.id] && (
+            <ul className="why-list small">
+              {planInfo[current.id].reasons.map((r) => (
+                <li key={r}>{r}</li>
+              ))}
+              {current.stability ? <li>Stabilität {formatDays(current.stability)} · Schwierigkeit {(current.difficulty ?? 5).toFixed(1)}/10</li> : null}
+              <li className="row">
+                <button className="link small" onClick={() => { markKnown(collections, current); dropCurrent(); }}>Kenne ich schon</button>
+                <button className="link small danger" onClick={() => { setIgnored(collections, current, true); dropCurrent(); }}>Ignorieren</button>
+              </li>
+            </ul>
+          )}
 
           {format === "flip" && <PromptWord card={current} />}
           {format === "reverse" && <PromptMeaning card={current} />}
@@ -222,7 +274,7 @@ export function LearnPage() {
                     {GRADES.map((g) => (
                       <button key={g.grade} className={`grade grade-${g.grade}`} onClick={() => finish(g.grade, null)}>
                         <span>{g.label}</span>
-                        <small>{g.hint}</small>
+                        <small>{preview(g.grade)}</small>
                       </button>
                     ))}
                   </div>
@@ -304,6 +356,3 @@ function PromptMeaning({ card }: { card: CardRow }) {
   return <div className="answer">{card.gloss ? splitAnswers(card.gloss).join(" · ") : <span className="muted">(keine Bedeutung)</span>}</div>;
 }
 
-function toEvent(r: ReviewRow) {
-  return { cardId: r.cardId, outcome: r.outcome, mode: r.mode, at: r.at };
-}

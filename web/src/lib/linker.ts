@@ -59,6 +59,7 @@ export async function linkWithDictionary(
       if (!custom.has("gloss") && !d.gloss && hit.gloss) d.gloss = hit.gloss;
       if (!custom.has("pronunciation") && !d.pronunciation && hit.romanization) d.pronunciation = hit.romanization;
       if (!custom.has("cefr") && !d.cefr && hit.cefr) d.cefr = hit.cefr;
+      if (hit.frequencyRank) d.rank = hit.frequencyRank;
       d.updatedAt = Date.now();
     });
     linked++;
@@ -94,6 +95,7 @@ export async function linkWithDictionary(
       if (!custom.has("gloss") && main.gloss && main.gloss !== card.gloss) patch.gloss = main.gloss;
       if (!custom.has("pronunciation") && main.romanization && main.romanization !== card.pronunciation) patch.pronunciation = main.romanization;
       if (!custom.has("cefr") && main.cefr && main.cefr !== card.cefr) patch.cefr = main.cefr;
+      if (main.frequencyRank && main.frequencyRank !== card.rank) patch.rank = main.frequencyRank;
       if (Object.keys(patch).length === 0) continue;
       collections.cards.update(card.id, (d) => {
         Object.assign(d, patch);

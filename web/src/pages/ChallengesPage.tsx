@@ -16,9 +16,9 @@ const daysLeft = (end: number) => Math.max(0, Math.ceil((end - Date.now()) / 86_
 const KIND: Record<ChallengeSummary["kind"], string> = { duel: "Duell", group: "Gruppe", weekly: "Wochen-Challenge" };
 
 /** Gemeinsam lernen: Wochen-Challenges, Duelle und Gruppen mit Freunden, Rangliste und Vergleich. */
-export function ChallengesPage() {
+export function ChallengesPage({ initialOpen = null }: { initialOpen?: string | null }) {
   const { token } = useSession();
-  const [open, setOpen] = useState<string | null>(null);
+  const [open, setOpen] = useState<string | null>(initialOpen);
   const [creating, setCreating] = useState(false);
   if (!token) return <Empty>Für Challenges brauchst du ein Konto (Profil → Konto).</Empty>;
   if (open) return <ChallengeView id={open} onBack={() => setOpen(null)} />;
@@ -129,7 +129,7 @@ function ChallengeView({ id, onBack }: { id: string; onBack: () => void }) {
   const lang = detail.lang as LangCode;
   const learnMissing = () =>
     cov.missing.forEach((i) =>
-      addCard(collections, { lang, lemma: i.lemma, lexemeId: i.lexemeId, gloss: i.gloss, pronunciation: i.pronunciation, cefr: i.cefr }),
+      addCard(collections, { lang, lemma: i.lemma, lexemeId: i.lexemeId, gloss: i.gloss, pronunciation: i.pronunciation, cefr: i.cefr, origin: `challenge:${detail.id}` }),
     );
 
   return (

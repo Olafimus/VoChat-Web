@@ -92,7 +92,14 @@ export interface LexemeDetail extends LexemeSummary {
 }
 
 export interface AudioRecording {
+  /** Fehlt bei Aufnahmen aus älteren Antworten. */
+  id?: number;
+  /** Absolute URL (Commons) oder Pfad hinter der API-Basis (eigene Aufnahmen). */
   url: string;
+  /** Nur bei eigenen Aufnahmen: ausstehend bis zur Freigabe durch Experten. */
+  status?: "approved" | "pending" | "hidden";
+  /** Vom aktuellen Nutzer aufgenommen. */
+  mine?: boolean;
   license: string | null;
   speaker: string | null;
   region: string | null;
@@ -106,6 +113,8 @@ export interface CatalogItem {
   gloss: string | null;
   pronunciation?: string | null;
   cefr: string | null;
+  /** Häufigkeitsrang (nur bei eingebauten Lernpfaden). */
+  rank?: number | null;
 }
 
 export interface CatalogCollection {

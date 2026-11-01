@@ -51,13 +51,83 @@
 Geteilt wird über das Feld `visibility: "public"` der Sammlung: Die Zeile wird normal synchronisiert, und der Katalog
 zeigt nur öffentliche Zeilen. Eine Moderation gibt es noch nicht.
 
-## Lernen
+## Lernen: Gedächtnismodell und Planer
 
-- Antworten werden als `reviews` protokolliert (append-only, synchronisiert).
-- Tippprüfung (`packages/shared/src/typing.ts`): Damerau-Levenshtein-Distanz nach Normalisierung; erlaubt sind
-  `floor(Länge / 10)` Fehler.
-- Lernpaket (`packages/shared/src/packs.ts`): Priorität aus Schwäche, Wiedereinreihung nach Wartezeit, Fälligkeit und Neuen.
-- Abgleich mit Medien (`packages/shared/src/coverage.ts`): bekannt = Status „review“ oder „mastered“, in Arbeit = „new“/„learning“.
+Der Kern liegt in `packages/shared/src/` (reine Funktionen, Client und Server rechnen identisch):
+
+### Gedächtnismodell (`memory.ts`)
+
+Basis ist **FSRS-5** (Free Spaced Repetition Scheduler, offene Standardgewichte). Jede Karte hat
+
+- **Stabilität S** (Tage): nach S Tagen weiß man das Wort noch mit 90 % Wahrscheinlichkeit;
+- **Schwierigkeit D** (1–10): bremst den Zuwachs; steigt nach Fehlern, sinkt nach leichten Antworten;
+- **Erinnerung R(t) = (1 + 19/81 · t/S)^−0,5** (Potenzgesetz des Vergessens).
+
+Eine richtige Antwort vergrößert S umso stärker, je kleiner R zum Zeitpunkt der Antwort war – **der zeitliche Abstand
+geht also direkt ein**. Für Antworten am selben Tag nutzt FSRS-5 einen pauschalen Faktor; wir gewichten ihn zusätzlich
+mit dem seither eingetretenen Vergessen (φ = (1−R)/0,1, begrenzt auf [0, 1]). Ergebnis (getestet):
+
+| Situation | Zuwachs der Stabilität |
+|---|---|
+| richtig 5 s nach einem Fehler | ≈ ×1,0 („kaum Zuwachs“) |
+| richtig nach einer Woche Pause | > ×2 („starker Zuwachs“) |
+| falsch nach langer Pause | S schrumpft (Vergessen), D steigt |
+
+Grundlage ist immer die **vollständige Historie** (`replay`): Der Zeitplan wird nach jeder Antwort aus allen Antworten der
+Karte neu berechnet. So sind Offline-Antworten mehrerer Geräte nach dem Sync konsistent, und jeder Schritt ist erklärbar.
+Bewertungen: Karteikarte/Umdrehen per Knopf (nochmal/schwer/gut/leicht, mit Vorschau des nächsten Abstands); Tippen:
+richtig = gut (über 20 s = schwer), Tippfehler = schwer, falsch = nochmal. Die Antwortzeit wird mitprotokolliert.
+
+**Fälligkeit:** wenn R unter die Zielquote fällt (Standard 90 %, einstellbar 80–97 %, je Karte „öfter“ 95 % / „seltener“
+80 %). Nach einem Fehler kommt die Karte nach 10 Minuten noch einmal. Ab 3 Tagen Abstand ±5 % deterministische Streuung,
+damit nicht alles auf denselben Tag fällt.
+
+### Planer (`planner.ts`)
+
+1. **Festigen:** zuletzt falsch beantwortete oder ganz frische Karten (Stabilität < 1 Tag).
+2. **Wiederholen:** fällige Karten nach Dringlichkeit (Zielquote − aktuelle Erinnerung) – am ehesten Vergessenes zuerst.
+3. **Neu:** nach Wichtigkeit – Häufigkeitsrang (logarithmisch), Niveau passend zum Ziel (über dem Ziel abgewertet),
+   Herkunft (laufende Challenge > eigene Sammlung > selbst gefunden in Chat/Scan), vom Nutzer vorgezogen.
+   Begrenzt durch „neue Wörter pro Tag“; ab der Hälfte von „max. Wiederholungen“ schrittweise reduziert, darüber keine neuen.
+4. Neue Karten werden an jeder vierten Stelle eingemischt. Jede Karte trägt lesbare Gründe („warum?“ beim Lernen).
+
+### Statistik (`stats.ts`) und Transparenz
+
+- Echte Behaltensquote (nur Antworten nach ≥ 1 Tag Pause) gegenüber der Zielquote; Antworten am selben Tag separat.
+- **Kalibrierung:** vorhergesagte vs. tatsächliche Trefferquote je Bereich – zeigt ehrlich, ob das Modell zur Person passt.
+- Vorschau der Fälligkeiten (14 Tage), Verlauf (30 Tage), Serie, sicher/gefährdet.
+- Je Karte (Wortschatz → Bearbeiten): Erinnerung jetzt, Stabilität, Schwierigkeit, nächste Wiederholung und eine Tabelle
+  aller Antworten mit Pause, Erinnerung vorher und Wirkung (S vorher → nachher, Faktor).
+
+### Eigene Entscheidungen
+
+Ignorieren (nie abfragen), „kenne ich schon“ (als manuelle Antwort protokolliert, zählt nicht in die Behaltensquote),
+als Nächstes lernen, öfter/seltener wiederholen, Fortschritt zurücksetzen (alte Antworten bleiben sichtbar, zählen nicht).
+Einstellungen: Zielquote, neue Wörter pro Tag, Größe des Lernblocks, Grenze für Wiederholungen.
+
+### Weiteres
+
+- Tippprüfung (`typing.ts`): Damerau-Levenshtein nach Normalisierung; erlaubt sind `floor(Länge / 10)` Fehler.
+- Abgleich mit Medien (`coverage.ts`): bekannt = Status „review“ oder „mastered“, in Arbeit = „new“/„learning“.
+- Bestehende Karten werden beim ersten Start aus ihrer Historie auf das neue Modell umgerechnet.
+- Mögliche nächste Stufe: FSRS-Gewichte je Nutzer optimieren, sobald genug Historie vorliegt (≥ 1000 Antworten);
+  die Kalibrierungstabelle zeigt, ob das nötig ist.
+
+## Startseite
+
+Heute je Lernsprache (Wiederholungen, neue Wörter, geschätzte Minuten, „Lernblock starten“), Serie, laufende Challenges mit
+Platz und Punkten, Einladungen zum Annehmen sowie Neuigkeiten (`GET /notifications`): Freundschafts- und Folgeanfragen,
+neue Follower, Challenge-Einladungen, Antworten auf Kommentare, Kommentare und Entscheidungen zu eigenen Vorschlägen.
+„Gelesen“ merkt sich das Gerät.
+
+## Eigene Aufnahmen
+
+Im Wortdetail und im Lernstand einer Karte: „einsprechen“ nimmt höchstens 5 s auf (Mono, Rauschunterdrückung, Opus mit
+32 kbit/s ≈ 20 KB; Safari: AAC). Vor dem Speichern anhören oder verwerfen. Der Server nimmt bis 256 KB an, prüft das Format
+anhand der Datei (WebM, Ogg, MP4/M4A, WAV, MP3), erlaubt eine Aufnahme je Person und Wort (neue ersetzt alte) und 40 pro Tag.
+Aufnahmen von Experten sind sofort sichtbar, andere nach Freigabe (Expertenseite → Filter „Aufnahmen“); bis dahin hört sie nur
+die Sprecherin/der Sprecher. Gespeichert im Medien-Speicher (`MEDIA_DRIVER=local` oder `s3`) unter zufälligem Namen;
+ohne Medien-Speicher ist das Einsprechen ausgeblendet. Lizenz der Beiträge: CC BY-SA 4.0.
 
 ## Sync-Protokoll
 

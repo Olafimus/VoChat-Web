@@ -54,9 +54,12 @@ docs/              DICTIONARY_SOURCES.md (Quellen & Status), ARCHITECTURE.md (De
 - **Lernen in drei Formaten:** Karteikarte (Wort → Bedeutung), Umdrehen (Bedeutung → Wort) und Tippen.
   Beim Tippen gilt: höchstens ein Fehler je 10 Buchstaben (kurze Wörter müssen exakt stimmen);
   Groß-/Kleinschreibung, Satzzeichen und persische Schreibvarianten werden ignoriert.
-- **Lernpaket:** 15 Karten, priorisiert nach Schwäche (Trefferquote der letzten 7 Tage, mind. 2 Antworten),
-  kürzlich falsch beantworteten Karten (kommen nach einer Wartezeit wieder), Fälligkeit und neuen Wörtern.
-  Jede Antwort wird protokolliert (`reviews`).
+- **Lernplaner mit Gedächtnismodell (FSRS):** Wiederholung genau dann, wenn ein Wort unter deine Zielquote zu rutschen droht;
+  der zeitliche Abstand jeder Antwort zählt (richtig nach einer Woche ≫ richtig 5 s nach einem Fehler). Neue Wörter nach
+  Häufigkeit, Niveau und Herkunft. „Warum?“ an jeder Karte, Statistik mit Kalibrierung, eigene Entscheidungen
+  (ignorieren, kenne ich, vorziehen, öfter/seltener, zurücksetzen).
+- **Startseite:** heutige Lernblöcke, Challenges mit Platzierung, Neuigkeiten.
+- **Eigene Aufnahmen:** Wörter selbst einsprechen (max. 5 s, komprimiert), Freigabe durch Experten.
 - **Lernpfade:** empfohlene Pfade je Sprache und CEFR-Niveau sowie „Top 500“ nach Häufigkeit.
 - **Eigene Vokabeln:** eigene Wörter anlegen und jede Karte bearbeiten. Die Verknüpfung zum Wörterbuch bleibt;
   eigene Werte werden nicht überschrieben, alles andere aktualisiert sich automatisch. Fehlende Wörter lassen sich

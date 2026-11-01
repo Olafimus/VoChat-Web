@@ -14,10 +14,13 @@ import {
 import { createSession, deleteSession, hashPassword, requireAuth, optionalAuth, maybeUserId, verifyPassword, currentUserId } from "./auth.js";
 import { builtinPathDetail, builtinPaths, getPublicCollection, listPublicCollections, myRating, upsertRating } from "./catalog.js";
 import type { Db } from "./db/index.js";
-import { browseLexemes, extractWords, languageStats, lexemeAudio, lexemeDetail, lexemesByIds, resolveWords, searchLexemes } from "./dictionary.js";
+import { browseLexemes, extractWords, languageStats, lexemeDetail, lexemesByIds, resolveWords, searchLexemes } from "./dictionary.js";
 import { bodyLimit } from "hono/body-limit";
 import { rateLimit } from "./ratelimit.js";
 import { normalizeTtsText, Tts } from "./tts.js";
+import { notifications } from "./notifications.js";
+import { logAudit } from "./audit.js";
+import { deleteRecording, MAX_RECORDING_BYTES, recordingByFile, recordingOwner, recordingsFor, saveRecording } from "./recordings.js";
 import { createUser, findUserByEmail, loadProfile, authResponse, setAvatarSecret, verifyAvatarSignature } from "./users.js";
 import { pullChanges, pushOps } from "./sync.js";
 import {
@@ -343,12 +346,76 @@ export function createApp({
     return c.json(await lexemesByIds(db, ids, nativeParam(c.req.query("native"))));
   });
 
+  app.get("/notifications", auth, async (c) => c.json(await notifications(db, currentUserId(c), now())));
+
   // ---- Aussprache: Aufnahmen, sonst erzeugt -----------------------------
-  app.get("/audio/lexemes/:id", async (c) => {
+  app.get("/audio/lexemes/:id", maybeAuth, async (c) => {
     const id = Number(c.req.param("id"));
     if (!Number.isInteger(id) || id <= 0) return c.json({ error: "invalid id" }, 400);
-    c.header("cache-control", "public, max-age=3600");
-    return c.json({ recordings: await lexemeAudio(db, id) });
+    const viewer = maybeUserId(c) ?? null;
+    if (!viewer) {
+      c.header("cache-control", "public, max-age=600");
+      return c.json({ recordings: await recordingsFor(db, id, null), uploads: media !== null });
+    }
+    const lang = (await db.get<{ lang: string }>("SELECT lang FROM lexemes WHERE id = ?", [id]))?.lang ?? "";
+    const moderator = isLangCode(lang) && (await canDecide(db, viewer, lang));
+    c.header("cache-control", "private, no-store");
+    return c.json({ recordings: await recordingsFor(db, id, viewer, moderator), uploads: media !== null });
+  });
+
+  // Eigene Aufnahme hochladen (Rohdaten im Body, höchstens 256 KB)
+  app.post(
+    "/audio/lexemes/:id/recordings",
+    auth,
+    bodyLimit({ maxSize: MAX_RECORDING_BYTES, onError: (c) => c.json({ error: "recording too large" }, 413) }),
+    async (c) => {
+      if (!media) return c.json({ error: "recordings are not enabled on this server" }, 503);
+      const id = Number(c.req.param("id"));
+      if (!Number.isInteger(id) || id <= 0) return c.json({ error: "invalid id" }, 400);
+      const userId = currentUserId(c);
+      const lang = (await db.get<{ lang: string }>("SELECT lang FROM lexemes WHERE id = ?", [id]))?.lang ?? "";
+      const duration = Number(c.req.header("x-duration-ms"));
+      const result = await saveRecording(
+        db,
+        media,
+        {
+          userId,
+          lexemeId: id,
+          bytes: new Uint8Array(await c.req.arrayBuffer()),
+          durationMs: Number.isFinite(duration) && duration > 0 ? Math.round(duration) : null,
+          autoApprove: isLangCode(lang) && (await canDecide(db, userId, lang)),
+        },
+        now(),
+      );
+      if (!result.ok) return c.json({ error: result.error }, result.status);
+      await logAudit(db, { actorId: userId, action: "recording.add", lang, lexemeId: id, itemType: "recording", itemId: String(result.recording.id), details: { status: result.recording.status } }, now());
+      return c.json(result.recording, 201);
+    },
+  );
+
+  app.delete("/audio/recordings/:id", auth, async (c) => {
+    const id = Number(c.req.param("id"));
+    const row = Number.isInteger(id) ? await recordingOwner(db, id) : undefined;
+    if (!row) return c.json({ error: "not found" }, 404);
+    const userId = currentUserId(c);
+    const allowed = row.user_id === userId || (isLangCode(row.lang) && (await canDecide(db, userId, row.lang)));
+    if (!allowed || !row.media_key) return c.json({ error: "forbidden" }, 403);
+    await deleteRecording(db, media, id);
+    await logAudit(db, { actorId: userId, action: "recording.delete", lang: row.lang, lexemeId: Number(row.lexeme_id), itemType: "recording", itemId: String(id), details: {} }, now());
+    return c.json({ ok: true });
+  });
+
+  app.get("/media/recordings/:file", async (c) => {
+    if (!media) return c.json({ error: "not found" }, 404);
+    const file = c.req.param("file");
+    if (!/^\d+-[0-9a-f]{24}\.(webm|ogg|m4a|wav|mp3)$/.test(file)) return c.json({ error: "not found" }, 404);
+    const row = await recordingByFile(db, file);
+    if (!row || row.status === "hidden") return c.json({ error: "not found" }, 404);
+    const object = await media.get(row.media_key);
+    if (!object) return c.json({ error: "not found" }, 404);
+    // Unveränderlich (neue Aufnahme = neuer Dateiname); ausstehende nur kurz cachen.
+    const cache = row.status === "approved" ? "public, max-age=31536000, immutable" : "private, max-age=60";
+    return new Response(object.body as unknown as BodyInit, { headers: { "content-type": object.contentType, "cache-control": cache } });
   });
 
   app.get("/audio/tts", publicLimit, async (c) => {
@@ -458,7 +525,7 @@ export function createApp({
   app.get("/review/queue", auth, async (c) => {
     const lang = c.req.query("lang") ?? "";
     if (!(await requireReviewer(c, lang))) return c.json({ error: "forbidden" }, 403);
-    const filter = (["open", "suspicious", "needs_fix", "approved"] as const).includes(c.req.query("filter") as never)
+    const filter = (["open", "suspicious", "needs_fix", "approved", "recordings"] as const).includes(c.req.query("filter") as never)
       ? (c.req.query("filter") as QueueFilter)
       : "open";
     const limit = Math.min(50, Math.max(1, Number(c.req.query("limit") ?? 20) || 20));
@@ -484,6 +551,7 @@ export function createApp({
         (body.action === "addSense" && typeof body.gloss === "string" && body.gloss.length <= 500 && typeof body.glossLang === "string") ||
         (body.action === "addTranslation" && typeof body.targetLemma === "string" && body.targetLemma.length <= 200 && typeof body.targetLang === "string") ||
         (body.action === "hideTranslation" && Number.isInteger(body.translationId)) ||
+        ((body.action === "approveRecording" || body.action === "hideRecording") && Number.isInteger(body.recordingId)) ||
         (body.action === "setPronunciation" && (body.romanization === null || (typeof body.romanization === "string" && body.romanization.length <= 200))));
     if (!valid) return c.json({ error: "invalid input" }, 400);
     const result = await expertAction(db, currentUserId(c), id, body, now());

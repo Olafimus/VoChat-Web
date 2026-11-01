@@ -69,6 +69,16 @@ export type CardRow = Row & {
   reps: number;
   lapses: number;
   createdAt: number;
+  /** Gedächtnismodell (aus der Historie berechnet), siehe @vochat/shared memory.ts. Ältere Zeilen: undefined. */
+  stability?: number;
+  difficulty?: number;
+  lastReviewAt?: number | null;
+  ignored?: boolean;
+  retention?: number | null;
+  pinned?: boolean;
+  resetAt?: number | null;
+  rank?: number | null;
+  origin?: string | null;
 };
 
 export type MessageRow = Row & {
@@ -85,7 +95,9 @@ export type ReviewRow = Row & {
   lang: string;
   lemma: string;
   outcome: "right" | "wrong";
-  mode: "flip" | "reverse" | "type";
+  grade?: "again" | "hard" | "good" | "easy" | null;
+  responseMs?: number | null;
+  mode: "flip" | "reverse" | "type" | "manual";
   typed: string | null;
   at: number;
 };

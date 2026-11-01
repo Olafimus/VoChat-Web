@@ -1,4 +1,6 @@
-import { lemmaKey, newSchedule, reviewCard, type Grade, type LangCode, type LexemeSummary, type Mode, type Cefr } from "@vochat/shared";
+import { lemmaKey, newSchedule, type Grade, type LangCode, type LexemeSummary, type Mode, type Cefr } from "@vochat/shared";
+import type { ReviewRow } from "../local/collections";
+import { readLearning, scheduleFor } from "./learning";
 import type { Collections, CardRow } from "../local/collections";
 import { newId } from "./ids";
 
@@ -11,6 +13,9 @@ export interface NewCard {
   cefr: Cefr | null;
   /** Felder, die als eigene Werte gelten (nicht vom Wörterbuch überschrieben). */
   custom?: ("lemma" | "gloss" | "pronunciation" | "cefr")[];
+  rank?: number | null;
+  /** Herkunft: "chat", "scan", "manual", "challenge:<id>", "collection:<id>". */
+  origin?: string | null;
 }
 
 /** Legt eine Lernkarte an (lokal, sofort sichtbar) und liefert ihre ID. */
@@ -33,6 +38,15 @@ export function addCard(collections: Collections, input: NewCard): string {
     dueAt: schedule.dueAt,
     reps: schedule.reps,
     lapses: schedule.lapses,
+    stability: 0,
+    difficulty: 5,
+    lastReviewAt: null,
+    ignored: false,
+    retention: null,
+    pinned: false,
+    resetAt: null,
+    rank: input.rank ?? null,
+    origin: input.origin ?? null,
     createdAt: now,
     updatedAt: now,
     deleted: false,
@@ -41,8 +55,10 @@ export function addCard(collections: Collections, input: NewCard): string {
   return row.id;
 }
 
-export function addCardFromLexeme(collections: Collections, lexeme: LexemeSummary, lang: LangCode): void {
+export function addCardFromLexeme(collections: Collections, lexeme: LexemeSummary, lang: LangCode, origin: string | null = null): void {
   addCard(collections, {
+    rank: lexeme.frequencyRank,
+    origin,
     lang,
     lemma: lexeme.lemma,
     lexemeId: lexeme.id,
@@ -58,7 +74,7 @@ export function addCardFromLexeme(collections: Collections, lexeme: LexemeSummar
  */
 export function addOwnWord(
   collections: Collections,
-  input: { lang: LangCode; lemma: string; gloss?: string | null; pronunciation?: string | null },
+  input: { lang: LangCode; lemma: string; gloss?: string | null; pronunciation?: string | null; origin?: string | null },
 ): string {
   const gloss = input.gloss?.trim() || null;
   const pronunciation = input.pronunciation?.trim() || null;
@@ -69,6 +85,7 @@ export function addOwnWord(
     gloss,
     pronunciation,
     cefr: null,
+    origin: input.origin ?? "manual",
     custom: [...(gloss ? (["gloss"] as const) : []), ...(pronunciation ? (["pronunciation"] as const) : [])],
   });
 }
@@ -105,30 +122,112 @@ export function resetField(collections: Collections, card: CardRow, field: Edita
   });
 }
 
+const allReviews = (collections: Collections) => collections.reviews.toArray as ReviewRow[];
+
+/** Zeitplan einer Karte aus ihrer Historie neu berechnen und speichern. */
+function reschedule(collections: Collections, card: CardRow, patch: Partial<CardRow> = {}): void {
+  const merged = { ...card, ...patch } as CardRow;
+  const next = scheduleFor(merged, allReviews(collections), readLearning());
+  collections.cards.update(card.id, (d) => {
+    Object.assign(d, patch, next, { updatedAt: Date.now() });
+  });
+}
+
 /**
- * Antwort auswerten: aktualisiert den Zeitplan (SRS) und protokolliert das Lernereignis.
- * Die Protokolle speisen Trefferquoten und Lernpakete.
+ * Antwort auswerten: protokolliert das Lernereignis (append-only) und berechnet den Zeitplan der Karte
+ * aus ihrer gesamten Historie neu – mit dem zeitlichen Abstand jeder einzelnen Antwort.
  */
 export function recordAnswer(
   collections: Collections,
   card: CardRow,
-  args: { mode: Mode; grade: Grade; typed: string | null },
+  args: { mode: Mode; grade: Grade; typed: string | null; responseMs?: number | null },
 ): void {
   const now = Date.now();
-  const next = reviewCard(card, args.grade, now);
-  collections.cards.update(card.id, (draft) => {
-    Object.assign(draft, next, { updatedAt: now });
-  });
-  void collections.reviews.insert({
+  const review: ReviewRow = {
     id: newId(),
     cardId: card.id,
     lang: card.lang,
     lemma: card.lemma,
     outcome: args.grade === "again" ? "wrong" : "right",
+    grade: args.grade,
+    responseMs: args.responseMs == null ? null : Math.min(3_600_000, Math.max(0, Math.round(args.responseMs))),
     mode: args.mode,
     typed: args.typed,
     at: now,
     updatedAt: now,
     deleted: false,
+  };
+  void collections.reviews.insert(review);
+  const next = scheduleFor(card, [...allReviews(collections).filter((r) => r.id !== review.id), review], readLearning());
+  collections.cards.update(card.id, (d) => {
+    Object.assign(d, next, { pinned: false, updatedAt: now });
   });
+}
+
+// ---- Eigene Entscheidungen (der Lernweg bleibt persönlich) -----------------
+
+/** Wort ausblenden: wird nie geplant, bleibt aber in der Sammlung und in Statistiken sichtbar. */
+export const setIgnored = (collections: Collections, card: CardRow, ignored: boolean) =>
+  collections.cards.update(card.id, (d) => {
+    d.ignored = ignored;
+    d.updatedAt = Date.now();
+  });
+
+/** Im nächsten Lernblock zuerst. */
+export const setPinned = (collections: Collections, card: CardRow, pinned: boolean) =>
+  collections.cards.update(card.id, (d) => {
+    d.pinned = pinned;
+    d.updatedAt = Date.now();
+  });
+
+/** Eigene Zielquote: 0,95 = öfter üben, 0,8 = seltener, null = Standard. Plant sofort neu. */
+export const setRetention = (collections: Collections, card: CardRow, retention: number | null) =>
+  reschedule(collections, card, { retention });
+
+/** „Kenne ich schon“: zählt wie eine sichere Antwort (als manuell markiert, nicht als echte Abfrage). */
+export function markKnown(collections: Collections, card: CardRow): void {
+  const now = Date.now();
+  const review: ReviewRow = {
+    id: newId(),
+    cardId: card.id,
+    lang: card.lang,
+    lemma: card.lemma,
+    outcome: "right",
+    grade: "easy",
+    responseMs: null,
+    mode: "manual",
+    typed: null,
+    at: now,
+    updatedAt: now,
+    deleted: false,
+  };
+  void collections.reviews.insert(review);
+  const next = scheduleFor(card, [...allReviews(collections).filter((r) => r.id !== review.id), review], readLearning());
+  collections.cards.update(card.id, (d) => {
+    Object.assign(d, next, { pinned: false, updatedAt: now });
+  });
+}
+
+/** Fortschritt zurücksetzen: frühere Antworten bleiben im Verlauf, zählen aber nicht mehr. */
+export const resetProgress = (collections: Collections, card: CardRow) => reschedule(collections, card, { resetAt: Date.now() + 1 });
+
+/**
+ * Einmalig nach dem Update: Karten ohne Modellwerte aus ihrer Historie berechnen.
+ * Liefert die Anzahl aktualisierter Karten.
+ */
+export function migrateSchedules(collections: Collections, cards: CardRow[]): number {
+  let n = 0;
+  const reviews = allReviews(collections);
+  const settings = readLearning();
+  for (const card of cards) {
+    if (card.deleted || (card.stability !== undefined && !(card.reps > 0 && !card.stability))) continue;
+    // Historie (noch) nicht da, z. B. weil der Sync die Lernereignisse erst später liefert: nichts zurücksetzen.
+    if (card.reps > 0 && !reviews.some((r) => r.cardId === card.id)) continue;
+    const next = scheduleFor(card, reviews, settings);
+    collections.cards.update(card.id, (d) => {
+      Object.assign(d, next, { ignored: d.ignored ?? false, pinned: d.pinned ?? false, updatedAt: Date.now() });
+    });
+    n++;
+  }
+  return n;
 }

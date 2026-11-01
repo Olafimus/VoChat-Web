@@ -175,3 +175,26 @@ describe("comment trees and reputation", () => {
     expect((await req("/comments", u.token, "POST", { target: `lexeme:${l2}`, parentId: root.id, body: "y" })).status).toBe(400);
   });
 });
+
+describe("notifications", () => {
+  it("collects friend requests, challenge invites and comment replies", async () => {
+    const a = await user("n-a@example.com", "Anna");
+    const b = await user("n-b@example.com", "Ben");
+    const c = await user("n-c@example.com", "Cleo");
+    await befriend(a, b);
+    await req(`/social/friends/${b.user.id}`, c.token, "POST"); // Cleo fragt Ben an
+    const created = await req("/challenges", a.token, "POST", { kind: "duel", title: "Duell", lang: "fa", items: [{ lemma: "آب", lang: "fa" }], days: 7, invite: [b.user.id] });
+    const { id } = await created.json();
+    await addLexeme(db, { id: 77, lang: "fa", lemma: "آب" });
+    const root = await (await req("/comments", b.token, "POST", { target: "lexeme:77", body: "Aussprache?" })).json();
+    await req("/comments", a.token, "POST", { target: "lexeme:77", body: "āb", parentId: root.id });
+
+    const list = (await (await req("/notifications", b.token)).json()) as { kind: string; actor: { name: string } | null; target: string; text: string }[];
+    const kinds = list.map((n) => n.kind).sort();
+    expect(kinds).toEqual(["challenge_invite", "comment_reply", "friend_request"]);
+    expect(list.find((n) => n.kind === "challenge_invite")!.target).toBe(`challenge:${id}`);
+    expect(list.find((n) => n.kind === "friend_request")!.actor!.name).toBe("Cleo");
+    expect(list.find((n) => n.kind === "comment_reply")!.text).toContain("āb");
+    expect((await req("/notifications")).status).toBe(401);
+  });
+});

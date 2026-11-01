@@ -1,3 +1,4 @@
+import { Recordings } from "./Recordings";
 import { useEffect, useState } from "react";
 import type { LangCode, LexemeDetail, LexemeSummary } from "@vochat/shared";
 import { api } from "../api/client";
@@ -26,7 +27,12 @@ export function LexemeInfo({ lexeme, lang }: { lexeme: LexemeSummary; lang: Lang
 
   return (
     <div className="info">
-      {detail.romanization && <div className="muted small">Aussprache: {detail.romanization}</div>}
+      {(detail.romanization || detail.ipa) && (
+        <div className="muted small">
+          Aussprache: {[detail.romanization, detail.ipa ? `IPA ${detail.ipa}` : null].filter(Boolean).join(" · ")}
+        </div>
+      )}
+      <Recordings lexemeId={detail.id} lemma={detail.lemma} />
       {detail.senses.length > 0 && (
         <ol className="senses">
           {detail.senses.slice(0, 12).map((s) => (

@@ -8,13 +8,15 @@ import { CommunityHub } from "./pages/CommunityHub";
 import { UserPage } from "./pages/UserPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { ScanPage } from "./pages/ScanPage";
+import { StatsPage } from "./pages/StatsPage";
+import { HomePage } from "./pages/HomePage";
 
 export function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route element={<Layout />}>
-          <Route index element={<Navigate to="/chat" replace />} />
+          <Route index element={<HomePage />} />
           <Route path="chat" element={<ChatPage />} />
           <Route path="vocab" element={<VocabPage />} />
           <Route path="learn" element={<LearnPage />} />
@@ -23,7 +25,8 @@ export function App() {
           <Route path="users/:id" element={<UserPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="scan" element={<ScanPage />} />
-          <Route path="*" element={<Navigate to="/chat" replace />} />
+          <Route path="stats" element={<StatsPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -1,17 +1,18 @@
 import { useEffect, useState } from "react";
 import { LANG_CODES, LANGUAGES, type LangCode } from "@vochat/shared";
-import { community, review, type HistoryEntry, type ReviewEntry } from "../api/client";
+import { apiUrl, community, review, type HistoryEntry, type ReviewEntry } from "../api/client";
 import { useSession } from "../session";
 import { CommentThread } from "../components/CommentThread";
 import { Empty, Lemma } from "../components/ui";
 import { SpeakButton } from "../components/SpeakButton";
 
-type Filter = "open" | "suspicious" | "needs_fix" | "approved";
+type Filter = "open" | "suspicious" | "needs_fix" | "approved" | "recordings";
 const FILTERS: { key: Filter; label: string }[] = [
   { key: "open", label: "Offen" },
   { key: "suspicious", label: "Verdächtig" },
   { key: "needs_fix", label: "Mit Fehler" },
   { key: "approved", label: "Geprüft" },
+  { key: "recordings", label: "Aufnahmen" },
 ];
 const STATUS: Record<ReviewEntry["status"], string> = { unreviewed: "ungeprüft", approved: "geprüft", needs_fix: "Fehler gemeldet" };
 
@@ -24,6 +25,10 @@ const ACTION_LABEL: Record<string, string> = {
   "translation.add": "Übersetzung ergänzt",
   "translation.hide": "Übersetzung entfernt",
   "pronunciation.set": "Aussprache gesetzt",
+  "recording.add": "Aufnahme hochgeladen",
+  "recording.approve": "Aufnahme freigegeben",
+  "recording.hide": "Aufnahme entfernt",
+  "recording.delete": "Aufnahme gelöscht",
   "contribution.verified": "Community-Beitrag verifiziert",
   "contribution.rejected": "Community-Beitrag abgelehnt",
   "contribution.revoked": "Community-Beitrag widerrufen",
@@ -190,6 +195,25 @@ function ReviewCard({ entry, nativeLang, onAct }: { entry: ReviewEntry; nativeLa
           <button className="small-btn" disabled={!newTr.lemma.trim()} onClick={() => { onAct({ action: "addTranslation", targetLang: newTr.lang, targetLemma: newTr.lemma.trim() }); setNewTr({ ...newTr, lemma: "" }); }}>Hinzufügen</button>
         </div>
       </div>
+      {entry.recordings.length > 0 && (
+        <div className="stack" style={{ gap: "0.3rem" }}>
+          <b className="small">Aufnahmen</b>
+          {entry.recordings.map((r) => (
+            <div key={r.id} className="review-line">
+              <span className="review-text">
+                <button className="small-btn" onClick={() => void new Audio(apiUrl(r.url)).play()}>▶ {r.speaker ?? "?"}</button>{" "}
+                {r.status === "pending" ? <span className="badge subtle">wartet</span> : <span className="muted small">freigegeben</span>}
+              </span>
+              <span className="review-actions">
+                {r.status === "pending" && (
+                  <button className="link small" onClick={() => onAct({ action: "approveRecording", recordingId: r.id })}>Freigeben</button>
+                )}
+                <button className="link small danger" onClick={() => onAct({ action: "hideRecording", recordingId: r.id })}>Entfernen</button>
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
       {entry.examples.length > 0 && (
         <ul className="examples small">
           {entry.examples.map((x) => (
