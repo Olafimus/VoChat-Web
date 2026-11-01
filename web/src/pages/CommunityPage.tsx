@@ -39,7 +39,7 @@ export function CommunityPage() {
     <div className="stack">
       <div className="segmented four" role="tablist">
         <button className={tab === "pruefen" ? "on" : ""} onClick={() => setTab("pruefen")}>Prüfen</button>
-        <button className={tab === "vorschlagen" ? "on" : ""} onClick={() => setTab("vorschlagen")}>Vorschlagen</button>
+        <button className={tab === "vorschlagen" ? "on" : ""} onClick={() => setTab("vorschlagen")}>Vorschlag</button>
         <button className={tab === "meine" ? "on" : ""} onClick={() => setTab("meine")}>Meine</button>
         <button className={tab === "rollen" ? "on" : ""} onClick={() => setTab("rollen")}>Rollen</button>
       </div>

@@ -2,12 +2,12 @@ import { NavLink, Outlet } from "react-router-dom";
 import { useSession, useSyncStatus } from "../session";
 
 const TABS = [
-  { to: "/chat", label: "Chat", icon: "💬" },
-  { to: "/vocab", label: "Wortschatz", icon: "📚" },
-  { to: "/learn", label: "Lernen", icon: "🧠" },
-  { to: "/paths", label: "Lernpfade", icon: "🗺️" },
-  { to: "/community", label: "Community", icon: "🤝" },
-  { to: "/profile", label: "Profil", icon: "👤" },
+  { to: "/chat", label: "Chat", short: "Chat", icon: "💬" },
+  { to: "/vocab", label: "Wortschatz", short: "Wörter", icon: "📚" },
+  { to: "/learn", label: "Lernen", short: "Lernen", icon: "🧠" },
+  { to: "/paths", label: "Lernpfade", short: "Pfade", icon: "🗺️" },
+  { to: "/community", label: "Community", short: "Leute", icon: "🤝" },
+  { to: "/profile", label: "Profil", short: "Profil", icon: "👤" },
 ];
 
 export function SyncIndicator() {
@@ -26,7 +26,7 @@ export function SyncIndicator() {
   const tone = !status.enabled ? "local" : !status.online ? "warn" : status.error ? "error" : status.pending > 0 ? "pending" : "ok";
   return (
     <span className={`sync sync-${tone}`} title={status.error ?? undefined}>
-      <span className="dot" /> {label}
+      <span className="dot" /> <span className="sync-label">{label}</span>
     </span>
   );
 }
@@ -56,7 +56,7 @@ export function Layout() {
         {TABS.map((t) => (
           <NavLink key={t.to} to={t.to} className={({ isActive }) => (isActive ? "active" : undefined)}>
             <span aria-hidden>{t.icon}</span>
-            <span>{t.label}</span>
+            <span>{t.short}</span>
           </NavLink>
         ))}
       </nav>

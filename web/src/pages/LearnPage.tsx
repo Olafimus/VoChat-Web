@@ -155,7 +155,6 @@ export function LearnPage() {
 
           {format === "flip" && <PromptWord card={current} />}
           {format === "reverse" && <PromptMeaning card={current} />}
-          {format === "type" && <PromptMeaning card={current} />}
 
           {format !== "type" && (
             <>

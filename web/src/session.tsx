@@ -73,6 +73,20 @@ function readLocalProfile(): UserProfile {
 }
 
 /**
+ * Lokaler Speicher und Collections des Geräts: genau einmal pro Seitenladen. Der StrictMode-
+ * Doppelaufruf von Effekten darf nicht zwei Collections mit gleicher ID erzeugen.
+ */
+let deviceRuntime: Promise<{ store: LocalStore; collections: Collections }> | null = null;
+function loadDeviceRuntime() {
+  deviceRuntime ??= (async () => {
+    const store = new LocalStore(openLocalKv());
+    await store.load();
+    return { store, collections: createDeviceCollections(store) };
+  })();
+  return deviceRuntime;
+}
+
+/**
  * Sitzung ohne Anmeldezwang. Das Gerät hat immer ein lokales Profil und lokale Daten.
  * Ein Konto ist optional und nur für die Synchronisation nötig.
  */
@@ -87,12 +101,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   // Einmalig: lokaler Speicher laden, Collections erzeugen.
   useEffect(() => {
-    const s = new LocalStore(openLocalKv());
-    void s.load().then(() => {
-      setCollections(createDeviceCollections(s));
-      setStore(s);
+    let alive = true;
+    void loadDeviceRuntime().then((rt) => {
+      if (!alive) return;
+      setCollections(rt.collections);
+      setStore(rt.store);
       setReady(true);
     });
+    return () => {
+      alive = false;
+    };
   }, []);
 
   const startEngine = useCallback(

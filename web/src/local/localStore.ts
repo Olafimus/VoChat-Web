@@ -22,7 +22,16 @@ export class LocalStore {
   private flushTimer: ReturnType<typeof setTimeout> | null = null;
   private onOutboxChange: (() => void) | null = null;
 
-  constructor(private readonly kv: Kv | null) {}
+  constructor(private readonly kv: Kv | null) {
+    // Beim Verlassen oder Ausblenden der Seite sofort schreiben, damit nichts verloren geht.
+    if (typeof window !== "undefined") {
+      const flushNow = () => void this.flush();
+      window.addEventListener("pagehide", flushNow);
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "hidden") flushNow();
+      });
+    }
+  }
 
   async load(): Promise<void> {
     if (!this.kv) return;
@@ -125,7 +134,7 @@ export class LocalStore {
     if (!this.kv) return;
     this.dirty.set(key, value);
     if (this.flushTimer) return;
-    this.flushTimer = setTimeout(() => void this.flush(), 150);
+    this.flushTimer = setTimeout(() => void this.flush(), 50);
   }
 
   async flush(): Promise<void> {
