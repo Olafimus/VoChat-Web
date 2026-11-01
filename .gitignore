@@ -12,3 +12,4 @@ backend/data/cache
 .idea
 web/public/tesseract
 backend/data/tts-cache
+backend/data/media
