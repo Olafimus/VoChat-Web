@@ -99,3 +99,32 @@ describe("stats", () => {
     expect(s.calibration.reduce((n, b) => n + b.n, 0)).toBe(2);
   });
 });
+
+import { computeInsights } from "../src/stats.js";
+describe("insights", () => {
+  it("builds heatmap, growth, stability buckets, hours and hardest words", () => {
+    const today = 200 * DAY_MS;
+    const cards = [
+      { id: "a", lemma: "casa", status: "review" as const, stability: 12, lastReviewAt: today, lapses: 3, difficulty: 8, cefr: "A1" },
+      { id: "b", lemma: "perro", status: "learning" as const, stability: 0.4, lastReviewAt: today, lapses: 0, difficulty: 5, cefr: "A1" },
+      { id: "c", lemma: "nuevo", status: "new" as const, stability: 0, lastReviewAt: null, cefr: "A2" },
+    ];
+    const reviews = [
+      { cardId: "a", at: today - 10 * DAY_MS + 3600_000, grade: "good" as const, responseMs: 4000 },
+      { cardId: "a", at: today + 3600_000, grade: "again" as const, responseMs: 6000 },
+      { cardId: "b", at: today + 7200_000, grade: "good" as const },
+    ];
+    const ins = computeInsights(cards, reviews, today, (t) => new Date(t).getUTCHours(), 30);
+    expect(ins.heatmap).toHaveLength(30);
+    expect(ins.heatmap.at(-1)!.reviews).toBe(2);
+    expect(ins.heatmap.at(-11)!.reviews).toBe(1);
+    expect(ins.growth.at(-1)!.total).toBe(2);
+    expect(ins.growth.at(-12)!.total).toBe(0);
+    expect(ins.stability.find((s) => s.label === "1–4 Wochen")!.count).toBe(1);
+    expect(ins.stability.find((s) => s.label === "< 1 Tag")!.count).toBe(1);
+    expect(ins.hours[1]).toEqual({ hour: 1, reviews: 2, correct: 1 });
+    expect(ins.hardest.map((h) => h.lemma)).toEqual(["casa"]);
+    expect(ins.levels).toEqual([{ level: "A1", known: 1, total: 2 }, { level: "A2", known: 0, total: 1 }]);
+    expect(ins.avgResponseSec).toBe(5);
+  });
+});

@@ -20,6 +20,26 @@ import { rateLimit } from "./ratelimit.js";
 import { normalizeTtsText, Tts } from "./tts.js";
 import { notifications } from "./notifications.js";
 import { logAudit } from "./audit.js";
+import { streamSSE } from "hono/streaming";
+import {
+  chatMediaByFile,
+  ChatHub,
+  correctMessage,
+  createGroup,
+  deleteMessage,
+  editMessage,
+  listConversations,
+  listMessages,
+  markRead,
+  MAX_IMAGE_BYTES,
+  memberIds,
+  messagesByIds,
+  openDm,
+  sendMedia,
+  sendText,
+  toggleReaction,
+} from "./chat.js";
+import { verifyMediaSignature } from "./users.js";
 import { deleteRecording, MAX_RECORDING_BYTES, recordingByFile, recordingOwner, recordingsFor, saveRecording } from "./recordings.js";
 import { createUser, findUserByEmail, loadProfile, authResponse, setAvatarSecret, verifyAvatarSignature } from "./users.js";
 import { pullChanges, pushOps } from "./sync.js";
@@ -63,6 +83,8 @@ export interface AppOptions {
   publicRateLimit?: number;
   /** Sprachsynthese für Wörter ohne Aufnahme; `null` schaltet sie ab. */
   tts?: Tts | null;
+  /** Echtzeit-Verteiler für Chats (Standard: neu je App). */
+  chatHub?: ChatHub;
 }
 
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
@@ -78,6 +100,7 @@ export function createApp({
   trustProxy = false,
   publicRateLimit = 120,
   tts = new Tts(),
+  chatHub = new ChatHub(),
 }: AppOptions): Hono {
   const app = new Hono();
   if (appSecret) setAvatarSecret(appSecret);
@@ -347,6 +370,182 @@ export function createApp({
   });
 
   app.get("/notifications", auth, async (c) => c.json(await notifications(db, currentUserId(c), now())));
+
+  // ---- Chats zwischen Nutzern ---------------------------------------------
+  const notify = async (conversationId: string, event: Parameters<ChatHub["publish"]>[1]) =>
+    chatHub.publish(await memberIds(db, conversationId), event);
+
+  app.get("/conversations", auth, async (c) => c.json(await listConversations(db, currentUserId(c))));
+
+  app.post("/conversations", auth, jsonLimit(8 * 1024), async (c) => {
+    const body = (await c.req.json().catch(() => null)) as { userId?: unknown; title?: unknown; members?: unknown } | null;
+    const me = currentUserId(c);
+    const result =
+      typeof body?.userId === "string"
+        ? await openDm(db, me, body.userId, now())
+        : Array.isArray(body?.members) && typeof body?.title === "string"
+          ? await createGroup(db, me, body.title, body.members.filter((m): m is string => typeof m === "string"), now())
+          : ({ ok: false, status: 400, error: "invalid input" } as const);
+    if (!result.ok) return c.json({ error: result.error }, result.status);
+    await notify(result.id, { type: "conversation", conversationId: result.id });
+    return c.json({ id: result.id }, 201);
+  });
+
+  app.get("/conversations/:id/messages", auth, async (c) => {
+    const num = (v: string | undefined) => (v !== undefined && /^\d{1,9}$/.test(v) ? Number(v) : undefined);
+    const ids = c.req.query("ids");
+    const list = ids
+      ? await messagesByIds(db, currentUserId(c), c.req.param("id"), ids.split(",").filter((x) => /^\d{1,9}$/.test(x)).map(Number))
+      : await listMessages(db, currentUserId(c), c.req.param("id"), {
+          before: num(c.req.query("before")),
+          after: num(c.req.query("after")),
+          limit: num(c.req.query("limit")) ?? 50,
+        });
+    return list ? c.json(list) : c.json({ error: "not found" }, 404);
+  });
+
+  app.post("/conversations/:id/messages", auth, jsonLimit(32 * 1024), async (c) => {
+    const id = c.req.param("id");
+    const body = (await c.req.json().catch(() => null)) as Record<string, unknown> | null;
+    const result = await sendText(db, currentUserId(c), id, body ?? {}, now());
+    if (!result.ok) return c.json({ error: result.error }, result.status);
+    await notify(id, { type: "message", conversationId: id, messageId: result.message.id });
+    return c.json(result.message, 201);
+  });
+
+  // Bild oder Sprachnachricht: Rohdaten im Body, Metadaten in der Query
+  app.post(
+    "/conversations/:id/media",
+    auth,
+    bodyLimit({ maxSize: MAX_IMAGE_BYTES, onError: (c) => c.json({ error: "file too large" }, 413) }),
+    async (c) => {
+      if (!media) return c.json({ error: "media storage not configured" }, 503);
+      const id = c.req.param("id");
+      const q = (k: string) => c.req.query(k);
+      const int = (v: string | undefined) => (v && /^\d{1,9}$/.test(v) ? Number(v) : null);
+      const kind = q("kind") === "voice" ? "voice" : q("kind") === "image" ? "image" : null;
+      if (!kind) return c.json({ error: "kind must be image or voice" }, 400);
+      const result = await sendMedia(
+        db,
+        media,
+        currentUserId(c),
+        id,
+        {
+          kind,
+          bytes: new Uint8Array(await c.req.arrayBuffer()),
+          caption: (q("caption") ?? "").slice(0, 1000),
+          durationMs: int(q("durationMs")),
+          width: int(q("width")),
+          height: int(q("height")),
+          replyTo: int(q("replyTo")),
+          clientId: q("clientId") && /^[\w-]{8,64}$/.test(q("clientId")!) ? q("clientId")! : null,
+        },
+        now(),
+      );
+      if (!result.ok) return c.json({ error: result.error }, result.status);
+      await notify(id, { type: "message", conversationId: id, messageId: result.message.id });
+      return c.json(result.message, 201);
+    },
+  );
+
+  // Nachrichten-IDs: nur Ganzzahlen im INTEGER-Bereich, sonst 404
+  app.use("/messages/:id/*", async (c, next) => (/^\d{1,9}$/.test(c.req.param("id") ?? "") ? next() : c.json({ error: "not found" }, 404)));
+  app.use("/messages/:id", async (c, next) => (/^\d{1,9}$/.test(c.req.param("id") ?? "") ? next() : c.json({ error: "not found" }, 404)));
+
+  app.patch("/messages/:id", auth, jsonLimit(32 * 1024), async (c) => {
+    const body = (await c.req.json().catch(() => null)) as { body?: unknown } | null;
+    const result = await editMessage(db, currentUserId(c), Number(c.req.param("id")), body?.body, now());
+    if (!result.ok) return c.json({ error: result.error }, result.status);
+    await notify(result.message.conversationId, { type: "update", conversationId: result.message.conversationId, messageId: result.message.id });
+    return c.json(result.message);
+  });
+
+  app.delete("/messages/:id", auth, async (c) => {
+    const id = Number(c.req.param("id"));
+    const result = await deleteMessage(db, media, currentUserId(c), id);
+    if (!result.ok) return c.json({ error: result.error }, result.status);
+    await notify(result.conversationId, { type: "update", conversationId: result.conversationId, messageId: id });
+    return c.json({ ok: true });
+  });
+
+  app.post("/messages/:id/reactions", auth, jsonLimit(1024), async (c) => {
+    const id = Number(c.req.param("id"));
+    const body = (await c.req.json().catch(() => null)) as { emoji?: unknown } | null;
+    const result = await toggleReaction(db, currentUserId(c), id, body?.emoji, now());
+    if (!result.ok) return c.json({ error: result.error }, result.status);
+    await notify(result.conversationId, { type: "update", conversationId: result.conversationId, messageId: id });
+    return c.json({ ok: true });
+  });
+
+  app.post("/messages/:id/correction", auth, jsonLimit(32 * 1024), async (c) => {
+    const id = Number(c.req.param("id"));
+    const body = (await c.req.json().catch(() => null)) as { body?: unknown } | null;
+    const result = await correctMessage(db, currentUserId(c), id, body?.body);
+    if (!result.ok) return c.json({ error: result.error }, result.status);
+    await notify(result.conversationId, { type: "update", conversationId: result.conversationId, messageId: id });
+    return c.json({ ok: true });
+  });
+
+  app.post("/conversations/:id/read", auth, jsonLimit(1024), async (c) => {
+    const id = c.req.param("id");
+    const body = (await c.req.json().catch(() => null)) as { messageId?: unknown } | null;
+    const messageId = Number(body?.messageId);
+    if (!Number.isInteger(messageId) || messageId < 0) return c.json({ error: "invalid input" }, 400);
+    const me = currentUserId(c);
+    if (!(await markRead(db, me, id, messageId))) return c.json({ error: "not found" }, 404);
+    await notify(id, { type: "read", conversationId: id, userId: me, messageId });
+    return c.json({ ok: true });
+  });
+
+  app.get("/media/chat/:file", async (c) => {
+    if (!media) return c.json({ error: "not found" }, 404);
+    const file = c.req.param("file");
+    if (!/^[0-9a-f]{32}\.(png|jpg|webp|gif|webm|ogg|m4a|wav|mp3)$/.test(file)) return c.json({ error: "not found" }, 404);
+    const key = `chat/${file}`;
+    if (!verifyMediaSignature(key, c.req.query("s") ?? "")) return c.json({ error: "not found" }, 404);
+    if (!(await chatMediaByFile(db, file))) return c.json({ error: "not found" }, 404);
+    const object = await media.get(key);
+    if (!object) return c.json({ error: "not found" }, 404);
+    return new Response(object.body as unknown as BodyInit, {
+      headers: {
+        "content-type": object.contentType,
+        "cache-control": "private, max-age=31536000, immutable",
+        "x-content-type-options": "nosniff",
+        "content-security-policy": "default-src 'none'; sandbox",
+      },
+    });
+  });
+
+  /** Echtzeit-Ereignisse (Server-Sent Events). Der Client verbindet sich per fetch mit Bearer-Token. */
+  app.get("/events", auth, (c) => {
+    const me = currentUserId(c);
+    return streamSSE(c, async (stream) => {
+      const queue: string[] = [];
+      let wake: (() => void) | null = null;
+      const unsubscribe = chatHub.subscribe(me, (e) => {
+        queue.push(JSON.stringify(e));
+        wake?.();
+      });
+      stream.onAbort(() => {
+        unsubscribe();
+        wake?.();
+      });
+      await stream.writeSSE({ event: "ready", data: "{}" });
+      while (!stream.aborted) {
+        if (queue.length === 0) {
+          await new Promise<void>((resolve) => {
+            wake = resolve;
+            setTimeout(resolve, 25_000); // Lebenszeichen gegen Proxy-Timeouts
+          });
+          wake = null;
+        }
+        if (stream.aborted) break;
+        if (queue.length === 0) await stream.writeSSE({ event: "ping", data: "{}" });
+        while (queue.length) await stream.writeSSE({ event: "chat", data: queue.shift()! });
+      }
+      unsubscribe();
+    });
+  });
 
   // ---- Aussprache: Aufnahmen, sonst erzeugt -----------------------------
   app.get("/audio/lexemes/:id", maybeAuth, async (c) => {

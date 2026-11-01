@@ -25,7 +25,7 @@ const overflow = (page) =>
     const report = [];
     try {
       // Spanisch lernen, Konto anlegen
-      await page.goto(BASE + "/profile", { waitUntil: "networkidle" });
+      await page.goto(BASE + "/profile", { waitUntil: "load" });
       await page.getByRole("checkbox", { name: "Spanisch", exact: true }).check();
       await page.getByRole("button", { name: "Speichern" }).first().click();
       const konto = page.locator("section.card");
@@ -37,13 +37,13 @@ const overflow = (page) =>
       await page.getByText(/Angemeldet als/).waitFor({ timeout: 15000 });
 
       // Wörter aus dem Top-500-Pfad
-      await page.goto(BASE + "/paths", { waitUntil: "networkidle" });
+      await page.goto(BASE + "/paths", { waitUntil: "load" });
       await page.getByRole("button", { name: /Top 500/ }).first().click();
       await page.getByRole("button", { name: /Fehlende Wörter lernen|lernen \(/ }).first().click();
       await page.waitForTimeout(800);
 
       // Startseite
-      await page.goto(BASE + "/", { waitUntil: "networkidle" });
+      await page.goto(BASE + "/", { waitUntil: "load" });
       await page.getByText(/Heute lernen/).waitFor();
       report.push("home:" + (await page.locator(".block-numbers").first().innerText()).replace(/\s+/g, " "));
       await shot("home");
@@ -64,14 +64,14 @@ const overflow = (page) =>
       }
 
       // Statistik
-      await page.goto(BASE + "/stats", { waitUntil: "networkidle" });
+      await page.goto(BASE + "/stats", { waitUntil: "load" });
       await page.getByText("Fällige Wiederholungen").waitFor();
       report.push("tiles:" + (await page.locator(".tile-value").allInnerTexts()).join("|"));
       await shot("stats");
       report.push("statsOv:" + (await overflow(page)).join(","));
 
       // Lernverlauf einer Karte + Aufnahme
-      await page.goto(BASE + "/vocab", { waitUntil: "networkidle" });
+      await page.goto(BASE + "/vocab", { waitUntil: "load" });
       await page.getByRole("button", { name: /Bearbeiten/ }).first().click();
       await page.getByText("Lernstand").waitFor();
       await page.locator("summary", { hasText: "Verlauf" }).first().click().catch(() => {});

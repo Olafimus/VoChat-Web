@@ -106,6 +106,7 @@ describe("expert review with suspicion propagation and history", () => {
     const b = await addLexeme(db, { lang: "fa", lemma: "شیرینی", rank: 20 });
     const c = await addLexeme(db, { lang: "fa", lemma: "دیگر", rank: 5 });
     await addGloss(db, a, "de", "Löwe");
+    await addGloss(db, a, "de", "Wasserhahn", 1);
     await addGloss(db, b, "de", "Löwe"); // falsch: gleicher Fehler wie bei a vermutet
     await addGloss(db, c, "de", "anders");
 
@@ -116,6 +117,9 @@ describe("expert review with suspicion propagation and history", () => {
     const senseId = q1.entries.find((e: { id: number }) => e.id === a).senses[0].id;
     const edit = await (await req(`/review/lexemes/${a}`, expert.token, "POST", { action: "editSense", senseId, gloss: "Milch / Löwe" })).json();
     expect(edit.suspicious).toBe(1);
+    // Die korrigierte Bedeutung bleibt an erster Stelle (nicht hinter „Wasserhahn“)
+    const detail = await (await req(`/dictionary/lexemes/${a}?native=de`)).json();
+    expect(detail.gloss).toBe("Milch / Löwe");
 
     const q2 = await (await req("/review/queue?lang=fa", expert.token)).json();
     expect(q2.entries[0].id).toBe(b); // verdächtiger Eintrag ganz oben

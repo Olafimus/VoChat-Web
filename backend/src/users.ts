@@ -25,6 +25,14 @@ export const setAvatarSecret = (secret: string) => {
 };
 const sign = (id: string, version: number) => createHmac("sha256", avatarSecret).update(`${id}:${version}`).digest("base64url").slice(0, 22);
 
+/** Signatur für beliebige Medienpfade (z. B. Chat-Anhänge): nur wer den Link von der API bekommt, kann laden. */
+export const signMedia = (key: string) => createHmac("sha256", avatarSecret).update(`media:${key}`).digest("base64url").slice(0, 32);
+export function verifyMediaSignature(key: string, signature: string): boolean {
+  const expected = Buffer.from(signMedia(key));
+  const given = Buffer.from(signature);
+  return expected.length === given.length && timingSafeEqual(expected, given);
+}
+
 export function verifyAvatarSignature(id: string, version: number, signature: string): boolean {
   const expected = Buffer.from(sign(id, version));
   const given = Buffer.from(signature);

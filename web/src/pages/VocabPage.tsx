@@ -10,6 +10,7 @@ import { linkWithDictionary } from "../lib/linker";
 import { Empty } from "../components/ui";
 import { WordView } from "../components/WordView";
 import { CardLearning } from "../components/CardLearning";
+import { CardUpdates } from "../components/CardUpdates";
 
 const STATUS_LABEL: Record<CardRow["status"], string> = {
   new: "neu",
@@ -64,6 +65,7 @@ export function VocabPage() {
 
   return (
     <div className="stack">
+      <CardUpdates cards={cards} />
       <div className="toolbar">
         <input type="search" placeholder="Suchen …" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Wortliste durchsuchen" />
         <select value={lang} onChange={(e) => setLang(e.target.value as LangCode | "all")} aria-label="Sprache">

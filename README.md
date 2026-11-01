@@ -58,7 +58,13 @@ docs/              DICTIONARY_SOURCES.md (Quellen & Status), ARCHITECTURE.md (De
   der zeitliche Abstand jeder Antwort zählt (richtig nach einer Woche ≫ richtig 5 s nach einem Fehler). Neue Wörter nach
   Häufigkeit, Niveau und Herkunft. „Warum?“ an jeder Karte, Statistik mit Kalibrierung, eigene Entscheidungen
   (ignorieren, kenne ich, vorziehen, öfter/seltener, zurücksetzen).
-- **Startseite:** heutige Lernblöcke, Challenges mit Platzierung, Neuigkeiten.
+- **Startseite:** heutige Lernblöcke, ungelesene Nachrichten, Korrekturen, Challenges mit Platzierung, Neuigkeiten.
+- **Chats mit Freunden und Gruppen:** Text, Emojis, Bilder, Sprachnachrichten, Antworten, Reaktionen, Bearbeiten/Löschen,
+  Korrekturvorschläge mit Diff, „Wörter lernen“ aus Nachrichten, Gelesen-Häkchen, Echtzeit. Virtualisiert (10 000 Nachrichten flüssig).
+- **Korrekturen im Wörterbuch:** Wer ein Wort in der Sammlung hat, sieht Änderungen als Diff und entscheidet selbst
+  (übernehmen/ignorieren, Lernstand behalten/zurücksetzen).
+- **Als App installierbar (PWA)**, startet offline.
+- **Statistik:** Heatmap, Wachstum, Stabilität, Lernzeiten, Niveaus, schwierigste Wörter, Kalibrierung.
 - **Eigene Aufnahmen:** Wörter selbst einsprechen (max. 5 s, komprimiert), Freigabe durch Experten.
 - **Lernpfade:** empfohlene Pfade je Sprache und CEFR-Niveau sowie „Top 500“ nach Häufigkeit.
 - **Eigene Vokabeln:** eigene Wörter anlegen und jede Karte bearbeiten. Die Verknüpfung zum Wörterbuch bleibt;
@@ -120,6 +126,12 @@ Datenbank löschen und `starter` erneut ausführen.
 | `VITE_API_URL` | `/api` | API-Basis für Produktionsbuilds |
 | `TTS` | an | `off` schaltet die erzeugte Aussprache (eSpeak NG) ab |
 | `TTS_CACHE_DIR` | `data/tts-cache` | Cache für erzeugte Audiodateien (leer = nur Speicher) |
+
+## Tests
+
+- `npm test` (Backend auf SQLite), `npm run test:pg -w backend` (Postgres), `npx vitest run` in `packages/shared`.
+- Browser (Backend + `npm run dev -w web` bzw. `vite preview` laufen lassen): `node web/e2e/<name>.cjs` –
+  `viewport-audit`, `flows`, `learning-core`, `scan-audio-review`, `corrections`, `chat` (mit Leistungsmessung), `pwa-csp`.
 
 ## Status
 

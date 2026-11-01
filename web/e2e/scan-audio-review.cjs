@@ -36,7 +36,7 @@ const overflow = (page) =>
     const report = [];
     try {
       const email = `scan${Date.now()}${vp.name}@example.com`;
-      await page.goto(BASE + "/profile", { waitUntil: "networkidle" });
+      await page.goto(BASE + "/profile", { waitUntil: "load" });
       await page.getByRole("checkbox", { name: "Spanisch", exact: true }).check();
       await page.getByRole("button", { name: "Speichern" }).first().click();
       const konto = page.locator("section.card");
@@ -52,7 +52,7 @@ const overflow = (page) =>
       });
 
       // Foto → Vokabeln
-      await page.goto(BASE + "/scan", { waitUntil: "networkidle" });
+      await page.goto(BASE + "/scan", { waitUntil: "load" });
       await page.getByLabel("Sprache des Textes").selectOption("es");
       await page.locator('input[type=file]').nth(1).setInputFiles(img);
       await page.getByText(/Sicherheit \d+ %/).waitFor({ timeout: 90000 });
@@ -74,7 +74,7 @@ const overflow = (page) =>
       await page.getByRole("button", { name: /ausgewählte lernen/ }).click();
 
       // Challenges + Expertenseite
-      await page.goto(BASE + "/community", { waitUntil: "networkidle" });
+      await page.goto(BASE + "/community", { waitUntil: "load" });
       await page.getByText(/Wörter · bis/).first().waitFor({ timeout: 10000 });
       await page.getByRole("button", { name: "Mitmachen" }).last().click();
       await page.getByText("Rangliste").waitFor({ timeout: 10000 });

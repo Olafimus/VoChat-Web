@@ -231,3 +231,31 @@ export function migrateSchedules(collections: Collections, cards: CardRow[]): nu
   }
   return n;
 }
+
+// ---- Korrekturen aus dem Wörterbuch ------------------------------------------
+
+/**
+ * Vorgeschlagene Korrektur übernehmen. `resetLearning`: Lernstand zurücksetzen (sinnvoll, wenn sich die
+ * Bedeutung inhaltlich geändert hat – dann hat man bisher etwas anderes gelernt).
+ */
+export function acceptUpdate(collections: Collections, card: CardRow, opts: { resetLearning: boolean }): void {
+  const fields = card.pendingUpdate?.fields ?? {};
+  const patch: Partial<CardRow> = { pendingUpdate: null, ignoredUpdate: null };
+  if (fields.gloss) patch.gloss = fields.gloss.to;
+  if (fields.pronunciation) patch.pronunciation = fields.pronunciation.to;
+  if (fields.cefr) patch.cefr = fields.cefr.to;
+  if (opts.resetLearning) reschedule(collections, card, { ...patch, resetAt: Date.now() + 1 });
+  else
+    collections.cards.update(card.id, (d) => {
+      Object.assign(d, patch, { updatedAt: Date.now() });
+    });
+}
+
+/** Vorschlag ignorieren: bleibt beim eigenen Wert; derselbe Vorschlag kommt nicht wieder. */
+export function ignoreUpdate(collections: Collections, card: CardRow, signature: string): void {
+  collections.cards.update(card.id, (d) => {
+    d.pendingUpdate = null;
+    d.ignoredUpdate = signature;
+    d.updatedAt = Date.now();
+  });
+}

@@ -92,10 +92,22 @@ export async function linkWithDictionary(
       if (!main) continue; // Eintrag ausgeblendet oder entfernt: eigene Daten bleiben unverändert
       const custom = new Set(card.custom ?? []);
       const patch: Partial<CardRow> = {};
-      if (!custom.has("gloss") && main.gloss && main.gloss !== card.gloss) patch.gloss = main.gloss;
-      if (!custom.has("pronunciation") && main.romanization && main.romanization !== card.pronunciation) patch.pronunciation = main.romanization;
-      if (!custom.has("cefr") && main.cefr && main.cefr !== card.cefr) patch.cefr = main.cefr;
+      // Leere Felder werden still ergänzt; geänderte Werte werden als Korrektur vorgeschlagen (mit Diff).
+      const proposal: NonNullable<CardRow["pendingUpdate"]>["fields"] = {};
+      const consider = (field: "gloss" | "pronunciation" | "cefr", current: string | null, next: string | null) => {
+        if (custom.has(field) || !next || next === current) return;
+        if (!current) (patch as Record<string, unknown>)[field] = next;
+        else proposal[field] = { from: current, to: next };
+      };
+      consider("gloss", card.gloss, main.gloss);
+      consider("pronunciation", card.pronunciation, main.romanization);
+      consider("cefr", card.cefr, main.cefr);
       if (main.frequencyRank && main.frequencyRank !== card.rank) patch.rank = main.frequencyRank;
+      if (Object.keys(proposal).length > 0) {
+        const signature = updateSignature(proposal);
+        const same = card.pendingUpdate && updateSignature(card.pendingUpdate.fields) === signature;
+        if (signature !== card.ignoredUpdate && !same) patch.pendingUpdate = { fields: proposal, at: Date.now() };
+      } else if (card.pendingUpdate) patch.pendingUpdate = null; // erledigt (z. B. inzwischen gleich)
       if (Object.keys(patch).length === 0) continue;
       collections.cards.update(card.id, (d) => {
         Object.assign(d, patch);
@@ -105,4 +117,9 @@ export async function linkWithDictionary(
     }
   }
   return { linked, refreshed, items };
+}
+
+/** Fingerabdruck einer vorgeschlagenen Korrektur (nur Zielwerte) – zum Wiedererkennen abgelehnter Vorschläge. */
+export function updateSignature(fields: NonNullable<CardRow["pendingUpdate"]>["fields"]): string {
+  return JSON.stringify(Object.keys(fields).sort().map((k) => [k, fields[k as keyof typeof fields]?.to ?? null]));
 }

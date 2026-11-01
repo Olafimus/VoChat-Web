@@ -1,4 +1,8 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { useEffect } from "react";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { connectEvents } from "../lib/events";
+import { PwaUpdateBanner } from "./PwaBanner";
+import { useConversations } from "../lib/useChats";
 import { useSession, useSyncStatus } from "../session";
 import { useDictionaryLinker } from "../lib/useDictionaryLinker";
 import { useScheduleMigration } from "../lib/useScheduleMigration";
@@ -38,6 +42,14 @@ export function Layout() {
   const { user, token } = useSession();
   useDictionaryLinker();
   useScheduleMigration();
+  useEffect(() => connectEvents(token), [token]);
+  const { list } = useConversations(token);
+  const unread = list?.reduce((n, c) => n + c.unread, 0) ?? 0;
+  const location = useLocation();
+  const inConversation = /^\/chat\/(?!assistant)[^/]+$/.test(location.pathname);
+  useEffect(() => {
+    document.title = unread > 0 ? `(${unread}) VoChat` : "VoChat";
+  }, [unread]);
   return (
     <div className="app">
       <header className="topbar">
@@ -46,6 +58,7 @@ export function Layout() {
           {TABS.map((t) => (
             <NavLink key={t.to} to={t.to} end={t.to === "/"} className={({ isActive }) => (isActive ? "active" : undefined)}>
               {t.label}
+              {t.to === "/chat" && unread > 0 && <span className="nav-badge">{unread > 99 ? "99+" : unread}</span>}
             </NavLink>
           ))}
         </nav>
@@ -55,13 +68,17 @@ export function Layout() {
           <span className="muted hide-sm">{token ? user.name : "Gast"}</span>
         </div>
       </header>
-      <main className="content">
+      <PwaUpdateBanner />
+      <main className={`content ${inConversation ? "content-chat" : ""}`}>
         <Outlet />
       </main>
       <nav className="tabs-mobile" aria-label="Hauptnavigation">
         {TABS.map((t) => (
           <NavLink key={t.to} to={t.to} end={t.to === "/"} className={({ isActive }) => (isActive ? "active" : undefined)}>
-            <span aria-hidden>{t.icon}</span>
+            <span aria-hidden className="nav-icon">
+              {t.icon}
+              {t.to === "/chat" && unread > 0 && <span className="nav-badge">{unread > 99 ? "99+" : unread}</span>}
+            </span>
             <span>{t.short}</span>
           </NavLink>
         ))}

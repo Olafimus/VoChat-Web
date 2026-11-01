@@ -79,6 +79,8 @@ export type CardRow = Row & {
   resetAt?: number | null;
   rank?: number | null;
   origin?: string | null;
+  pendingUpdate?: { fields: Partial<Record<"gloss" | "pronunciation" | "cefr", { from: string | null; to: string | null }>>; at: number } | null;
+  ignoredUpdate?: string | null;
 };
 
 export type MessageRow = Row & {

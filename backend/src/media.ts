@@ -35,6 +35,7 @@ export function sniffImage(bytes: Uint8Array): { contentType: string; ext: strin
   if (starts([0x89, 0x50, 0x4e, 0x47])) return { contentType: "image/png", ext: "png" };
   if (starts([0xff, 0xd8, 0xff])) return { contentType: "image/jpeg", ext: "jpg" };
   if (starts([0x52, 0x49, 0x46, 0x46]) && starts([0x57, 0x45, 0x42, 0x50], 8)) return { contentType: "image/webp", ext: "webp" };
+  if (starts([0x47, 0x49, 0x46, 0x38])) return { contentType: "image/gif", ext: "gif" };
   return null;
 }
 

@@ -39,6 +39,18 @@ export const cardSchema = z.object({
   resetAt: timestamp.nullable().default(null),
   /** Häufigkeitsrang aus dem Wörterbuch (kleiner = wichtiger). */
   rank: z.number().int().positive().nullable().default(null),
+  /**
+   * Vorgeschlagene Korrektur aus dem Wörterbuch (z. B. ein Experte hat die Bedeutung berichtigt). Wird erst
+   * nach Zustimmung übernommen; `ignoredUpdate` merkt sich abgelehnte Werte, damit sie nicht wiederkommen.
+   */
+  pendingUpdate: z
+    .object({
+      fields: z.record(z.enum(["gloss", "pronunciation", "cefr"]), z.object({ from: z.string().nullable(), to: z.string().nullable() })),
+      at: timestamp,
+    })
+    .nullable()
+    .default(null),
+  ignoredUpdate: z.string().max(2000).nullable().default(null),
   /** Herkunft, z. B. "scan", "chat", "challenge:<id>", "collection:<id>" – fließt in die Priorität ein. */
   origin: z.string().max(80).nullable().default(null),
   createdAt: timestamp,

@@ -210,8 +210,8 @@ export function expertAction(db: Db, actorId: string, lexemeId: number, a: Exper
       }
       case "hideSense":
       case "editSense": {
-        const sense = await t.get<{ gloss: string; gloss_lang: string }>(
-          "SELECT gloss, gloss_lang FROM senses WHERE id = ? AND lexeme_id = ? AND hidden = 0",
+        const sense = await t.get<{ gloss: string; gloss_lang: string; position: number }>(
+          "SELECT gloss, gloss_lang, position FROM senses WHERE id = ? AND lexeme_id = ? AND hidden = 0",
           [a.senseId, lexemeId],
         );
         if (!sense) return { ok: false, status: 404, error: "sense not found" };
@@ -219,6 +219,11 @@ export function expertAction(db: Db, actorId: string, lexemeId: number, a: Exper
         let auditId: number;
         if (a.action === "editSense") {
           await addSense(t, lexemeId, sense.gloss_lang, a.gloss, `expert:${actorId}`);
+          // Die korrigierte Bedeutung übernimmt den Platz der alten (sonst rückt eine andere nach vorn).
+          await t.run(
+            "UPDATE senses SET position = ? WHERE lexeme_id = ? AND gloss_lang = ? AND gloss = ? AND hidden = 0 AND source = ?",
+            [sense.position, lexemeId, sense.gloss_lang, a.gloss, `expert:${actorId}`],
+          );
           auditId = await audit("sense.edit", { from: sense.gloss, to: a.gloss, glossLang: sense.gloss_lang }, "sense", a.senseId);
         } else {
           auditId = await audit("sense.hide", { gloss: sense.gloss, reason: a.reason ?? null }, "sense", a.senseId);

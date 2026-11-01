@@ -21,12 +21,12 @@ export interface ActiveRecorder {
   done: Promise<Recording>;
 }
 
-export async function startRecording(maxMs = MAX_RECORDING_MS, onTick?: (ms: number) => void): Promise<ActiveRecorder> {
+export async function startRecording(maxMs = MAX_RECORDING_MS, onTick?: (ms: number) => void, bitsPerSecond = 32_000): Promise<ActiveRecorder> {
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
   });
   const mimeType = MIME_CANDIDATES.find((m) => MediaRecorder.isTypeSupported?.(m));
-  const rec = new MediaRecorder(stream, { ...(mimeType ? { mimeType } : {}), audioBitsPerSecond: 32_000 });
+  const rec = new MediaRecorder(stream, { ...(mimeType ? { mimeType } : {}), audioBitsPerSecond: bitsPerSecond });
   const chunks: Blob[] = [];
   const started = performance.now();
   rec.ondataavailable = (e) => e.data.size > 0 && chunks.push(e.data);

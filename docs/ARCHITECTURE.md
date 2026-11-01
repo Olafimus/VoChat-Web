@@ -120,6 +120,60 @@ Platz und Punkten, Einladungen zum Annehmen sowie Neuigkeiten (`GET /notificatio
 neue Follower, Challenge-Einladungen, Antworten auf Kommentare, Kommentare und Entscheidungen zu eigenen Vorschlägen.
 „Gelesen“ merkt sich das Gerät.
 
+## Chats zwischen Nutzern
+
+- **Direktchats** nur zwischen Freunden, **Gruppen** (bis 30) nur mit Freunden der Gründerin. Tabellen `conversations`,
+  `conversation_members` (mit `last_read_id` für Ungelesen und Lesebestätigung), `chat_messages`, `chat_reactions`.
+- **Nachrichten:** Text (≤ 4000 Zeichen), Bild (im Browser auf ≤ 1600 px verkleinert, WebP/JPEG; GIF unverändert; ≤ 5 MB) und
+  Sprachnachricht (Opus 24 kbit/s, ≤ 2 Min. im Client, ≤ 3 Min./2 MB am Server). Antworten mit Zitat, Reaktionen (Emoji),
+  Bearbeiten (24 h), Löschen (auch Medien), **Korrekturvorschlag des Gegenübers mit Wort-Diff** (Sprachaustausch),
+  „Wörter lernen“ aus einer Nachricht (inkl. gebeugter Formen), Gelesen-Häkchen ✓/✓✓, Ungelesen-Zähler in Navigation und Tab-Titel.
+- **Echtzeit:** `GET /events` (Server-Sent Events, per fetch mit Bearer-Token). Ereignisse enthalten nur IDs; der Client lädt
+  gezielt nach (`after=<id>` bzw. `ids=`). Automatischer Neuaufbau mit Backoff, danach Abgleich verpasster Nachrichten.
+  Verteiler im Prozess (`ChatHub`); für mehrere Instanzen später Postgres LISTEN/NOTIFY.
+- **Senden ist idempotent** (`clientId`): Nachrichten erscheinen sofort, bei Verbindungsabbruch „erneut versuchen“, ohne Duplikate.
+- **Performance:** `@tanstack/react-virtual` mit dynamischen Höhen – nur sichtbare Nachrichten im DOM. Ältere Seiten (50)
+  werden beim Hochscrollen geladen; die Position bleibt stabil (Anker-Nachricht). Gemessen (Produktions-Build, 10 000 Nachrichten):
+  Öffnen 164 ms, 18 Zeilen/≈ 210 DOM-Knoten, Scrollen Ø 61 fps (p95 17 ms/Frame, keine Frames > 50 ms), Echtzeit ≈ 5 ms.
+  Test: `web/e2e/chat.cjs` (Seed-Skript `npm run seed:chat -w backend`).
+- **Sicherheit:** Text wird nie als HTML eingesetzt; Links erkennt `linkify` nur für http(s) und öffnet sie mit
+  `rel="noopener noreferrer nofollow ugc"`. Uploads werden anhand der Datei geprüft (kein SVG/HTML), unter zufälligem Namen
+  gespeichert und nur über signierte Links ausgeliefert (`nosniff`, `sandbox`-CSP). Fremde sehen weder Chats noch Medien.
+- Der **Wörterbuch-Assistent** (lokal, ohne Konto) ist ein eigener Eintrag in der Chat-Liste (`/chat/assistant`), ebenfalls virtualisiert.
+
+## Korrekturen an Wörtern der eigenen Sammlung
+
+Ändert sich ein Wörterbucheintrag (z. B. ein Experte korrigiert die Bedeutung), erkennt der Abgleich mit dem Wörterbuch
+das für jede verknüpfte Karte. Leere Felder werden still ergänzt; **geänderte Werte werden nicht mehr automatisch übernommen**,
+sondern als `pendingUpdate` (synchronisiert) vorgeschlagen:
+
+- Hinweis auf der Startseite und Liste im Wortschatz mit **wortgenauem Diff** je Feld (Bedeutung, Aussprache, Niveau) und
+  wer es wann geändert hat (aus dem Änderungsverlauf).
+- **Übernehmen** oder **Ignorieren** (derselbe Vorschlag kommt nicht wieder; ein neuer schon).
+- **Lernstand:** beim Übernehmen wählbar, ob er bleibt oder zurückgesetzt wird. Bei inhaltlicher Änderung der Bedeutung
+  ist „zurücksetzen“ vorausgewählt – man hat bisher etwas anderes gelernt. Eigene Werte (selbst bearbeitete Felder) sind nie betroffen.
+- Eine korrigierte Bedeutung behält ihre Position im Eintrag (sonst würde eine andere Bedeutung nach vorne rücken).
+
+## Installierbare Web-App (PWA)
+
+`vite-plugin-pwa`: Manifest (Name, Symbole inkl. maskable, Verknüpfungen Lernen/Chats/Scan) und Service Worker
+(App-Shell vorab, Texterkennung und Wikimedia-Aufnahmen beim ersten Gebrauch zwischengespeichert, API nie). Startet offline
+(die Daten liegen ohnehin lokal). Neue Versionen werden angekündigt („Neu laden“) statt mitten in der Nutzung zu wechseln.
+„📲 App installieren“ auf Startseite/Profil (Chrome/Edge/Android), Anleitung für iOS. Geprüft mit `web/e2e/pwa-csp.cjs`
+(keine Installierbarkeitsfehler, Offline-Start, Texterkennung unter CSP).
+
+**Sicherheits-Header** (`web/security-headers.conf`, von nginx in jedem Block eingebunden und von `vite preview` mitgenutzt):
+strikte CSP ohne Inline-Skripte (`script-src 'self' 'wasm-unsafe-eval'`), `frame-ancestors 'none'`, `nosniff`,
+Mikrofon/Kamera nur für die eigene Seite. Echtzeit-Endpunkt ohne Pufferung (`proxy_buffering off`).
+
+## Statistik-Seite
+
+Kennzahlen (heute dran, Serie, sicher/gefährdet, Behaltensquote), Aktivitäts-Heatmap (bis 53 Wochen, passt sich der Breite an),
+Wortschatz-Wachstum (90 Tage), fällige Wiederholungen (14 Tage), Stabilitäts-Verteilung („wie fest sitzen deine Wörter“),
+Lernzeiten nach Uhrzeit mit Trefferquote und Ø Antwortzeit, Fortschritt je Niveau, schwierigste Wörter, Kalibrierung
+(Vorhersage vs. Wirklichkeit) und Einstellungen. Diagramme ohne Bibliothek (SVG/CSS), mit Tooltips und Textalternativen,
+eigene Farbstufen für Hell/Dunkel.
+
 ## Eigene Aufnahmen
 
 Im Wortdetail und im Lernstand einer Karte: „einsprechen“ nimmt höchstens 5 s auf (Mono, Rauschunterdrückung, Opus mit

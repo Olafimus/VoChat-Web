@@ -13,6 +13,7 @@
   "dependencies": {
     "@tanstack/db": "^1.0.0-rc.1.1",
     "@tanstack/react-db": "^1.0.0-rc.1.1",
+    "@tanstack/react-virtual": "^3.14.25",
     "@tesseract.js-data/deu": "^1.0.0",
     "@tesseract.js-data/eng": "^1.0.0",
     "@tesseract.js-data/fas": "^1.0.0",
@@ -29,6 +30,8 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "typescript": "^5.9.3",
-    "vite": "^8.3.5"
+    "vite": "^8.3.5",
+    "vite-plugin-pwa": "^2.0.0",
+    "workbox-window": "^7.4.1"
   }
 }

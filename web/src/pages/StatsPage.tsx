@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useLiveQuery } from "@tanstack/react-db";
-import { buildPlan, computeStats, LANGUAGES, type Cefr, type LangCode } from "@vochat/shared";
+import { buildPlan, computeInsights, computeStats, LANGUAGES, type Cefr, type LangCode } from "@vochat/shared";
+import { AreaChart, BarChart, Heatmap, Meter } from "../components/charts";
 import { useSession } from "../session";
 import { useActiveLang } from "../lib/lang";
 import type { CardRow, ReviewRow } from "../local/collections";
@@ -30,7 +31,7 @@ export function StatsPage() {
   const cards = (useLiveQuery(() => collections.cards).data ?? []) as CardRow[];
   const reviews = (useLiveQuery(() => collections.reviews).data ?? []) as ReviewRow[];
 
-  const { stats, plan } = useMemo(() => {
+  const { stats, plan, insights } = useMemo(() => {
     const now = Date.now();
     const today = startOfToday(now);
     const langCards = cards.filter((c) => !c.deleted && c.lang === lang);
@@ -40,12 +41,17 @@ export function StatsPage() {
     return {
       stats: computeStats(langCards.map(toStatsCard), langReviews.map(toStatsReview), now, today),
       plan: buildPlan(langCards.map(toPlannerCard), langReviews, plannerSettings(settings, { targetCefr }), now, today),
+      insights: computeInsights(
+        langCards.map((c) => ({ ...toStatsCard(c), lemma: c.lemma, cefr: c.cefr, difficulty: c.difficulty, lapses: c.lapses })),
+        langReviews.map(toStatsReview),
+        today,
+        (t) => new Date(t).getHours(),
+        371,
+      ),
     };
   }, [cards, reviews, lang, settings, user.learnLangs]);
 
   const update = (patch: Partial<LearningSettings>) => writeLearning({ ...settings, ...patch });
-  const maxForecast = Math.max(1, ...plan.forecast);
-  const maxDaily = Math.max(1, ...stats.daily.map((d) => d.reviews));
   const today = startOfToday();
 
   return (
@@ -76,35 +82,95 @@ export function StatsPage() {
       </div>
 
       <section className="card stack">
-        <h3>Fällige Wiederholungen – nächste 14 Tage</h3>
-        <div className="bars" role="img" aria-label="Fällige Wiederholungen je Tag">
-          {plan.forecast.map((n, i) => {
-            const day = today + i * 86_400_000;
-            const label = i === 0 ? "heute" : WEEKDAY.format(day);
-            return (
-              <div key={i} className="bar-col" title={`${i === 0 ? "Heute (inkl. Rückstand)" : `${WEEKDAY.format(day)} ${DAY.format(day)}`}: ${n} Wiederholungen`}>
-                <span className="bar-area">
-                  <span className="bar-value">{n > 0 ? n : ""}</span>
-                  <span className="bar" style={{ height: `${(n / maxForecast) * 100}%` }} />
-                </span>
-                <span className="bar-label">{label}</span>
-              </div>
-            );
-          })}
+        <div className="row">
+          <h3>Aktivität</h3>
+          <span className="spacer" />
+          <span className="muted small">letzte Wochen</span>
         </div>
+        <Heatmap days={insights.heatmap} />
       </section>
+
+      <div className="stats-grid">
+        <section className="card stack">
+          <h3>Wortschatz-Wachstum</h3>
+          <p className="muted small">Gelernte Wörter insgesamt (ab der ersten Antwort), letzte 90 Tage.</p>
+          <AreaChart points={insights.growth} label="Gelernte Wörter" unit="Wörter" />
+        </section>
+
+        <section className="card stack">
+          <h3>Fällige Wiederholungen</h3>
+          <p className="muted small">Nächste 14 Tage – heute inklusive Rückstand.</p>
+          <BarChart
+            label="Fällige Wiederholungen je Tag"
+            data={plan.forecast.map((n, i) => {
+              const day = today + i * 86_400_000;
+              return { label: i === 0 ? "heute" : WEEKDAY.format(day), value: n, tip: i === 0 ? "Heute" : `${WEEKDAY.format(day)} ${DAY.format(day)}` };
+            })}
+            highlight={0}
+          />
+        </section>
+
+        <section className="card stack">
+          <h3>Wie fest sitzen deine Wörter?</h3>
+          <p className="muted small">Stabilität: so lange behältst du ein Wort mit 90 % Wahrscheinlichkeit.</p>
+          <BarChart label="Wörter je Stabilität" data={insights.stability.map((b) => ({ label: b.label, value: b.count }))} format={(n) => `${n} Wörter`} />
+        </section>
+
+        <section className="card stack">
+          <h3>Wann du lernst</h3>
+          {(() => {
+            const best = insights.hours.filter((h) => h.reviews >= 10).sort((a, b) => b.correct / b.reviews - a.correct / a.reviews)[0];
+            return (
+              <p className="muted small">
+                Antworten je Uhrzeit.
+                {best ? ` Am sichersten um ${best.hour} Uhr (${Math.round((best.correct / best.reviews) * 100)} % richtig).` : ""}
+                {insights.avgResponseSec !== null ? ` Ø Antwortzeit ${insights.avgResponseSec.toFixed(1).replace(".", ",")} s.` : ""}
+              </p>
+            );
+          })()}
+          <BarChart
+            label="Antworten je Stunde"
+            data={insights.hours.map((h) => ({ label: `${h.hour}`, value: h.reviews, tip: `${h.hour}–${h.hour + 1} Uhr${h.reviews ? `, ${Math.round((h.correct / h.reviews) * 100)} % richtig` : ""}` }))}
+            height={100}
+          />
+        </section>
+
+        {insights.levels.length > 0 && (
+          <section className="card stack">
+            <h3>Nach Niveau</h3>
+            {insights.levels.map((l) => (
+              <Meter key={l.level} label={l.level} value={l.known} total={l.total} />
+            ))}
+          </section>
+        )}
+
+        <section className="card stack">
+          <h3>Schwierigste Wörter</h3>
+          {insights.hardest.length === 0 ? (
+            <p className="muted small">Noch keine – gut so!</p>
+          ) : (
+            <ol className="hardest">
+              {insights.hardest.map((h) => (
+                <li key={h.id}>
+                  <b>{h.lemma}</b>
+                  <span className="muted small">
+                    {h.lapses}× vergessen · Schwierigkeit {h.difficulty.toFixed(1).replace(".", ",")}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          )}
+          <Link to="/vocab" className="small">Im Wortschatz ansehen, ignorieren oder öfter üben →</Link>
+        </section>
+      </div>
 
       <section className="card stack">
         <h3>Antworten – letzte 30 Tage</h3>
-        <div className="bars thin" role="img" aria-label="Antworten je Tag, letzte 30 Tage">
-          {stats.daily.map((d) => (
-            <div key={d.day} className="bar-col" title={`${DAY.format(d.day)}: ${d.reviews} Antworten, ${d.correct} richtig`}>
-              <span className="bar-area">
-                <span className="bar" style={{ height: `${(d.reviews / maxDaily) * 100}%` }} />
-              </span>
-            </div>
-          ))}
-        </div>
+        <BarChart
+          label="Antworten je Tag"
+          data={stats.daily.map((d) => ({ label: DAY.format(d.day), value: d.reviews, tip: `${DAY.format(d.day)} – ${d.correct} richtig` }))}
+          height={90}
+        />
         <div className="muted small">
           Karten: {stats.cards.new} neu · {stats.cards.learning} lernend · {stats.cards.review} in Wiederholung · {stats.cards.mastered} sitzen
           (Stabilität ≥ 60 Tage) · {stats.cards.ignored} ignoriert
@@ -119,6 +185,22 @@ export function StatsPage() {
           richtig lagst. Liegen die Werte nah beieinander, sind die Abstände gut gewählt. Antworten am selben Tag zählen nicht mit
           (dort: {pct(stats.sameDay.rate)} richtig bei {stats.sameDay.n} Antworten).
         </p>
+        <div className="calibration">
+          {stats.calibration.filter((b) => b.n > 0).map((b) => (
+            <div key={b.label} className="calib-row" role="img" aria-label={`${b.label}: vorhergesagt ${pct(b.predicted)}, tatsächlich ${pct(b.actual)} bei ${b.n} Antworten`}>
+              <span className="calib-label small">{b.label}</span>
+              <span className="calib-track">
+                <span className="calib-actual" style={{ width: `${b.actual * 100}%` }} />
+                <span className="calib-pred" style={{ left: `${b.predicted * 100}%` }} title={`Vorhersage ${pct(b.predicted)}`} />
+              </span>
+              <span className="small">{pct(b.actual)}</span>
+            </div>
+          ))}
+          {stats.calibration.every((b) => b.n === 0) && <p className="muted small">Noch zu wenige Wiederholungen nach mindestens einem Tag Pause.</p>}
+          <div className="muted small">Balken = tatsächlich richtig · Strich = Vorhersage des Modells</div>
+        </div>
+        <details className="small">
+          <summary>Als Tabelle</summary>
         <div className="table-scroll">
           <table className="history-table">
             <thead>
@@ -136,6 +218,7 @@ export function StatsPage() {
             </tbody>
           </table>
         </div>
+        </details>
       </section>
 
       <section className="card stack">

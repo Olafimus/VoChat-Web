@@ -156,3 +156,100 @@ export function computeStats(cards: StatsCard[], reviews: StatsReview[], now: nu
     medianStability: stabilities.length ? stabilities[Math.floor(stabilities.length / 2)] : null,
   };
 }
+
+// ---- Erweiterte Auswertungen für die Statistik-Seite ---------------------------------
+
+export interface InsightCard extends StatsCard {
+  lemma: string;
+  cefr?: string | null;
+  difficulty?: number;
+  lapses?: number;
+}
+
+export interface Insights {
+  /** Antworten je Tag, die letzten `heatmapDays` Tage (ältester zuerst). */
+  heatmap: { day: number; reviews: number }[];
+  /** Kumulierte Zahl gelernter Wörter (erste Antwort) je Tag, letzte 90 Tage. */
+  growth: { day: number; total: number }[];
+  /** Wie fest sitzen die Wörter? Verteilung der Stabilität. */
+  stability: { label: string; count: number }[];
+  /** Antworten je Tagesstunde (0–23) und Trefferquote je Stunde. */
+  hours: { hour: number; reviews: number; correct: number }[];
+  /** Schwierigste Wörter (meist vergessen, höchste Schwierigkeit). */
+  hardest: { id: string; lemma: string; lapses: number; difficulty: number }[];
+  /** Nach Niveau: gelernt (mind. „review“) / gesamt. */
+  levels: { level: string; known: number; total: number }[];
+  /** Mittlere Antwortzeit (s) der letzten 200 Antworten. */
+  avgResponseSec: number | null;
+}
+
+const STABILITY_BUCKETS: [number, string][] = [
+  [1, "< 1 Tag"],
+  [7, "1–7 Tage"],
+  [30, "1–4 Wochen"],
+  [90, "1–3 Monate"],
+  [365, "3–12 Monate"],
+  [Infinity, "> 1 Jahr"],
+];
+
+export function computeInsights(
+  cards: InsightCard[],
+  reviews: StatsReview[],
+  startOfToday: number,
+  hourOf: (t: number) => number,
+  heatmapDays = 182,
+): Insights {
+  const dayIndex = (t: number) => Math.floor((t - startOfToday) / DAY_MS); // 0 = heute
+  const heatmap = Array.from({ length: heatmapDays }, (_, i) => ({ day: startOfToday - (heatmapDays - 1 - i) * DAY_MS, reviews: 0 }));
+  const hours = Array.from({ length: 24 }, (_, hour) => ({ hour, reviews: 0, correct: 0 }));
+  const firstSeen = new Map<string, number>();
+  const real = reviews.filter((r) => !r.manual);
+  for (const r of real) {
+    const di = dayIndex(r.at);
+    const slot = heatmapDays - 1 + di;
+    if (slot >= 0 && slot < heatmapDays) heatmap[slot].reviews++;
+    const h = hours[hourOf(r.at)];
+    if (h) {
+      h.reviews++;
+      if (r.grade !== "again") h.correct++;
+    }
+  }
+  for (const r of reviews) {
+    const prev = firstSeen.get(r.cardId);
+    if (prev === undefined || r.at < prev) firstSeen.set(r.cardId, r.at);
+  }
+  const growthDays = 90;
+  const firsts = [...firstSeen.values()].sort((a, b) => a - b);
+  let k = 0;
+  const growth = Array.from({ length: growthDays }, (_, i) => {
+    const day = startOfToday - (growthDays - 1 - i) * DAY_MS;
+    while (k < firsts.length && firsts[k] < day + DAY_MS) k++;
+    return { day, total: k };
+  });
+
+  const active = cards.filter((c) => !c.ignored);
+  const stability = STABILITY_BUCKETS.map(([, label]) => ({ label, count: 0 }));
+  for (const c of active) {
+    if (c.status === "new" || !c.stability) continue;
+    const i = STABILITY_BUCKETS.findIndex(([max]) => c.stability < max);
+    stability[i].count++;
+  }
+
+  const hardest = active
+    .filter((c) => (c.lapses ?? 0) > 0 || (c.difficulty ?? 0) >= 7)
+    .sort((a, b) => (b.lapses ?? 0) - (a.lapses ?? 0) || (b.difficulty ?? 0) - (a.difficulty ?? 0))
+    .slice(0, 10)
+    .map((c) => ({ id: c.id, lemma: c.lemma, lapses: c.lapses ?? 0, difficulty: c.difficulty ?? 5 }));
+
+  const levelOrder = ["A1", "A2", "B1", "B2", "C1", "C2"];
+  const levels = levelOrder
+    .map((level) => {
+      const of = active.filter((c) => c.cefr === level);
+      return { level, total: of.length, known: of.filter((c) => c.status === "review" || c.status === "mastered").length };
+    })
+    .filter((l) => l.total > 0);
+
+  const recent = real.filter((r) => r.responseMs && r.responseMs < 120_000).slice(-200);
+  const avgResponseSec = recent.length ? recent.reduce((s, r) => s + r.responseMs!, 0) / recent.length / 1000 : null;
+  return { heatmap, growth, stability, hours, hardest, levels, avgResponseSec };
+}

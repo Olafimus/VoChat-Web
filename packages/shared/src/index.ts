@@ -11,3 +11,4 @@ export * from "./coverage.js";
 export * from "./community.js";
 export * from "./keys.js";
 export * from "./challenges.js";
+export * from "./diff.js";

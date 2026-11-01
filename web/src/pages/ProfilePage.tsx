@@ -7,6 +7,7 @@ import { AuthForm } from "./AuthPage";
 import { getTheme, setTheme, type Theme } from "../lib/theme";
 import { readDisplay, writeDisplay, type DisplayPrefs } from "../lib/display";
 import { WordView } from "../components/WordView";
+import { InstallApp } from "../components/PwaBanner";
 
 export function ProfilePage() {
   const { user, token, updateProfile, replaceProfile, connect, disconnect, collections } = useSession();
@@ -134,6 +135,12 @@ export function ProfilePage() {
           <button className="primary">Speichern</button>
         </div>
       </form>
+
+      <section className="card stack">
+        <h2>App</h2>
+        <p className="muted small">VoChat lässt sich wie eine App installieren: eigenes Symbol, startet ohne Browserleiste, funktioniert offline.</p>
+        <InstallApp />
+      </section>
 
       <DisplaySettings />
 

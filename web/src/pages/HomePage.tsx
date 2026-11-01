@@ -9,6 +9,8 @@ import { prefs } from "../lib/prefs";
 import type { CardRow, ReviewRow } from "../local/collections";
 import { plannerSettings, startOfToday, toPlannerCard, toStatsCard, toStatsReview, useLearningSettings } from "../lib/learning";
 import { Empty } from "../components/ui";
+import { useConversations } from "../lib/useChats";
+import { InstallApp } from "../components/PwaBanner";
 
 const SEEN_KEY = "vochat.notificationsSeen";
 const daysLeft = (end: number) => Math.max(0, Math.ceil((end - Date.now()) / 86_400_000));
@@ -63,6 +65,7 @@ export function HomePage() {
           <Link to="/scan" className="button">📷 Foto scannen</Link>
           <Link to="/chat" className="button">💬 Nachschlagen</Link>
           <Link to="/stats" className="button">📊 Statistik</Link>
+          <InstallApp compact />
         </div>
       </section>
 
@@ -103,12 +106,62 @@ export function HomePage() {
         </div>
       </section>
 
+      {(() => {
+        const n = cards.filter((c) => !c.deleted && c.pendingUpdate).length;
+        return n > 0 ? (
+          <Link to="/vocab" className="card notice-link">
+            ✏️ <b>{n} {n === 1 ? "Wort" : "Wörter"}</b> in deiner Sammlung {n === 1 ? "wurde" : "wurden"} im Wörterbuch korrigiert – ansehen und entscheiden
+          </Link>
+        ) : null;
+      })()}
+
+      {token && <ChatSection token={token} />}
+
       {token ? <SocialSection token={token} /> : (
         <section className="card small">
           Mit einem <Link to="/profile">Konto</Link> kannst du Challenges mit Freunden spielen, Fortschritt synchronisieren und Neuigkeiten sehen.
         </section>
       )}
     </div>
+  );
+}
+
+function ChatSection({ token }: { token: string }) {
+  const { user } = useSession();
+  const { list } = useConversations(token);
+  const unread = (list ?? []).filter((c) => c.unread > 0);
+  if (!list) return null;
+  return (
+    <section className="stack">
+      <div className="row">
+        <h3>Nachrichten {unread.length > 0 && <span className="badge">{unread.reduce((n, c) => n + c.unread, 0)} neu</span>}</h3>
+        <span className="spacer" />
+        <Link to="/chat" className="small">alle Chats</Link>
+      </div>
+      {unread.length === 0 ? (
+        <div className="card small muted">Keine ungelesenen Nachrichten.</div>
+      ) : (
+        <ul className="conv-list card">
+          {unread.slice(0, 4).map((c) => (
+            <li key={c.id}>
+              <Link to={`/chat/${c.id}`} className="conv-item unread">
+                <span className="conv-main">
+                  <span className="row conv-top">
+                    <b className="conv-name">{c.title}</b>
+                    <span className="spacer" />
+                    <span className="unread-badge">{c.unread}</span>
+                  </span>
+                  <span className="conv-preview muted small">
+                    {c.lastMessage?.authorId === user.id ? "Du: " : ""}
+                    {c.lastMessage?.preview}
+                  </span>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 

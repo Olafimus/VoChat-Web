@@ -10,6 +10,8 @@ import { ProfilePage } from "./pages/ProfilePage";
 import { ScanPage } from "./pages/ScanPage";
 import { StatsPage } from "./pages/StatsPage";
 import { HomePage } from "./pages/HomePage";
+import { ChatsPage } from "./pages/ChatsPage";
+import { ConversationPage } from "./pages/ConversationPage";
 
 export function App() {
   return (
@@ -17,7 +19,9 @@ export function App() {
       <Routes>
         <Route element={<Layout />}>
           <Route index element={<HomePage />} />
-          <Route path="chat" element={<ChatPage />} />
+          <Route path="chat" element={<ChatsPage />} />
+          <Route path="chat/assistant" element={<ChatPage />} />
+          <Route path="chat/:id" element={<ConversationPage />} />
           <Route path="vocab" element={<VocabPage />} />
           <Route path="learn" element={<LearnPage />} />
           <Route path="paths" element={<PathsPage />} />

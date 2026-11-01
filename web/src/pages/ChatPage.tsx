@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { useLiveQuery } from "@tanstack/react-db";
 import { LANGUAGES, type ExtractResult, type LangCode, type LexemeSummary } from "@vochat/shared";
 import { api, ApiError, extract } from "../api/client";
@@ -25,12 +27,27 @@ export function ChatPage() {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
-  const bottom = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const sorted = messages.filter((m) => !m.deleted).sort((a, b) => a.createdAt - b.createdAt);
 
-  useEffect(() => {
-    bottom.current?.scrollIntoView({ behavior: "smooth" });
+  // Virtualisiert: nur sichtbare Nachrichten im DOM – bleibt auch bei tausenden Einträgen flüssig.
+  const virtualizer = useVirtualizer({
+    count: sorted.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: (i) => (sorted[i]?.kind === "lookup" ? 220 : 64),
+    getItemKey: (i) => sorted[i]?.id ?? i,
+    overscan: 6,
+  });
+  useLayoutEffect(() => {
+    if (sorted.length === 0) return;
+    virtualizer.scrollToIndex(sorted.length - 1, { align: "end" });
+    const t = requestAnimationFrame(() => {
+      const el = scrollRef.current;
+      if (el) el.scrollTop = el.scrollHeight;
+    });
+    return () => cancelAnimationFrame(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sorted.length]);
 
   const post = (row: { role: MessageRow["role"]; kind: MessageRow["kind"]; body: string; payload: unknown }) => {
@@ -124,6 +141,9 @@ export function ChatPage() {
   return (
     <div className="chat">
       <div className="chat-head">
+        <Link to="/chat" className="conv-back" aria-label="Zurück zu den Chats">←</Link>
+        <b>📖 Assistent</b>
+        <span className="spacer" />
         <label className="inline">
           Lernsprache
           <select value={lang} onChange={(e) => setLang(e.target.value as LangCode)}>
@@ -135,14 +155,18 @@ export function ChatPage() {
         <span className="muted small">Muttersprache: {user.nativeLang.toUpperCase()}</span>
       </div>
 
-      <div className="messages" aria-live="polite">
+      <div className="messages" aria-live="polite" ref={scrollRef}>
         {sorted.length === 0 && (
           <div className="bubble assistant">
             Hallo {user.name}! Schreib ein Wort oder eine Wendung auf {LANGUAGES[lang].name} – ich zeige dir Bedeutungen, Beispiele und das Niveau. Ganze Sätze kannst du mit „Wörter extrahieren“ durchsuchen.
           </div>
         )}
-        {sorted.map((m) => (
-          <div key={m.id} className={`bubble ${m.role} kind-${m.kind}`}>
+        <div style={{ height: virtualizer.getTotalSize(), position: "relative", width: "100%" }}>
+        {virtualizer.getVirtualItems().map((v) => {
+          const m = sorted[v.index];
+          return (
+          <div key={v.key} data-index={v.index} ref={virtualizer.measureElement} className="vrow" style={{ position: "absolute", top: 0, left: 0, width: "100%", transform: `translateY(${v.start}px)` }}>
+          <div className={`bubble ${m.role} kind-${m.kind}`}>
             {m.kind === "lookup" && (
               <LookupMessage
                 body={m.body}
@@ -187,9 +211,11 @@ export function ChatPage() {
               </div>
             )}
           </div>
-        ))}
+          </div>
+          );
+        })}
+        </div>
         {busy && <div className="bubble assistant muted">…</div>}
-        <div ref={bottom} />
       </div>
 
       <form className="composer" onSubmit={send}>

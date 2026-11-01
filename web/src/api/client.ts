@@ -300,3 +300,88 @@ export const recordings = {
     return (await res.json()) as import("@vochat/shared").AudioRecording;
   },
 };
+
+// ---- Chats zwischen Nutzern -------------------------------------------------
+
+export interface ChatMemberView {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+  lastReadId: number;
+}
+
+export interface ConversationView {
+  id: string;
+  kind: "dm" | "group";
+  title: string;
+  members: ChatMemberView[];
+  lastMessage: { id: number; authorId: string | null; preview: string; at: number } | null;
+  unread: number;
+  lastMessageAt: number;
+}
+
+export interface ChatMessage {
+  id: number;
+  conversationId: string;
+  authorId: string | null;
+  kind: "text" | "image" | "voice";
+  body: string;
+  replyTo: { id: number; authorId: string | null; preview: string } | null;
+  media: { url: string; type: string; width?: number; height?: number; durationMs?: number } | null;
+  correction: { body: string; byId: string | null } | null;
+  reactions: { emoji: string; count: number; mine: boolean }[];
+  createdAt: number;
+  editedAt: number | null;
+  deleted: boolean;
+  clientId: string | null;
+}
+
+export const chat = {
+  conversations: (token: string) => request<ConversationView[]>("/conversations", { token }),
+  openDm: (token: string, userId: string) => request<{ id: string }>("/conversations", { method: "POST", body: { userId }, token }),
+  createGroup: (token: string, title: string, members: string[]) =>
+    request<{ id: string }>("/conversations", { method: "POST", body: { title, members }, token }),
+  messages: (token: string, id: string, q: { before?: number; after?: number; ids?: number[]; limit?: number }) => {
+    const p = new URLSearchParams();
+    if (q.before !== undefined) p.set("before", String(q.before));
+    if (q.after !== undefined) p.set("after", String(q.after));
+    if (q.ids) p.set("ids", q.ids.join(","));
+    p.set("limit", String(q.limit ?? 50));
+    return request<ChatMessage[]>(`/conversations/${encodeURIComponent(id)}/messages?${p}`, { token });
+  },
+  send: (token: string, id: string, body: { body: string; replyTo?: number | null; clientId: string }) =>
+    request<ChatMessage>(`/conversations/${encodeURIComponent(id)}/messages`, { method: "POST", body, token }),
+  edit: (token: string, messageId: number, body: string) => request<ChatMessage>(`/messages/${messageId}`, { method: "PATCH", body: { body }, token }),
+  remove: (token: string, messageId: number) => request<{ ok: boolean }>(`/messages/${messageId}`, { method: "DELETE", token }),
+  react: (token: string, messageId: number, emoji: string) =>
+    request<{ ok: boolean }>(`/messages/${messageId}/reactions`, { method: "POST", body: { emoji }, token }),
+  correct: (token: string, messageId: number, body: string) =>
+    request<{ ok: boolean }>(`/messages/${messageId}/correction`, { method: "POST", body: { body }, token }),
+  read: (token: string, id: string, messageId: number) =>
+    request<{ ok: boolean }>(`/conversations/${encodeURIComponent(id)}/read`, { method: "POST", body: { messageId }, token }),
+  sendMedia: async (
+    token: string,
+    id: string,
+    blob: Blob,
+    q: { kind: "image" | "voice"; caption?: string; durationMs?: number; width?: number; height?: number; replyTo?: number | null; clientId: string },
+  ) => {
+    const p = new URLSearchParams({ kind: q.kind, clientId: q.clientId });
+    if (q.caption) p.set("caption", q.caption);
+    if (q.durationMs) p.set("durationMs", String(Math.round(q.durationMs)));
+    if (q.width) p.set("width", String(q.width));
+    if (q.height) p.set("height", String(q.height));
+    if (q.replyTo) p.set("replyTo", String(q.replyTo));
+    let res: Response;
+    try {
+      res = await fetch(apiUrl(`/conversations/${encodeURIComponent(id)}/media?${p}`), {
+        method: "POST",
+        headers: { authorization: `Bearer ${token}`, "content-type": blob.type || "application/octet-stream" },
+        body: blob,
+      });
+    } catch {
+      throw new ApiError(0, "offline");
+    }
+    if (!res.ok) throw new ApiError(res.status, ((await res.json().catch(() => ({}))) as { error?: string }).error ?? res.statusText);
+    return (await res.json()) as ChatMessage;
+  },
+};

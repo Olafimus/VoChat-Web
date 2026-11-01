@@ -20,11 +20,11 @@ type SummaryRow = {
 const SUMMARY_SELECT = `
   SELECT l.id, l.lang, l.lemma, l.pos, l.gender, l.cefr, l.frequency_rank, l.romanization,
     (SELECT s.gloss FROM senses s WHERE s.lexeme_id = l.id AND s.hidden = 0 AND s.gloss_lang = ?
-      ORDER BY s.position LIMIT 1) AS gloss,
+      ORDER BY s.position, s.id LIMIT 1) AS gloss,
     (SELECT t.target_lemma FROM translations t WHERE t.lexeme_id = l.id AND t.hidden = 0 AND t.target_lang = ?
       ORDER BY t.id LIMIT 1) AS translation,
     (SELECT s.gloss FROM senses s WHERE s.lexeme_id = l.id AND s.hidden = 0 AND s.gloss_lang = 'en'
-      ORDER BY s.position LIMIT 1) AS gloss_en
+      ORDER BY s.position, s.id LIMIT 1) AS gloss_en
   FROM lexemes l`;
 
 function toSummary(row: SummaryRow): LexemeSummary {

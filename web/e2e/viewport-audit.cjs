@@ -8,7 +8,7 @@ const VIEWPORTS = [
   { name: "tablet", width: 768, height: 1024, isMobile: false },
   { name: "desktop", width: 1280, height: 800, isMobile: false },
 ];
-const ROUTES = ["/chat", "/vocab", "/learn", "/paths", "/community", "/profile"];
+const ROUTES = ["/", "/chat", "/chat/assistant", "/vocab", "/learn", "/stats", "/scan", "/paths", "/community", "/profile"];
 
 async function audit(page, label) {
   return page.evaluate((label) => {
@@ -58,14 +58,14 @@ async function audit(page, label) {
     const page = await context.newPage();
     const errors = [];
     page.on("pageerror", (e) => errors.push(e.message));
-    await page.goto(`${BASE}/profile`, { waitUntil: "networkidle" });
+    await page.goto(`${BASE}/profile`, { waitUntil: "load" });
     // Profil: Lernsprachen wählen, lokal speichern
     await page.getByRole("checkbox", { name: "Persisch", exact: true }).check();
     await page.getByRole("checkbox", { name: "Spanisch" }).check();
     await page.getByRole("button", { name: "Speichern" }).first().click();
     await page.getByText("Gespeichert.").waitFor({ timeout: 10000 });
     // Chat: Wort suchen & als Karte speichern
-    await page.goto(`${BASE}/chat`, { waitUntil: "networkidle" });
+    await page.goto(`${BASE}/chat/assistant`, { waitUntil: "load" });
     await page.getByLabel("Lernsprache").selectOption({ label: "Persisch" });
     await page.getByLabel("Nachricht").fill("آب");
     await page.getByRole("button", { name: "Senden" }).click();
@@ -73,14 +73,14 @@ async function audit(page, label) {
     await page.getByRole("button", { name: "+ Lernen" }).first().click();
     await page.waitForTimeout(1000); // Speichern in IndexedDB abwarten, bevor neu geladen wird
     for (const route of ROUTES) {
-      await page.goto(`${BASE}${route}`, { waitUntil: "networkidle" });
+      await page.goto(`${BASE}${route}`, { waitUntil: "load" });
       await page.waitForTimeout(400);
-      const name = route.slice(1);
+      const name = route === "/" ? "home" : route.slice(1).replace(/\//g, "-");
       await page.screenshot({ path: `${SHOTS}/${vp.name}-${name}.png`, fullPage: true });
       report.push(await audit(page, `${vp.name} ${route}`));
     }
     // Chat mit Lookup-Treffer aufgeklappt
-    await page.goto(`${BASE}/chat`, { waitUntil: "networkidle" });
+    await page.goto(`${BASE}/chat/assistant`, { waitUntil: "load" });
     await page.screenshot({ path: `${SHOTS}/${vp.name}-chat-view.png`, fullPage: false });
     if (errors.length) report.push({ label: `${vp.name} errors`, issues: errors.slice(0, 3) });
     await context.close();

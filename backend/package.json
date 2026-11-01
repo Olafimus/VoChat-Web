@@ -11,7 +11,8 @@
     "test": "vitest run",
     "seed:songs": "tsx scripts/seed-public-songs.ts",
     "test:pg": "TEST_DB=postgres vitest run",
-    "admin:grant": "tsx scripts/grant-role.ts"
+    "admin:grant": "tsx scripts/grant-role.ts",
+    "seed:chat": "tsx scripts/seed-chat.ts"
   },
   "dependencies": {
     "@echogarden/espeak-ng-emscripten": "^0.3.5",
