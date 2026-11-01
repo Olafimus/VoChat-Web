@@ -17,6 +17,8 @@ import { recordAnswer } from "../lib/cards";
 import type { CardRow, ReviewRow } from "../local/collections";
 import { CefrBadge, Empty } from "../components/ui";
 import { WordView } from "../components/WordView";
+import { useDisplay } from "../lib/display";
+import { playPronunciation } from "../lib/audio";
 
 const FORMATS: { mode: Mode; label: string; hint: string }[] = [
   { mode: "flip", label: "Karteikarte", hint: "Wort sehen, Bedeutung aufdecken" },
@@ -88,6 +90,14 @@ export function LearnPage() {
   }, [queue.length, score.right, score.wrong]);
 
   const current = queue.map((id) => langCards.find((c) => c.id === id)).find(Boolean) as CardRow | undefined;
+  const display = useDisplay();
+  // Vorlesen, sobald das Wort in der Zielsprache sichtbar wird.
+  const targetVisible = !!current && (format === "flip" || (format === "reverse" && revealed) || (format === "type" && !!judgement));
+  useEffect(() => {
+    if (!display.autoplay || !targetVisible || !current) return;
+    void playPronunciation({ lang: current.lang as LangCode, text: current.lemma, lexemeId: current.lexemeId, mode: display.voice });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [display.autoplay, targetVisible, current?.id, queue.length]);
 
   const resetCard = () => {
     setRevealed(false);
@@ -205,7 +215,7 @@ export function LearnPage() {
                     {format === "flip" ? (
                       current.gloss ?? <span className="muted">(keine Bedeutung gespeichert)</span>
                     ) : (
-                      <WordView lemma={current.lemma} lang={current.lang as LangCode} pronunciation={current.pronunciation} large />
+                      <WordView lexemeId={current.lexemeId} lemma={current.lemma} lang={current.lang as LangCode} pronunciation={current.pronunciation} large />
                     )}
                   </div>
                   <div className="grades">
@@ -243,7 +253,7 @@ export function LearnPage() {
               />
               {judgement && (
                 <div className={`verdict verdict-${judgement.verdict}`} role="status">
-                  {judgement.verdict !== "wrong" && <WordView lemma={current.lemma} lang={current.lang as LangCode} pronunciation={current.pronunciation} />}
+                  {judgement.verdict !== "wrong" && <WordView lexemeId={current.lexemeId} lemma={current.lemma} lang={current.lang as LangCode} pronunciation={current.pronunciation} />}
                   {judgement.verdict === "typo"
                     ? `Fast – richtig ist „${judgement.expected}“ (ein Tippfehler ist erlaubt).`
                     : judgement.verdict === "correct"
@@ -287,7 +297,7 @@ function Confetti() {
 }
 
 function PromptWord({ card }: { card: CardRow }) {
-  return <WordView lemma={card.lemma} lang={card.lang as LangCode} pronunciation={card.pronunciation} large />;
+  return <WordView lexemeId={card.lexemeId} lemma={card.lemma} lang={card.lang as LangCode} pronunciation={card.pronunciation} large />;
 }
 
 function PromptMeaning({ card }: { card: CardRow }) {

@@ -241,7 +241,7 @@ function LookupMessage({
         <div key={r.id} className="lookup-item">
           <div className="row">
             <button className="link" onClick={() => setOpen(open === r.id ? null : r.id)} aria-expanded={open === r.id}>
-              <WordView lemma={r.lemma} lang={lang} pronunciation={r.romanization} gloss={r.gloss} cefr={r.cefr} pos={r.pos} gender={r.gender} />
+              <WordView lexemeId={r.id} lemma={r.lemma} lang={lang} pronunciation={r.romanization} gloss={r.gloss} cefr={r.cefr} pos={r.pos} gender={r.gender} />
             </button>
             <span className="spacer" />
             {isAdded(r.id) ? (
@@ -277,7 +277,7 @@ function ExtractMessage({
       {payload.matches.length === 0 && <div>Keine bekannten Wörter gefunden.</div>}
       {payload.matches.map((m) => (
         <div key={m.id} className="row">
-          <WordView lemma={m.lemma} lang={lang} pronunciation={m.romanization} gloss={m.gloss} cefr={m.cefr} />
+          <WordView lexemeId={m.id} lemma={m.lemma} lang={lang} pronunciation={m.romanization} gloss={m.gloss} cefr={m.cefr} />
           <span className="spacer" />
           {fresh.some((f) => f.id === m.id) ? (
             <button className="small-btn" onClick={() => onAdd(m)}>+ Lernen</button>

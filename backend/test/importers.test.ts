@@ -5,6 +5,7 @@ import { parseCsv } from "../src/importers/common.js";
 import { importFreedict } from "../src/importers/freedict.js";
 import { importFrequency } from "../src/importers/frequency.js";
 import { importKaikki } from "../src/importers/kaikki.js";
+import { commonsMp3, parseCommonsFile } from "../src/importers/commons.js";
 
 describe("parseCsv", () => {
   it("handles quoted fields with commas and escaped quotes", async () => {
@@ -50,6 +51,11 @@ describe("importers", () => {
         },
       ],
       translations: [{ lang_code: "es", word: "casa" }],
+      sounds: [
+        { ipa: "/haʊ̯s/" },
+        { audio: "LL-Q188 (deu)-Jane-Haus.wav", ogg_url: "https://upload.wikimedia.org/a.ogg", mp3_url: "https://upload.wikimedia.org/a.mp3" },
+        { audio: "x.ogg", ogg_url: "http://insecure.example/x.ogg" },
+      ],
     });
     expect(await importKaikki(db, { lang: "de", glossLang: "en", file: "t", text: line })).toBe(1);
     const lex = (await db.get("SELECT id, gender FROM lexemes WHERE lemma = 'Haus'")) as { id: number; gender: string };
@@ -58,6 +64,18 @@ describe("importers", () => {
     expect(ex.translation).toBe("The house is big.");
     const topic = (await db.get("SELECT c.name FROM lexeme_categories lc JOIN categories c ON c.id = lc.category_id WHERE lc.lexeme_id = ?", [lex.id])) as { name: string };
     expect(topic.name).toBe("architecture");
+    expect(((await db.get("SELECT ipa FROM lexemes WHERE id = ?", [lex.id])) as { ipa: string }).ipa).toBe("/haʊ̯s/");
+    const audio = await db.all<{ url: string; speaker: string }>("SELECT url, speaker FROM lexeme_audio WHERE lexeme_id = ?", [lex.id]);
+    expect(audio).toEqual([{ url: "https://upload.wikimedia.org/a.mp3", speaker: "Jane" }]);
+  });
+
+  it("parses Lingua Libre file names and builds MP3 links", () => {
+    expect(parseCommonsFile("File:LL-Q188 (deu)-Jane-essen.wav")).toEqual({ word: "essen", speaker: "Jane" });
+    expect(parseCommonsFile("File:LL-Q9168 (fas)-Reza-آب.wav")).toEqual({ word: "آب", speaker: "Reza" });
+    expect(parseCommonsFile("File:De-essen.ogg")).toBeNull();
+    expect(commonsMp3("https://upload.wikimedia.org/wikipedia/commons/a/ab/LL-Q188_(deu)-Jane-essen.wav")).toBe(
+      "https://upload.wikimedia.org/wikipedia/commons/transcoded/a/ab/LL-Q188_(deu)-Jane-essen.wav/LL-Q188_(deu)-Jane-essen.wav.mp3",
+    );
   });
 
   it("attaches frequency ranks to existing lexemes regardless of case", async () => {

@@ -13,9 +13,24 @@ import type { Db } from "./db/index.js";
 
 const schemas = { cards: cardSchema, messages: messageSchema, reviews: reviewSchema, collections: collectionSchema } as const;
 
-/** Kleines Merkmal je Entität für Auswertungen ohne JSON-Funktionen (Karten: Lernstatus). */
-const attrOf = (entity: SyncEntity, row: Record<string, unknown>): string | null =>
-  entity === "cards" ? String(row.status ?? "") || null : null;
+/**
+ * Spalten für serverseitige Auswertungen ohne JSON-Funktionen:
+ * attr – Karten: Lernstatus, Lernereignisse: Ergebnis (right/wrong);
+ * ref_key/ref_id – Karten: "<sprache>:<wortschlüssel>" und Lexem-ID (für Challenges, Abgleich).
+ */
+export function derivedColumns(entity: SyncEntity, row: Record<string, unknown>) {
+  if (entity === "cards") {
+    return {
+      attr: String(row.status ?? "") || null,
+      refKey: `${String(row.lang)}:${lemmaKey(String(row.lemma ?? ""))}`,
+      refId: typeof row.lexemeId === "number" ? row.lexemeId : null,
+    };
+  }
+  if (entity === "reviews") {
+    return { attr: String(row.outcome ?? "") || null, refKey: `${String(row.lang)}:${lemmaKey(String(row.lemma ?? ""))}`, refId: null };
+  }
+  return { attr: null, refKey: null, refId: null };
+}
 
 /**
  * Push: Last-Write-Wins pro Zeile anhand `updatedAt`. Ältere Änderungen werden verworfen
@@ -50,14 +65,15 @@ export async function pushOps(db: Db, userId: string, ops: { entity: string; row
         [userId, entity, row.id],
       );
       if (existing && Number(existing.updated_at) > row.updatedAt) continue; // Server-Stand ist neuer
+      const d = derivedColumns(entity, row);
       await t.run(
-        `INSERT INTO sync_rows (user_id, entity, id, data, attr, updated_at, deleted, seq)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO sync_rows (user_id, entity, id, data, attr, ref_key, ref_id, updated_at, deleted, seq)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT (user_id, entity, id) DO UPDATE SET
-           data = excluded.data, attr = excluded.attr, updated_at = excluded.updated_at,
-           deleted = excluded.deleted, seq = excluded.seq
+           data = excluded.data, attr = excluded.attr, ref_key = excluded.ref_key, ref_id = excluded.ref_id,
+           updated_at = excluded.updated_at, deleted = excluded.deleted, seq = excluded.seq
          WHERE sync_rows.updated_at <= excluded.updated_at`,
-        [userId, entity, row.id, JSON.stringify(row), attrOf(entity, row), row.updatedAt, row.deleted ? 1 : 0, seq],
+        [userId, entity, row.id, JSON.stringify(row), d.attr, d.refKey, d.refId, row.updatedAt, row.deleted ? 1 : 0, seq],
       );
       if (entity === "collections") await syncPublicCollection(t, userId, row as unknown as Collection);
       accepted++;
@@ -113,4 +129,34 @@ export async function pullChanges(db: Db, userId: string, since: number, limit: 
     cursor,
     hasMore,
   };
+}
+
+/**
+ * Einmaliges Nachtragen der Auswertungs-Spalten für Zeilen aus älteren Versionen
+ * (Karten ohne ref_key, Lernereignisse ohne attr). Läuft beim Start in Stapeln.
+ */
+export async function backfillDerivedColumns(db: Db, batch = 1000): Promise<number> {
+  let total = 0;
+  for (;;) {
+    const rows = await db.all<{ user_id: string; entity: SyncEntity; id: string; data: string }>(
+      `SELECT user_id, entity, id, data FROM sync_rows
+       WHERE (entity = 'cards' AND ref_key IS NULL) OR (entity = 'reviews' AND attr IS NULL) LIMIT ?`,
+      [batch],
+    );
+    if (rows.length === 0) return total;
+    await db.tx(async (t) => {
+      for (const r of rows) {
+        const d = derivedColumns(r.entity, JSON.parse(r.data) as Record<string, unknown>);
+        await t.run("UPDATE sync_rows SET attr = ?, ref_key = ?, ref_id = ? WHERE user_id = ? AND entity = ? AND id = ?", [
+          d.attr ?? "",
+          d.refKey ?? "",
+          d.refId,
+          r.user_id,
+          r.entity,
+          r.id,
+        ]);
+      }
+    });
+    total += rows.length;
+  }
 }

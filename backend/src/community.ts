@@ -1,6 +1,7 @@
 import { contributionPayloadSchema, type ContributionPayload, type ContributionStatus, type LangCode } from "@vochat/shared";
 import type { Db, Param } from "./db/index.js";
 import { addExample, addSense, addTranslation, upsertLexemeInfo } from "./importers/common.js";
+import { logAudit } from "./audit.js";
 
 export interface CommunityOptions {
   verifyThreshold: number;
@@ -226,6 +227,7 @@ export function decide(db: Db, id: number, deciderId: string, decision: "verify"
         ? (JSON.parse(c.result_info) as ResultInfo)
         : { lexemeId: c.result_lexeme_id === null ? null : Number(c.result_lexeme_id) };
       await unapply(t, id, JSON.parse(c.payload) as ContributionPayload, info);
+      await logAudit(t, { actorId: deciderId, action: "contribution.revoked", lang: c.lang, lexemeId: info.lexemeId, itemType: "contribution", itemId: id }, now);
       return { ok: true, status: "revoked" };
     }
     if (c.status !== "pending") return { ok: false, status: 409, error: "already decided" };
@@ -246,10 +248,17 @@ async function finalize(db: Db, c: ContributionRow, decision: "verified" | "reje
     [decision, now, by, reason, c.id],
   );
   if (claimed.changes === 0) return false;
+  let lexemeId: number | null = null;
   if (decision === "verified") {
     const info = await apply(db, Number(c.id), JSON.parse(c.payload) as ContributionPayload);
+    lexemeId = info.lexemeId;
     await db.run("UPDATE contributions SET result_lexeme_id = ?, result_info = ? WHERE id = ?", [info.lexemeId, JSON.stringify(info), c.id]);
   }
+  await logAudit(
+    db,
+    { actorId: by, action: `contribution.${decision}`, lang: c.lang, lexemeId, itemType: "contribution", itemId: c.id, details: { kind: c.kind, reason } },
+    now,
+  );
   return true;
 }
 

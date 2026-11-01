@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { prefs } from "./prefs";
+import type { VoiceMode } from "./audio";
 
 /** Anzeige-Einstellungen für Wörter. Gerätebezogen, werden im Profil gesetzt. */
 export interface DisplayPrefs {
@@ -11,6 +12,12 @@ export interface DisplayPrefs {
   pos: boolean;
   gender: boolean;
   size: "normal" | "large";
+  /** Lautsprecher-Knopf neben Wörtern. */
+  audio: boolean;
+  /** Woher die Aussprache kommt, wenn keine Aufnahme existiert. */
+  voice: VoiceMode;
+  /** Beim Lernen automatisch vorlesen. */
+  autoplay: boolean;
 }
 
 export const DEFAULT_DISPLAY: DisplayPrefs = {
@@ -21,6 +28,9 @@ export const DEFAULT_DISPLAY: DisplayPrefs = {
   pos: false,
   gender: true,
   size: "normal",
+  audio: true,
+  voice: "auto",
+  autoplay: false,
 };
 
 const KEY = "vochat.display";

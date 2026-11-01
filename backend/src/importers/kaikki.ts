@@ -1,6 +1,6 @@
 import { LANG_CODES } from "@vochat/shared";
 import type { Db } from "../db/index.js";
-import { addCategory, addExample, addForm, addSense, addTranslation, clearSource, recordRun, upsertLexeme } from "./common.js";
+import { addAudio, addCategory, addExample, addForm, addSense, addTranslation, clearSource, recordRun, upsertLexeme } from "./common.js";
 
 const GENDER_TAGS: Record<string, string> = { masculine: "m", feminine: "f", neuter: "n" };
 const KNOWN_LANG_CODES = new Set<string>(LANG_CODES);
@@ -26,7 +26,7 @@ interface KaikkiEntry {
   senses?: KaikkiSense[];
   translations?: { lang_code?: string; word?: string }[];
   forms?: { form?: string; tags?: string[] }[];
-  sounds?: { roman?: string }[];
+  sounds?: { roman?: string; ipa?: string; audio?: string; ogg_url?: string; mp3_url?: string; tags?: string[] }[];
 }
 
 /**
@@ -61,6 +61,18 @@ export async function importKaikki(
       if (entryGender) await t.run("UPDATE lexemes SET gender = COALESCE(gender, ?) WHERE id = ?", [entryGender, id]);
       const roman = entry.sounds?.find((s) => s.roman)?.roman;
       if (roman) await t.run("UPDATE lexemes SET romanization = COALESCE(romanization, ?) WHERE id = ?", [roman, id]);
+      const ipa = entry.sounds?.find((s) => s.ipa)?.ipa;
+      if (ipa) await t.run("UPDATE lexemes SET ipa = COALESCE(ipa, ?) WHERE id = ?", [ipa, id]);
+      // Aufnahmen von Wikimedia Commons (meist CC BY-SA); MP3 bevorzugt, weil überall abspielbar.
+      for (const s of (entry.sounds ?? []).filter((s) => s.mp3_url || s.ogg_url).slice(0, 3)) {
+        await addAudio(t, id, {
+          url: (s.mp3_url ?? s.ogg_url)!,
+          source,
+          license: "Wikimedia Commons (siehe Dateiseite)",
+          speaker: s.audio ? commonsSpeaker(s.audio) : null,
+          region: s.tags?.find((tag) => /^[A-Z]/.test(tag)) ?? null,
+        });
+      }
 
       for (const sense of (entry.senses ?? []).slice(0, maxSenses)) {
         const gloss = sense.glosses?.at(-1);
@@ -91,4 +103,10 @@ export async function importKaikki(
 function genderFrom(tags: string[] | undefined): string | null {
   for (const tag of tags ?? []) if (GENDER_TAGS[tag]) return GENDER_TAGS[tag];
   return null;
+}
+
+/** Lingua-Libre-Dateien heißen „LL-Q188 (deu)-Sprecher-Wort.wav“: Sprecher daraus lesen. */
+export function commonsSpeaker(file: string): string | null {
+  const m = /^LL-Q\d+ \([a-z]{3}\)-([^-]+)-/.exec(file);
+  return m ? m[1] : null;
 }

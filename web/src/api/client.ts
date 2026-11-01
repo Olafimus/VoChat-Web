@@ -1,3 +1,4 @@
+import type { ChallengeDetail, ChallengeItem, ChallengeSummary } from "@vochat/shared";
 import type {
   AuthResponse,
   CatalogCollection,
@@ -82,7 +83,11 @@ export const api = {
 
 export const community = {
   me: (token: string) =>
-    request<{ roles: { role: string; lang: string }[]; contributions: Record<string, number> }>("/community/me", { token }),
+    request<{
+      roles: { role: string; lang: string }[];
+      contributions: Record<string, number>;
+      reputation: { score: number; verifiedContributions: number; agreeingVotes: number; commentScore: number; expertActions: number };
+    }>("/community/me", { token }),
   list: (token: string, params: { status?: string; lang?: string; mine?: boolean }) => {
     const qs = new URLSearchParams(
       Object.entries({ status: params.status, lang: params.lang, mine: params.mine ? "1" : undefined }).filter(([, v]) => v) as [string, string][],
@@ -175,6 +180,7 @@ export interface PublicUserView {
   isPrivate: boolean;
   bio: string | null;
   stats: { followers: number; following: number; publicCollections: number; verifiedContributions: number } | null;
+  score?: number | null;
   progress: { known: number; learning: number } | null;
   relation: { following: "none" | "requested" | "accepted"; followedBy: boolean; friend: "none" | "outgoing" | "incoming" | "accepted" };
 }
@@ -193,3 +199,70 @@ export const resolveWords = (lang: LangCode, words: string[], native: LangCode) 
 /** Mehrere Einträge auf einmal (zum Aktualisieren verknüpfter Karten). */
 export const lexemesBatch = (ids: number[], native: LangCode) =>
   request<LexemeSummary[]>(`/dictionary/lexemes/batch?native=${native}`, { method: "POST", body: { ids } });
+
+/* ---------- Gemeinsam lernen, Expertenprüfung, Kommentare ---------- */
+
+
+export const challenges = {
+  list: (token: string) => request<ChallengeSummary[]>("/challenges", { token }),
+  weekly: (token: string, lang: string) => request<ChallengeDetail | null>(`/challenges/weekly?lang=${lang}`, { token }),
+  get: (token: string, id: string) => request<ChallengeDetail>(`/challenges/${encodeURIComponent(id)}`, { token }),
+  create: (token: string, body: { kind: "duel" | "group"; title: string; lang: string; items: ChallengeItem[]; days: number; invite: string[] }) =>
+    request<{ id: string }>("/challenges", { method: "POST", body, token }),
+  act: (token: string, id: string, action: "accept" | "decline" | "join" | "leave") =>
+    request<{ ok: boolean }>(`/challenges/${encodeURIComponent(id)}/${action}`, { method: "POST", token }),
+};
+
+export interface ReviewEntry {
+  id: number;
+  lang: LangCode;
+  lemma: string;
+  pos: string | null;
+  romanization: string | null;
+  frequencyRank: number | null;
+  status: "unreviewed" | "approved" | "needs_fix";
+  reviewedBy: string | null;
+  reviewedAt: number | null;
+  suspicions: { reason: string; score: number }[];
+  senses: { id: number; glossLang: string; gloss: string; source: string }[];
+  translations: { id: number; targetLang: string; targetLemma: string; source: string }[];
+  examples: { id: number; text: string; translation: string | null; source: string }[];
+}
+
+export interface HistoryEntry {
+  id: number;
+  action: string;
+  actor: { id: string; name: string } | null;
+  details: Record<string, unknown> | null;
+  at: number;
+}
+
+export const review = {
+  queue: (token: string, lang: string, filter: string, offset = 0) =>
+    request<{ stats: { approved: number; needsFix: number; suspicious: number }; entries: ReviewEntry[] }>(
+      `/review/queue?lang=${lang}&filter=${filter}&offset=${offset}`,
+      { token },
+    ),
+  act: (token: string, lexemeId: number, body: Record<string, unknown>) =>
+    request<{ ok: boolean; suspicious: number }>(`/review/lexemes/${lexemeId}`, { method: "POST", body, token }),
+  history: (lexemeId: number) => request<HistoryEntry[]>(`/history/lexemes/${lexemeId}`),
+};
+
+export interface CommentView {
+  id: number;
+  parentId: number | null;
+  author: { id: string; name: string; avatarUrl: string | null } | null;
+  body: string | null;
+  createdAt: number;
+  editedAt: number | null;
+  score: number;
+  myVote: number;
+}
+
+export const comments = {
+  list: (token: string, target: string) => request<CommentView[]>(`/comments?target=${encodeURIComponent(target)}`, { token }),
+  add: (token: string, target: string, body: string, parentId: number | null) =>
+    request<{ id: number }>("/comments", { method: "POST", body: { target, body, parentId }, token }),
+  vote: (token: string, id: number, value: -1 | 0 | 1) => request<{ ok: boolean }>(`/comments/${id}/vote`, { method: "POST", body: { value }, token }),
+  remove: (token: string, id: number) => request<{ ok: boolean }>(`/comments/${id}`, { method: "DELETE", token }),
+};

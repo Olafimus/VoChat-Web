@@ -1,4 +1,4 @@
-import { lemmaKey, tokenize, type Cefr, type ExtractResult, type LangCode, type LexemeDetail, type LexemeSummary } from "@vochat/shared";
+import { lemmaKey, tokenize, type AudioRecording, type Cefr, type ExtractResult, type LangCode, type LexemeDetail, type LexemeSummary } from "@vochat/shared";
 import type { Db, Param } from "./db/index.js";
 
 type SummaryRow = {
@@ -151,7 +151,7 @@ export async function lexemeDetail(db: Db, id: number, nativeLang: LangCode): Pr
   const row = await db.get<SummaryRow>(`${SUMMARY_SELECT} WHERE l.id = ? AND l.hidden = 0`, [nativeLang, nativeLang, id]);
   if (!row) return null;
 
-  const [senses, examples, translations, categories] = await Promise.all([
+  const [senses, examples, translations, categories, audio, ipaRow] = await Promise.all([
     db.all<{ position: number; gloss_lang: string; gloss: string; source: string }>(
       "SELECT position, gloss_lang, gloss, source FROM senses WHERE lexeme_id = ? AND hidden = 0 ORDER BY (gloss_lang = ?) DESC, position LIMIT 40",
       [id, nativeLang],
@@ -169,6 +169,8 @@ export async function lexemeDetail(db: Db, id: number, nativeLang: LangCode): Pr
        WHERE lc.lexeme_id = ? ORDER BY c.kind, c.name`,
       [id],
     ),
+    lexemeAudio(db, id),
+    db.get<{ ipa: string | null }>("SELECT ipa FROM lexemes WHERE id = ?", [id]),
   ]);
 
   return {
@@ -177,7 +179,17 @@ export async function lexemeDetail(db: Db, id: number, nativeLang: LangCode): Pr
     examples: examples.map((e) => ({ text: e.text, translation: e.translation, translationLang: e.translation_lang, source: e.source })),
     translations: translations.map((t) => ({ targetLang: t.target_lang as LangCode, targetLemma: t.target_lemma, source: t.source })),
     categories,
+    ipa: ipaRow?.ipa ?? null,
+    audio,
   };
+}
+
+export async function lexemeAudio(db: Db, id: number): Promise<AudioRecording[]> {
+  const rows = await db.all<{ url: string; license: string | null; speaker: string | null; region: string | null; source: string }>(
+    "SELECT url, license, speaker, region, source FROM lexeme_audio WHERE lexeme_id = ? ORDER BY id LIMIT 5",
+    [id],
+  );
+  return rows.map((r) => ({ url: r.url, license: r.license, speaker: r.speaker, region: r.region, source: r.source }));
 }
 
 export async function languageStats(db: Db): Promise<{ lang: string; lexemes: number; withCefr: number; withFrequency: number }[]> {

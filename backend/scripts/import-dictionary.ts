@@ -7,6 +7,7 @@
  *   npm run import:dictionary -- kaikki --lang de --gloss-lang en --file German.jsonl
  *   npm run import:dictionary -- freedict --from es --to en --file spa-eng.tei
  *   npm run import:dictionary -- legacy-fa-de --file data/sources/legacy-fa-de.json
+ *   npm run import:dictionary -- commons-audio --lang de [--max 20000]   # Lingua-Libre-Aufnahmen (Links)
  *
  * Optionen: --db <ziel> (Standard: DATABASE_URL oder data/vochat.db), --limit <n> (Häufigkeit).
  * Entfernte Dateien (http/https) werden nach data/cache geladen.
@@ -18,6 +19,8 @@ import { openDatabase, type Db } from "../src/db/index.js";
 import { importFrequency } from "../src/importers/frequency.js";
 import { importWordhoard } from "../src/importers/wordhoard.js";
 import { importKaikki } from "../src/importers/kaikki.js";
+import { importCommonsAudio } from "../src/importers/commons.js";
+import { isLangCode } from "@vochat/shared";
 import { importFreedict } from "../src/importers/freedict.js";
 import { importLegacyFaDe } from "../src/importers/legacy-fa-de.js";
 
@@ -66,7 +69,7 @@ async function readSource(flags: Record<string, string>): Promise<{ path: string
 }
 
 async function runOne(db: Db, command: string, flags: Record<string, string>): Promise<void> {
-  const src = command === "legacy-fa-de" ? null : await readSource(flags);
+  const src = command === "legacy-fa-de" || command === "commons-audio" ? null : await readSource(flags);
   switch (command) {
     case "frequency": {
       const n = await importFrequency(db, flags.lang, src!.text, src!.path, Number(flags.limit ?? 50000));
@@ -94,6 +97,12 @@ async function runOne(db: Db, command: string, flags: Record<string, string>): P
       console.log(`  legacy fa-de: ${n} Vokabeln`);
       return;
     }
+    case "commons-audio": {
+      if (!isLangCode(flags.lang)) throw new Error("--lang fehlt oder unbekannt");
+      const n = await importCommonsAudio(db, { lang: flags.lang, maxFiles: flags.max ? Number(flags.max) : undefined, log: console.log });
+      console.log(`  commons-audio ${flags.lang}: ${n} Aufnahmen verknüpft`);
+      return;
+    }
     default:
       throw new Error(`Unbekannter Befehl: ${command}`);
   }
@@ -101,7 +110,7 @@ async function runOne(db: Db, command: string, flags: Record<string, string>): P
 
 async function main() {
   const { command, flags } = parseArgs(process.argv.slice(2));
-  if (!command) throw new Error("Befehl fehlt (starter | frequency | wordhoard | kaikki | freedict | legacy-fa-de)");
+  if (!command) throw new Error("Befehl fehlt (starter | frequency | wordhoard | kaikki | freedict | legacy-fa-de | commons-audio)");
   const target = flags.db ?? process.env.DATABASE_URL ?? process.env.DB_PATH ?? "data/vochat.db";
   const db = await openDatabase(/^(postgres|pglite:)/.test(target) ? target : resolve(backendDir, target));
   const started = Date.now();

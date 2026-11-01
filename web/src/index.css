@@ -291,3 +291,32 @@ button.link.small { font-size: 0.82rem; }
 .card-editor label > .row { gap: 0.4rem; }
 .field { display: grid; gap: 0.3rem; }
 .field-head label { font-size: 0.92rem; color: var(--muted); }
+
+/* Kommentare */
+.comment-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.5rem; }
+.comment { border-inline-start: 2px solid var(--border); padding-inline-start: 0.6rem; display: grid; gap: 0.2rem; }
+.comment-head { gap: 0.4rem; }
+.comment-actions { gap: 0.5rem; }
+button.link.on { color: var(--accent); font-weight: 700; }
+
+/* Rangliste */
+.board { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+.board th, .board td { text-align: start; padding: 0.4rem 0.3rem; border-bottom: 1px solid var(--border); }
+.board th { color: var(--muted); font-weight: 600; font-size: 0.8rem; }
+.board tr.me td { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.board .row { flex-wrap: nowrap; }
+
+/* Expertenprüfung */
+.review-card .big-ish { font-size: 1.3rem; font-weight: 700; }
+.badge.status-approved { color: var(--ok); }
+.badge.status-needs_fix { color: var(--danger); }
+.history { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.25rem; }
+
+/* Aussprache-Knopf */
+.speak {
+  border: none; background: transparent; padding: 0.1rem 0.25rem; margin: 0 0.1rem;
+  font-size: 0.95em; line-height: 1; cursor: pointer; border-radius: 6px; min-height: 0; color: inherit;
+}
+.speak:hover { background: var(--surface-2, rgba(127, 127, 127, 0.15)); }
+.speak.busy { opacity: 0.5; }
+.speak.failed { opacity: 0.6; }

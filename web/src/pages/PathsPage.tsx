@@ -543,7 +543,7 @@ function ItemList({ items, lang, cards }: { items: { lemma: string; lang: string
         const card = cards.find((c) => !c.deleted && c.lang === i.lang && c.lemma.toLocaleLowerCase("de") === i.lemma.toLocaleLowerCase("de"));
         return (
           <li key={`${i.lemma}-${idx}`} className="row card-line">
-            <WordView lemma={i.lemma} lang={lang} pronunciation={i.pronunciation} gloss={i.gloss} cefr={i.cefr} />
+            <WordView lexemeId={i.lexemeId} lemma={i.lemma} lang={lang} pronunciation={i.pronunciation} gloss={i.gloss} cefr={i.cefr} />
             <span className="spacer" />
             {card?.status === "review" || card?.status === "mastered" ? (
               <span className="badge">bekannt</span>

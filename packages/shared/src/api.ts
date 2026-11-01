@@ -85,6 +85,18 @@ export interface LexemeDetail extends LexemeSummary {
   examples: Example[];
   translations: Translation[];
   categories: { name: string; kind: string }[];
+  /** Lautschrift aus dem Wörterbuch (z. B. Wiktionary). */
+  ipa?: string | null;
+  /** Aussprache-Aufnahmen mit freier Lizenz (z. B. Lingua Libre / Wikimedia Commons). */
+  audio?: AudioRecording[];
+}
+
+export interface AudioRecording {
+  url: string;
+  license: string | null;
+  speaker: string | null;
+  region: string | null;
+  source: string;
 }
 
 export interface CatalogItem {

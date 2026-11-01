@@ -11,6 +11,9 @@ export interface Config {
   verifyThreshold: number;
   rejectThreshold: number;
   media: MediaConfig;
+  /** Sprachsynthese (eSpeak NG) für Wörter ohne Aufnahme. */
+  tts: boolean;
+  ttsCacheDir: string | null;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -24,6 +27,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     appSecret: env.APP_SECRET || undefined,
     verifyThreshold: Number(env.COMMUNITY_VERIFY_THRESHOLD ?? 3),
     rejectThreshold: Number(env.COMMUNITY_REJECT_THRESHOLD ?? 3),
+    tts: env.TTS !== "off",
+    ttsCacheDir: env.TTS_CACHE_DIR === "" ? null : (env.TTS_CACHE_DIR ?? "data/tts-cache"),
     media: {
       driver,
       localDir: env.MEDIA_LOCAL_DIR ?? "data/media",

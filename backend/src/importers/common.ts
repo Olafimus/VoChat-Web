@@ -8,6 +8,7 @@ export async function clearSource(db: Db, source: string): Promise<void> {
   await db.run("DELETE FROM senses WHERE source = ?", [source]);
   await db.run("DELETE FROM examples WHERE source = ?", [source]);
   await db.run("DELETE FROM translations WHERE source = ?", [source]);
+  await db.run("DELETE FROM lexeme_audio WHERE source = ?", [source]);
   await db.run("DELETE FROM lexeme_categories WHERE category_id IN (SELECT id FROM categories WHERE kind = ?)", [source]);
 }
 
@@ -138,4 +139,18 @@ export function parseCsv(text: string): string[][] {
     if (row.some((f) => f !== "")) rows.push(row);
   }
   return rows;
+}
+
+/** Verweis auf eine Aussprache-Aufnahme (nur URL + Lizenz, keine Datei). */
+export async function addAudio(
+  db: Db,
+  lexemeId: number,
+  a: { url: string; source: string; license?: string | null; speaker?: string | null; region?: string | null },
+): Promise<void> {
+  if (!/^https:\/\//.test(a.url)) return;
+  await db.run(
+    `INSERT INTO lexeme_audio (lexeme_id, url, source, license, speaker, region, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT (lexeme_id, url) DO NOTHING`,
+    [lexemeId, a.url, a.source, a.license ?? null, a.speaker ?? null, a.region ?? null, Date.now()],
+  );
 }

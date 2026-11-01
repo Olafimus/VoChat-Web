@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { cors } from "hono/cors";
 import {
   CEFR_LEVELS,
@@ -14,9 +14,10 @@ import {
 import { createSession, deleteSession, hashPassword, requireAuth, optionalAuth, maybeUserId, verifyPassword, currentUserId } from "./auth.js";
 import { builtinPathDetail, builtinPaths, getPublicCollection, listPublicCollections, myRating, upsertRating } from "./catalog.js";
 import type { Db } from "./db/index.js";
-import { browseLexemes, extractWords, languageStats, lexemeDetail, lexemesByIds, resolveWords, searchLexemes } from "./dictionary.js";
+import { browseLexemes, extractWords, languageStats, lexemeAudio, lexemeDetail, lexemesByIds, resolveWords, searchLexemes } from "./dictionary.js";
 import { bodyLimit } from "hono/body-limit";
 import { rateLimit } from "./ratelimit.js";
+import { normalizeTtsText, Tts } from "./tts.js";
 import { createUser, findUserByEmail, loadProfile, authResponse, setAvatarSecret, verifyAvatarSignature } from "./users.js";
 import { pullChanges, pushOps } from "./sync.js";
 import {
@@ -37,6 +38,12 @@ import {
 import { decideSchema, grantSchema, submitSchema, voteSchema, type ContributionStatus } from "@vochat/shared";
 import { feed, follow, followState, friendState, listFollowers, listFollowing, listFriends, listRequests, removeFriend, requestFriend, respondFollowRequest, respondFriendRequest, searchUsers, publicUser, unfollow } from "./social.js";
 import { MAX_AVATAR_BYTES, sniffImage, type MediaStore } from "./media.js";
+import { auditHistory } from "./audit.js";
+import { expertAction, reviewQueue, reviewStats, type ExpertAction, type QueueFilter } from "./expert.js";
+import { addComment, COMMENT_TARGETS, deleteComment, editComment, listComments, voteComment, type CommentTarget } from "./comments.js";
+import { reputation } from "./reputation.js";
+import { challengeDetail, createChallenge, joinWeekly, leaveChallenge, listChallenges, respondChallenge, weeklyChallenge } from "./challenges.js";
+import { challengeCreateSchema } from "@vochat/shared";
 
 export interface AppOptions {
   db: Db;
@@ -51,6 +58,8 @@ export interface AppOptions {
   trustProxy?: boolean;
   /** Anfragen pro Minute und Client für öffentliche, rechenintensive Endpunkte. */
   publicRateLimit?: number;
+  /** Sprachsynthese für Wörter ohne Aufnahme; `null` schaltet sie ab. */
+  tts?: Tts | null;
 }
 
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
@@ -65,6 +74,7 @@ export function createApp({
   media = null,
   trustProxy = false,
   publicRateLimit = 120,
+  tts = new Tts(),
 }: AppOptions): Hono {
   const app = new Hono();
   if (appSecret) setAvatarSecret(appSecret);
@@ -212,7 +222,9 @@ export function createApp({
   // ---- Öffentliche Profile & Social ---------------------------------------
   app.get("/users/:id", maybeAuth, async (c) => {
     const found = await publicUser(db, maybeUserId(c) ?? null, c.req.param("id"));
-    return found ? c.json(found) : c.json({ error: "not found" }, 404);
+    if (!found) return c.json({ error: "not found" }, 404);
+    // Punkte sind öffentlich, wenn auch das Profil sichtbar ist (gleiche Regel wie die Statistik).
+    return c.json({ ...found, score: found.stats ? (await reputation(db, found.id)).score : null });
   });
 
   app.get("/social/users", auth, async (c) => c.json(await searchUsers(db, currentUserId(c), c.req.query("q") ?? "")));
@@ -331,6 +343,37 @@ export function createApp({
     return c.json(await lexemesByIds(db, ids, nativeParam(c.req.query("native"))));
   });
 
+  // ---- Aussprache: Aufnahmen, sonst erzeugt -----------------------------
+  app.get("/audio/lexemes/:id", async (c) => {
+    const id = Number(c.req.param("id"));
+    if (!Number.isInteger(id) || id <= 0) return c.json({ error: "invalid id" }, 400);
+    c.header("cache-control", "public, max-age=3600");
+    return c.json({ recordings: await lexemeAudio(db, id) });
+  });
+
+  app.get("/audio/tts", publicLimit, async (c) => {
+    const lang = c.req.query("lang") ?? "";
+    const text = normalizeTtsText(c.req.query("text") ?? "");
+    if (!isLangCode(lang) || !text) return c.json({ error: "lang and text required" }, 400);
+    if (!tts) return c.json({ error: "speech synthesis disabled" }, 503);
+    const wav = await tts.synthesize(lang, text, c.req.query("slow") === "1");
+    if (!wav) return c.json({ error: "nothing to say" }, 422);
+    return c.body(wav as Uint8Array<ArrayBuffer>, 200, {
+      "content-type": "audio/wav",
+      "cache-control": "public, max-age=31536000, immutable",
+      "x-audio-source": "espeak-ng",
+    });
+  });
+
+  app.get("/audio/ipa", publicLimit, async (c) => {
+    const lang = c.req.query("lang") ?? "";
+    const text = c.req.query("text") ?? "";
+    if (!isLangCode(lang) || !text.trim()) return c.json({ error: "lang and text required" }, 400);
+    if (!tts) return c.json({ error: "speech synthesis disabled" }, 503);
+    c.header("cache-control", "public, max-age=86400");
+    return c.json({ ipa: await tts.ipa(lang, text), generated: true });
+  });
+
   app.get("/dictionary/lexemes/:id", async (c) => {
     const id = Number(c.req.param("id"));
     if (!Number.isInteger(id) || id <= 0) return c.json({ error: "invalid id" }, 400);
@@ -343,7 +386,11 @@ export function createApp({
   app.get("/community/me", auth, async (c) => {
     const userId = currentUserId(c);
     const mine = await db.all<{ status: string; n: number }>("SELECT status, COUNT(*) AS n FROM contributions WHERE author_id = ? GROUP BY status", [userId]);
-    return c.json({ roles: await rolesOf(db, userId), contributions: Object.fromEntries(mine.map((m) => [m.status, Number(m.n)])) });
+    return c.json({
+      roles: await rolesOf(db, userId),
+      contributions: Object.fromEntries(mine.map((m) => [m.status, Number(m.n)])),
+      reputation: await reputation(db, userId),
+    });
   });
 
   app.post("/community/contributions", auth, jsonLimit(64 * 1024), async (c) => {
@@ -403,6 +450,120 @@ export function createApp({
     if (!(await canDecide(db, currentUserId(c), row.lang))) return c.json({ error: "forbidden" }, 403);
     const result = await decide(db, id, currentUserId(c), parsed.data.decision, now());
     return result.ok ? c.json({ status: result.status }) : c.json({ error: result.error }, result.status as 400);
+  });
+
+  // ---- Expertenprüfung: Warteschlange, Aktionen, Protokoll --------------
+  const requireReviewer = async (c: Context, lang: string) => isLangCode(lang) && (await canDecide(db, currentUserId(c), lang));
+
+  app.get("/review/queue", auth, async (c) => {
+    const lang = c.req.query("lang") ?? "";
+    if (!(await requireReviewer(c, lang))) return c.json({ error: "forbidden" }, 403);
+    const filter = (["open", "suspicious", "needs_fix", "approved"] as const).includes(c.req.query("filter") as never)
+      ? (c.req.query("filter") as QueueFilter)
+      : "open";
+    const limit = Math.min(50, Math.max(1, Number(c.req.query("limit") ?? 20) || 20));
+    const offset = Math.max(0, Number(c.req.query("offset") ?? 0) || 0);
+    return c.json({
+      stats: await reviewStats(db, lang as LangCode),
+      entries: await reviewQueue(db, { lang: lang as LangCode, filter, limit, offset }),
+    });
+  });
+
+  app.post("/review/lexemes/:id", auth, jsonLimit(16 * 1024), async (c) => {
+    const id = Number(c.req.param("id"));
+    const lexeme = Number.isInteger(id) ? await db.get<{ lang: string }>("SELECT lang FROM lexemes WHERE id = ?", [id]) : undefined;
+    if (!lexeme) return c.json({ error: "not found" }, 404);
+    if (!(await requireReviewer(c, lexeme.lang))) return c.json({ error: "forbidden" }, 403);
+    const body = (await c.req.json().catch(() => null)) as ExpertAction | null;
+    const valid =
+      body &&
+      ((body.action === "approve") ||
+        (body.action === "flag" && typeof body.note === "string" && body.note.trim().length > 0 && body.note.length <= 500) ||
+        (body.action === "hideSense" && Number.isInteger(body.senseId)) ||
+        (body.action === "editSense" && Number.isInteger(body.senseId) && typeof body.gloss === "string" && body.gloss.trim() && body.gloss.length <= 500) ||
+        (body.action === "addSense" && typeof body.gloss === "string" && body.gloss.length <= 500 && typeof body.glossLang === "string") ||
+        (body.action === "addTranslation" && typeof body.targetLemma === "string" && body.targetLemma.length <= 200 && typeof body.targetLang === "string") ||
+        (body.action === "hideTranslation" && Number.isInteger(body.translationId)) ||
+        (body.action === "setPronunciation" && (body.romanization === null || (typeof body.romanization === "string" && body.romanization.length <= 200))));
+    if (!valid) return c.json({ error: "invalid input" }, 400);
+    const result = await expertAction(db, currentUserId(c), id, body, now());
+    return result.ok ? c.json(result) : c.json({ error: result.error }, result.status as 400);
+  });
+
+  /** Verlauf eines Eintrags (wer hat wann was geändert/geprüft) – öffentlich nachvollziehbar. */
+  app.get("/history/lexemes/:id", async (c) => {
+    const id = Number(c.req.param("id"));
+    if (!Number.isInteger(id)) return c.json({ error: "invalid id" }, 400);
+    return c.json(await auditHistory(db, { lexemeId: id }, 100));
+  });
+
+  // ---- Kommentare (Baum) mit Bewertungen -------------------------------
+  const parseTarget = (raw: string | undefined): { type: CommentTarget; id: string } | null => {
+    const [type, ...rest] = (raw ?? "").split(":");
+    const id = rest.join(":");
+    return (COMMENT_TARGETS as readonly string[]).includes(type) && id ? { type: type as CommentTarget, id } : null;
+  };
+  app.get("/comments", auth, async (c) => {
+    const target = parseTarget(c.req.query("target"));
+    if (!target) return c.json({ error: "invalid target" }, 400);
+    return c.json(await listComments(db, currentUserId(c), target.type, target.id));
+  });
+  app.post("/comments", auth, jsonLimit(16 * 1024), async (c) => {
+    const body = (await c.req.json().catch(() => null)) as { target?: string; parentId?: number | null; body?: string } | null;
+    const target = parseTarget(body?.target);
+    if (!target || typeof body?.body !== "string") return c.json({ error: "invalid input" }, 400);
+    const parentId = body.parentId === undefined || body.parentId === null ? null : Number(body.parentId);
+    const result = await addComment(db, currentUserId(c), { ...target, parentId, body: body.body }, now());
+    return result.ok ? c.json({ id: result.id }, 201) : c.json({ error: result.error }, result.status as 400);
+  });
+  app.post("/comments/:id/vote", auth, async (c) => {
+    const body = (await c.req.json().catch(() => null)) as { value?: number } | null;
+    const value = Number(body?.value);
+    if (![-1, 0, 1].includes(value)) return c.json({ error: "invalid input" }, 400);
+    const result = await voteComment(db, currentUserId(c), Number(c.req.param("id")), value, now());
+    return result.ok ? c.json({ ok: true }) : c.json({ error: result.error }, result.status as 400);
+  });
+  app.patch("/comments/:id", auth, jsonLimit(16 * 1024), async (c) => {
+    const body = (await c.req.json().catch(() => null)) as { body?: string } | null;
+    const ok = typeof body?.body === "string" && (await editComment(db, currentUserId(c), Number(c.req.param("id")), body.body, now()));
+    return ok ? c.json({ ok: true }) : c.json({ error: "not found" }, 404);
+  });
+  app.delete("/comments/:id", auth, async (c) => {
+    const ok = await deleteComment(db, currentUserId(c), await isAdmin(db, currentUserId(c)), Number(c.req.param("id")));
+    return ok ? c.json({ ok: true }) : c.json({ error: "not found" }, 404);
+  });
+
+  // ---- Gemeinsam lernen: Challenges ------------------------------------
+  app.get("/challenges", auth, async (c) => c.json(await listChallenges(db, currentUserId(c))));
+  app.get("/challenges/weekly", auth, async (c) => {
+    const lang = c.req.query("lang") ?? "";
+    if (!isLangCode(lang)) return c.json({ error: "invalid input" }, 400);
+    const id = await weeklyChallenge(db, lang, now());
+    return id ? c.json(await challengeDetail(db, currentUserId(c), id)) : c.json(null);
+  });
+  app.post("/challenges", auth, jsonLimit(256 * 1024), async (c) => {
+    const parsed = challengeCreateSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "invalid input" }, 400);
+    const result = await createChallenge(db, currentUserId(c), { ...parsed.data, lang: parsed.data.lang as LangCode }, now());
+    return result.ok ? c.json({ id: result.id }, 201) : c.json({ error: result.error }, result.status as 400);
+  });
+  app.get("/challenges/:id", auth, async (c) => {
+    const detail = await challengeDetail(db, currentUserId(c), c.req.param("id"));
+    return detail ? c.json(detail) : c.json({ error: "not found" }, 404);
+  });
+  app.post("/challenges/:id/:action", auth, async (c) => {
+    const action = c.req.param("action");
+    const id = c.req.param("id");
+    const userId = currentUserId(c);
+    if (action === "accept" || action === "decline") {
+      return (await respondChallenge(db, userId, id, action === "accept", now())) ? c.json({ ok: true }) : c.json({ error: "not found" }, 404);
+    }
+    if (action === "join") return (await joinWeekly(db, userId, id, now())) ? c.json({ ok: true }) : c.json({ error: "not found" }, 404);
+    if (action === "leave") {
+      await leaveChallenge(db, userId, id);
+      return c.json({ ok: true });
+    }
+    return c.json({ error: "invalid action" }, 400);
   });
 
   // ---- Admin: Rollen vergeben -----------------------------------------

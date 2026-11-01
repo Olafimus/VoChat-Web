@@ -52,6 +52,7 @@ export function UserPage() {
             <span>· {view.stats.following} folgt</span>
             <span>· {view.stats.publicCollections} geteilte Sammlungen</span>
             <span>· {view.stats.verifiedContributions} verifizierte Beiträge</span>
+            {typeof view.score === "number" && <span>· ★ {view.score} Punkte</span>}
           </div>
         )}
         {view.progress && (

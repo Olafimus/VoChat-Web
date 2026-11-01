@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { CEFR_LEVELS, LANGUAGES, LANG_CODES, type Cefr, type LangCode } from "@vochat/shared";
-import { api, ApiError, media } from "../api/client";
+import { api, ApiError, community, media } from "../api/client";
 import { Avatar } from "../components/Avatar";
 import { useSession, useSyncStatus } from "../session";
 import { AuthForm } from "./AuthPage";
@@ -137,6 +137,8 @@ export function ProfilePage() {
 
       <DisplaySettings />
 
+      <ReputationCard />
+
       <section className="card stack">
         <h2>Darstellung</h2>
         <label>
@@ -236,7 +238,17 @@ function DisplaySettings() {
         {box("cefr", "Niveau (A1–C2)")}
         {box("gender", "Genus")}
         {box("pos", "Wortart")}
+        {box("audio", "🔊 Aussprache zum Anhören")}
+        {box("autoplay", "Beim Lernen automatisch vorlesen")}
       </div>
+      <label>
+        Stimme, wenn es keine Aufnahme gibt
+        <select value={d.voice} onChange={(e) => update({ voice: e.target.value as DisplayPrefs["voice"] })}>
+          <option value="auto">automatisch: Aufnahme → Gerätestimme → erzeugt</option>
+          <option value="device">nur Gerätestimme (offline)</option>
+          <option value="generated">immer erzeugte Aussprache (eSpeak NG)</option>
+        </select>
+      </label>
       <label>
         Schriftgröße
         <select value={d.size} onChange={(e) => update({ size: e.target.value as DisplayPrefs["size"] })}>
@@ -247,6 +259,25 @@ function DisplaySettings() {
       <div className="card" style={{ boxShadow: "none" }}>
         <div className="muted small">Vorschau</div>
         <WordView lemma="آب" lang="fa" pronunciation="āb" gloss="Wasser" cefr="A1" pos="noun" gender="n" />
+      </div>
+    </section>
+  );
+}
+
+/** Community-Punkte: verifizierte Beiträge, Zustimmung, Kommentar-Bewertungen und Expertenarbeit. */
+function ReputationCard() {
+  const { token } = useSession();
+  const [rep, setRep] = useState<Awaited<ReturnType<typeof community.me>>["reputation"] | null>(null);
+  useEffect(() => {
+    if (token) community.me(token).then((m) => setRep(m.reputation)).catch(() => setRep(null));
+  }, [token]);
+  if (!token || !rep) return null;
+  return (
+    <section className="card stack">
+      <h2>Community-Punkte: {rep.score}</h2>
+      <div className="muted small">
+        {rep.verifiedContributions} verifizierte Beiträge · {rep.agreeingVotes} passende Bewertungen · Kommentare {rep.commentScore >= 0 ? "+" : ""}
+        {rep.commentScore} · {rep.expertActions} Expertenprüfungen
       </div>
     </section>
   );

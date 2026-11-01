@@ -1,6 +1,7 @@
 import type { LangCode } from "@vochat/shared";
 import { useDisplay } from "../lib/display";
 import { CefrBadge, Lemma } from "./ui";
+import { SpeakButton } from "./SpeakButton";
 
 /**
  * Einheitliche Darstellung eines Wortes: Lemma, Aussprache, Bedeutung, Niveau, Wortart, Genus.
@@ -15,6 +16,7 @@ export function WordView({
   pos,
   gender,
   large,
+  lexemeId,
 }: {
   lemma: string;
   lang: LangCode;
@@ -24,6 +26,7 @@ export function WordView({
   pos?: string | null;
   gender?: string | null;
   large?: boolean;
+  lexemeId?: number | null;
 }) {
   const d = useDisplay();
   const pron = d.pronunciation ? pronunciation : null;
@@ -33,6 +36,7 @@ export function WordView({
   return (
     <span className={cls}>
       <Lemma lang={lang}>{lemma}</Lemma>
+      <SpeakButton lang={lang} text={lemma} lexemeId={lexemeId} />
       {(pron || missingPron) && (
         <span className="pron" lang="und" aria-label="Aussprache">
           {pron ? `[${pron}]` : <span className="muted">[Aussprache fehlt]</span>}

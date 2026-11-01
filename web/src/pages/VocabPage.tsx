@@ -98,7 +98,7 @@ export function VocabPage() {
         {visible.map((c) => (
           <li key={c.id} className="card row-card">
             <div className="row">
-              <WordView lemma={c.lemma} lang={c.lang as LangCode} pronunciation={c.pronunciation} gloss={c.gloss} cefr={c.cefr} />
+              <WordView lexemeId={c.lexemeId} lemma={c.lemma} lang={c.lang as LangCode} pronunciation={c.pronunciation} gloss={c.gloss} cefr={c.cefr} />
               <span className="badge subtle">{STATUS_LABEL[c.status]}</span>
               <span className={`badge ${c.lexemeId ? "linked" : "subtle"}`} title={c.lexemeId ? "Mit dem Wörterbuch verknüpft" : "Nur in deinem Wortschatz"}>
                 {c.lexemeId ? "🔗 Wörterbuch" : "eigenes Wort"}
