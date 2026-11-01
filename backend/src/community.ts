@@ -86,6 +86,10 @@ function apply(db: Db, id: number, payload: ContributionPayload): number | null 
       addSense(db, lexemeId, payload.glossLang, payload.gloss, source);
       return lexemeId;
     }
+    case "pronunciation":
+      // Nur ergänzen, wenn noch keine Aussprache hinterlegt ist. Eine bestehende wird nicht überschrieben.
+      db.prepare("UPDATE lexemes SET romanization = COALESCE(romanization, ?) WHERE id = ?").run(payload.romanization, payload.lexemeId);
+      return payload.lexemeId;
     case "sense":
       addSense(db, payload.lexemeId, payload.glossLang, payload.gloss, source);
       return payload.lexemeId;
@@ -112,6 +116,9 @@ function unapply(db: Db, id: number, payload: ContributionPayload, resultLexemeI
     db.prepare(`UPDATE ${table} SET hidden = 1 WHERE source = ?`).run(source);
   }
   if (payload.kind === "lexeme" && resultLexemeId) db.prepare("UPDATE lexemes SET hidden = 1 WHERE id = ?").run(resultLexemeId);
+  if (payload.kind === "pronunciation") {
+    db.prepare("UPDATE lexemes SET romanization = NULL WHERE id = ? AND romanization = ?").run(payload.lexemeId, payload.romanization);
+  }
 }
 
 interface ContributionRow {

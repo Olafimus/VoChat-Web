@@ -15,7 +15,8 @@ import { useSession } from "../session";
 import { useActiveLang } from "../lib/lang";
 import { recordAnswer } from "../lib/cards";
 import type { CardRow, ReviewRow } from "../local/collections";
-import { CefrBadge, Empty, Lemma } from "../components/ui";
+import { CefrBadge, Empty } from "../components/ui";
+import { WordView } from "../components/WordView";
 
 const FORMATS: { mode: Mode; label: string; hint: string }[] = [
   { mode: "flip", label: "Karteikarte", hint: "Wort sehen, Bedeutung aufdecken" },
@@ -199,7 +200,11 @@ export function LearnPage() {
               ) : (
                 <>
                   <div className="answer reveal" key="answer">
-                    {format === "flip" ? current.gloss ?? <span className="muted">(keine Bedeutung gespeichert)</span> : <Lemma lang={current.lang as LangCode}>{current.lemma}</Lemma>}
+                    {format === "flip" ? (
+                      current.gloss ?? <span className="muted">(keine Bedeutung gespeichert)</span>
+                    ) : (
+                      <WordView lemma={current.lemma} lang={current.lang as LangCode} pronunciation={current.pronunciation} large />
+                    )}
                   </div>
                   <div className="grades">
                     {GRADES.map((g) => (
@@ -236,6 +241,7 @@ export function LearnPage() {
               />
               {judgement && (
                 <div className={`verdict verdict-${judgement.verdict}`} role="status">
+                  {judgement.verdict !== "wrong" && <WordView lemma={current.lemma} lang={current.lang as LangCode} pronunciation={current.pronunciation} />}
                   {judgement.verdict === "typo"
                     ? `Fast – richtig ist „${judgement.expected}“ (ein Tippfehler ist erlaubt).`
                     : judgement.verdict === "correct"
@@ -279,11 +285,7 @@ function Confetti() {
 }
 
 function PromptWord({ card }: { card: CardRow }) {
-  return (
-    <Lemma lang={card.lang as LangCode}>
-      <span className="big">{card.lemma}</span>
-    </Lemma>
-  );
+  return <WordView lemma={card.lemma} lang={card.lang as LangCode} pronunciation={card.pronunciation} large />;
 }
 
 function PromptMeaning({ card }: { card: CardRow }) {

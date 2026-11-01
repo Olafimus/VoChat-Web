@@ -14,6 +14,7 @@ export const cardSchema = z.object({
   lemma: z.string().min(1).max(200),
   lexemeId: z.number().int().nullable(),
   gloss: z.string().max(500).nullable(),
+  pronunciation: z.string().max(200).nullable().default(null),
   note: z.string().max(2000),
   cefr: cefrSchema.nullable(),
   status: cardStatusSchema,
@@ -78,6 +79,7 @@ export const collectionSchema = z.object({
         lang: langSchema,
         lexemeId: z.number().int().nullable(),
         gloss: z.string().max(500).nullable(),
+        pronunciation: z.string().max(200).nullable().default(null),
         cefr: cefrSchema.nullable(),
       }),
     )

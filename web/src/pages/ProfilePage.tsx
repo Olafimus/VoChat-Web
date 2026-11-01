@@ -5,6 +5,8 @@ import { Avatar } from "../components/Avatar";
 import { useSession, useSyncStatus } from "../session";
 import { AuthForm } from "./AuthPage";
 import { getTheme, setTheme, type Theme } from "../lib/theme";
+import { readDisplay, writeDisplay, type DisplayPrefs } from "../lib/display";
+import { WordView } from "../components/WordView";
 
 export function ProfilePage() {
   const { user, token, updateProfile, replaceProfile, connect, disconnect, collections } = useSession();
@@ -117,6 +119,8 @@ export function ProfilePage() {
         </div>
       </form>
 
+      <DisplaySettings />
+
       <section className="card stack">
         <h2>Darstellung</h2>
         <label>
@@ -190,3 +194,44 @@ export function ProfilePage() {
   );
 }
 
+
+/** Welche Angaben zu einem Wort erscheinen. Gilt überall in der App. */
+function DisplaySettings() {
+  const [d, setD] = useState<DisplayPrefs>(() => readDisplay());
+  const update = (patch: Partial<DisplayPrefs>) => {
+    const next = { ...d, ...patch };
+    setD(next);
+    writeDisplay(next);
+  };
+  const box = (key: keyof DisplayPrefs, label: string) => (
+    <label className="inline">
+      <input type="checkbox" checked={d[key] as boolean} onChange={(e) => update({ [key]: e.target.checked } as Partial<DisplayPrefs>)} />
+      {label}
+    </label>
+  );
+  return (
+    <section className="card stack">
+      <h2>Wortanzeige</h2>
+      <div className="muted small">Gilt überall: Chat, Wortschatz, Lernen, Lernpfade und Sammlungen.</div>
+      <div className="stack" style={{ gap: "0.4rem" }}>
+        {box("pronunciation", "Aussprache anzeigen (Persisch, Japanisch)")}
+        {box("pronunciationInline", "Aussprache neben dem Wort (sonst darunter)")}
+        {box("gloss", "Bedeutung")}
+        {box("cefr", "Niveau (A1–C2)")}
+        {box("gender", "Genus")}
+        {box("pos", "Wortart")}
+      </div>
+      <label>
+        Schriftgröße
+        <select value={d.size} onChange={(e) => update({ size: e.target.value as DisplayPrefs["size"] })}>
+          <option value="normal">normal</option>
+          <option value="large">groß</option>
+        </select>
+      </label>
+      <div className="card" style={{ boxShadow: "none" }}>
+        <div className="muted small">Vorschau</div>
+        <WordView lemma="آب" lang="fa" pronunciation="āb" gloss="Wasser" cefr="A1" pos="noun" gender="n" />
+      </div>
+    </section>
+  );
+}

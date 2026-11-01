@@ -32,7 +32,7 @@ const overflow = (page) => page.evaluate(() => {
     const report = [];
     try {
       await page.goto(base + "/profile", { waitUntil: "networkidle" });
-      await page.getByRole("checkbox", { name: "Persisch" }).check();
+      await page.getByRole("checkbox", { name: "Persisch", exact: true }).check();
       await page.getByRole("button", { name: "Speichern" }).first().click();
       await page.getByText("Gespeichert.").waitFor({ timeout: 10000 });
       await page.goto(base + "/chat", { waitUntil: "networkidle" });

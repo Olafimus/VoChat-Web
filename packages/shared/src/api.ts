@@ -55,6 +55,8 @@ export interface LexemeSummary {
   frequencyRank: number | null;
   /** Erste Übersetzung/Gloss in der Sprache des Nutzers, falls vorhanden. */
   gloss: string | null;
+  /** Aussprache in lateinischer Umschrift (bei Persisch z. B. "āb"); null, wenn unbekannt. */
+  romanization: string | null;
 }
 
 export interface Sense {
@@ -85,6 +87,15 @@ export interface LexemeDetail extends LexemeSummary {
   categories: { name: string; kind: string }[];
 }
 
+export interface CatalogItem {
+  lemma: string;
+  lang: LangCode;
+  lexemeId: number | null;
+  gloss: string | null;
+  pronunciation?: string | null;
+  cefr: string | null;
+}
+
 export interface CatalogCollection {
   id: string;
   kind: "path" | "media";
@@ -96,7 +107,7 @@ export interface CatalogCollection {
   ownerName: string;
   itemCount: number;
   rating: { average: number | null; count: number };
-  items?: { lemma: string; lang: LangCode; lexemeId: number | null; gloss: string | null; cefr: string | null }[];
+  items?: CatalogItem[];
 }
 
 export interface SyncChange {

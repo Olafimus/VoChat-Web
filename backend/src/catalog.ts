@@ -11,7 +11,7 @@ interface StoredCollection {
   lang: LangCode;
   level: CatalogCollection["level"];
   ownerName: string;
-  items: { lemma: string; lang: LangCode; lexemeId: number | null; gloss: string | null; cefr: string | null }[];
+  items: { lemma: string; lang: LangCode; lexemeId: number | null; gloss: string | null; pronunciation?: string | null; cefr: string | null }[];
   visibility: "private" | "public";
   deleted: boolean;
 }
@@ -159,6 +159,7 @@ export function builtinPathDetail(db: Db, id: string, nativeLang: LangCode): Cat
       lang: r.lang,
       lexemeId: r.id,
       gloss: r.gloss,
+      pronunciation: r.romanization,
       cefr: r.cefr,
     })),
   };

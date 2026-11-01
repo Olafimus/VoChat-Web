@@ -7,6 +7,7 @@ import { CefrBadge, Empty, Lemma } from "../components/ui";
 type Tab = "pruefen" | "vorschlagen" | "meine" | "rollen";
 
 const KIND_LABEL: Record<CommunityRow["kind"], string> = {
+  pronunciation: "Aussprache",
   lexeme: "Neues Wort",
   sense: "Bedeutung",
   example: "Beispielsatz",
@@ -120,6 +121,8 @@ function ContributionBody({ row }: { row: CommunityRow }) {
   const p = row.payload as Record<string, string | number | null>;
   const lang = row.lang as LangCode;
   switch (row.kind) {
+    case "pronunciation":
+      return <div>Aussprache für Lexem #{String(p.lexemeId)}: <b>[{String(p.romanization)}]</b></div>;
     case "lexeme":
       return <div><Lemma lang={lang}>{String(p.lemma)}</Lemma> <span className="gloss">= {String(p.gloss)}</span> {p.cefr && <CefrBadge level={String(p.cefr)} />}</div>;
     case "sense":
@@ -156,6 +159,7 @@ function Suggest({ token, nativeLang }: { token: string; nativeLang: LangCode })
     setMsg(null);
     const base = { lexemeId: target?.id ?? 0 };
     const payloads: Record<CommunityRow["kind"], unknown> = {
+      pronunciation: { kind: "pronunciation", lexemeId: target?.id ?? 0, romanization: text.gloss },
       lexeme: { kind: "lexeme", lang, lemma: text.lemma, pos: text.pos, glossLang: nativeLang, gloss: text.gloss },
       sense: { kind: "sense", lexemeId: base.lexemeId, glossLang: nativeLang, gloss: text.gloss },
       example: { kind: "example", lexemeId: base.lexemeId, text: text.example, translation: text.translation || null, translationLang: text.translation ? nativeLang : null },
@@ -234,7 +238,7 @@ function Suggest({ token, nativeLang }: { token: string; nativeLang: LangCode })
       )}
       {kind === "retract" && (
         <>
-          <label>Lexem-ID der falschen Angabe<input required type="number" value={target?.id ?? ""} onChange={(e) => setTarget({ id: Number(e.target.value), lemma: "", lang, pos: null, gender: null, cefr: null, frequencyRank: null, gloss: null })} /></label>
+          <label>Lexem-ID der falschen Angabe<input required type="number" value={target?.id ?? ""} onChange={(e) => setTarget({ id: Number(e.target.value), lemma: "", lang, pos: null, gender: null, cefr: null, frequencyRank: null, gloss: null, romanization: null })} /></label>
           <label>Begründung<input required minLength={3} value={text.reason} onChange={(e) => setText({ ...text, reason: e.target.value })} /></label>
         </>
       )}

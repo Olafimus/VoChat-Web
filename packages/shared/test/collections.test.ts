@@ -24,3 +24,15 @@ describe("languages", () => {
     expect(LANGUAGES.ja.name).toBe("Japanisch");
   });
 });
+
+describe("pronunciation", () => {
+  it("keeps the romanization on cards and collection items", async () => {
+    const { cardSchema, collectionSchema } = await import("../src/index.js");
+    const card = { id: "card-0000000009", lang: "fa", lemma: "آب", lexemeId: 1, gloss: "Wasser", note: "", cefr: null, status: "new", ease: 2.5, intervalDays: 0, dueAt: 0, reps: 0, lapses: 0, createdAt: 1, updatedAt: 1, deleted: false, pronunciation: "āb" };
+    expect(cardSchema.parse(card).pronunciation).toBe("āb");
+    const old = { ...card, pronunciation: undefined };
+    expect(cardSchema.parse(old).pronunciation).toBeNull();
+    const coll = { id: "coll-0000000009", kind: "media", mediaType: "song", title: "t", description: "", lang: "fa", level: null, visibility: "private", ownerName: "x", items: [{ lemma: "آب", lang: "fa", lexemeId: null, gloss: "Wasser", pronunciation: "āb", cefr: null }], createdAt: 1, updatedAt: 1, deleted: false };
+    expect(collectionSchema.parse(coll).items[0].pronunciation).toBe("āb");
+  });
+});

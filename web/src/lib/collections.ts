@@ -7,11 +7,13 @@ export interface ItemDraft {
   lang: LangCode;
   lexemeId: number | null;
   gloss: string | null;
+  pronunciation: string | null;
   cefr: string | null;
 }
 
 /**
- * Eingabe pro Zeile: "wort" oder "wort = bedeutung". Leere Zeilen und Duplikate fallen weg.
+ * Eingabe pro Zeile: "wort", "wort = bedeutung" oder "wort [aussprache] = bedeutung".
+ * Leere Zeilen und Duplikate fallen weg.
  */
 export function parseItemLines(text: string, lang: LangCode): ItemDraft[] {
   const seen = new Set<string>();
@@ -20,13 +22,15 @@ export function parseItemLines(text: string, lang: LangCode): ItemDraft[] {
     const line = raw.trim();
     if (!line) continue;
     const [lemmaPart, ...glossParts] = line.split("=");
-    const lemma = lemmaPart.trim();
+    const pronMatch = /\[([^\]]*)\]/.exec(lemmaPart);
+    const pronunciation = pronMatch?.[1].trim() || null;
+    const lemma = lemmaPart.replace(/\[[^\]]*\]/, "").trim();
     if (!lemma) continue;
     const k = lemma.toLocaleLowerCase("de");
     if (seen.has(k)) continue;
     seen.add(k);
     const gloss = glossParts.join("=").trim();
-    items.push({ lemma, lang, lexemeId: null, gloss: gloss || null, cefr: null });
+    items.push({ lemma, lang, lexemeId: null, gloss: gloss || null, pronunciation, cefr: null });
   }
   return items;
 }

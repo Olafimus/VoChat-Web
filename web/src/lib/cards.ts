@@ -7,6 +7,7 @@ export interface NewCard {
   lemma: string;
   lexemeId: number | null;
   gloss: string | null;
+  pronunciation?: string | null;
   cefr: Cefr | null;
 }
 
@@ -20,6 +21,7 @@ export function addCard(collections: Collections, input: NewCard): void {
     lemma: input.lemma,
     lexemeId: input.lexemeId,
     gloss: input.gloss,
+    pronunciation: input.pronunciation ?? null,
     note: "",
     cefr: input.cefr,
     status: schedule.status,
@@ -36,7 +38,14 @@ export function addCard(collections: Collections, input: NewCard): void {
 }
 
 export function addCardFromLexeme(collections: Collections, lexeme: LexemeSummary, lang: LangCode): void {
-  addCard(collections, { lang, lemma: lexeme.lemma, lexemeId: lexeme.id, gloss: lexeme.gloss, cefr: (lexeme.cefr as Cefr | null) ?? null });
+  addCard(collections, {
+    lang,
+    lemma: lexeme.lemma,
+    lexemeId: lexeme.id,
+    gloss: lexeme.gloss,
+    pronunciation: lexeme.romanization,
+    cefr: (lexeme.cefr as Cefr | null) ?? null,
+  });
 }
 
 export const hasCardFor = (cards: CardRow[], lexemeId: number): boolean =>

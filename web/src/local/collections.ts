@@ -57,6 +57,7 @@ export type CardRow = Row & {
   lemma: string;
   lexemeId: number | null;
   gloss: string | null;
+  pronunciation: string | null;
   note: string;
   cefr: string | null;
   status: "new" | "learning" | "review" | "mastered";

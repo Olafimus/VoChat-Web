@@ -9,6 +9,7 @@ import { addCard, hasCardWord } from "../lib/cards";
 import { newMediaCollection, parseItemLines } from "../lib/collections";
 import type { CardRow, MediaCollectionRow } from "../local/collections";
 import { CefrBadge, Empty, Lemma } from "../components/ui";
+import { WordView } from "../components/WordView";
 
 type Tab = "empfohlen" | "medien" | "meine";
 
@@ -104,7 +105,7 @@ function PathDetail({ id, lang, native, onBack, cards }: { id: string; lang: Lan
       level: detail.level,
       visibility: "private",
       ownerName: user.name,
-      items: detailItems.map((i) => ({ lemma: i.lemma, lang: i.lang, lexemeId: i.lexemeId, gloss: i.gloss, cefr: i.cefr })),
+      items: detailItems.map((i) => ({ lemma: i.lemma, lang: i.lang, lexemeId: i.lexemeId, gloss: i.gloss, pronunciation: i.pronunciation ?? null, cefr: i.cefr })),
     });
     void collections.collections.insert(row);
     setCopied(true);
@@ -229,7 +230,7 @@ function MediaDetail({ id, cards, onBack }: { id: string; cards: CardRow[]; onBa
       level: detail.level,
       visibility: "private",
       ownerName: user.name,
-      items: detailItems.map((i) => ({ lemma: i.lemma, lang: i.lang, lexemeId: i.lexemeId, gloss: i.gloss, cefr: i.cefr })),
+      items: detailItems.map((i) => ({ lemma: i.lemma, lang: i.lang, lexemeId: i.lexemeId, gloss: i.gloss, pronunciation: i.pronunciation ?? null, cefr: i.cefr })),
     });
     void collections.collections.insert(row);
   };
@@ -286,8 +287,8 @@ function MediaDetail({ id, cards, onBack }: { id: string; cards: CardRow[]; onBa
   );
 }
 
-function addCardOf(collections: Parameters<typeof addCard>[0], i: { lang: string; lemma: string; lexemeId?: number | null; gloss: string | null; cefr: string | null }) {
-  addCard(collections, { lang: i.lang as LangCode, lemma: i.lemma, lexemeId: i.lexemeId ?? null, gloss: i.gloss, cefr: (i.cefr as Cefr | null) ?? null });
+function addCardOf(collections: Parameters<typeof addCard>[0], i: { lang: string; lemma: string; lexemeId?: number | null; gloss: string | null; pronunciation?: string | null; cefr: string | null }) {
+  addCard(collections, { lang: i.lang as LangCode, lemma: i.lemma, lexemeId: i.lexemeId ?? null, gloss: i.gloss, pronunciation: i.pronunciation ?? null, cefr: (i.cefr as Cefr | null) ?? null });
 }
 
 /* ---------- Meine Sammlungen ---------- */
@@ -353,7 +354,10 @@ function CreateCollection({ onDone, defaultLang }: { onDone: () => void; default
   const extractFromText = async () => {
     try {
       const { matches, unknown } = await extract(lang, text, user.nativeLang);
-      const lines = matches.map((m) => (m.gloss ? `${m.lemma} = ${m.gloss}` : m.lemma));
+      const lines = matches.map((m) => {
+        const pron = m.romanization ? ` [${m.romanization}]` : "";
+        return m.gloss ? `${m.lemma}${pron} = ${m.gloss}` : `${m.lemma}${pron}`;
+      });
       setText(lines.join("\n"));
       setExtractInfo(`${matches.length} Treffer übernommen${unknown.length ? ` · ${unknown.length} ohne Eintrag (bitte von Hand ergänzen)` : ""}.`);
     } catch {
@@ -501,7 +505,7 @@ function Coverage({ ratio, known, learning, total }: { ratio: number; known: num
   );
 }
 
-function ItemList({ items, lang, cards }: { items: { lemma: string; lang: string; gloss: string | null; cefr: string | null; lexemeId?: number | null | undefined }[]; lang: LangCode; cards: CardRow[] }) {
+function ItemList({ items, lang, cards }: { items: { lemma: string; lang: string; gloss: string | null; pronunciation?: string | null; cefr: string | null; lexemeId?: number | null | undefined }[]; lang: LangCode; cards: CardRow[] }) {
   const { collections } = useSession();
   return (
     <ul className="list">
@@ -510,9 +514,7 @@ function ItemList({ items, lang, cards }: { items: { lemma: string; lang: string
         const card = cards.find((c) => !c.deleted && c.lang === i.lang && c.lemma.toLocaleLowerCase("de") === i.lemma.toLocaleLowerCase("de"));
         return (
           <li key={`${i.lemma}-${idx}`} className="row card-line">
-            <Lemma lang={lang}>{i.lemma}</Lemma>
-            <CefrBadge level={i.cefr} />
-            {i.gloss && <span className="gloss">{i.gloss}</span>}
+            <WordView lemma={i.lemma} lang={lang} pronunciation={i.pronunciation} gloss={i.gloss} cefr={i.cefr} />
             <span className="spacer" />
             {card?.status === "review" || card?.status === "mastered" ? (
               <span className="badge">bekannt</span>

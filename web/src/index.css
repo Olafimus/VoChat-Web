@@ -276,3 +276,11 @@ button.link.small { font-size: 0.82rem; }
   .streak.pop, .flip-scene.fb-wrong, .flip-scene.fb-right .flashcard, .confetti span, .answer.reveal { animation: none; }
   .confetti { display: none; }
 }
+
+/* ---- Wortanzeige ---- */
+.word-view { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 0.2rem 0.45rem; min-width: 0; }
+.word-view.word-stacked { display: inline-grid; gap: 0.1rem; }
+.word-view .pron { color: var(--muted); font-size: 0.92rem; font-style: italic; }
+.word-view.word-large .lemma { font-size: 1.35rem; }
+.word-view.word-large .pron { font-size: 1.05rem; }
+.lemma { overflow-wrap: anywhere; }

@@ -7,7 +7,7 @@ import { useActiveLang } from "../lib/lang";
 import { addCardFromLexeme, hasCardFor, hasCardWord } from "../lib/cards";
 import { newId } from "../lib/ids";
 import { LexemeInfo } from "../components/LexemeInfo";
-import { CefrBadge, Lemma } from "../components/ui";
+import { WordView } from "../components/WordView";
 import type { MessageRow, CardRow } from "../local/collections";
 
 interface LookupPayload {
@@ -225,11 +225,8 @@ function LookupMessage({
         <div key={r.id} className="lookup-item">
           <div className="row">
             <button className="link" onClick={() => setOpen(open === r.id ? null : r.id)} aria-expanded={open === r.id}>
-              <Lemma lang={lang}>{r.lemma}</Lemma>
+              <WordView lemma={r.lemma} lang={lang} pronunciation={r.romanization} gloss={r.gloss} cefr={r.cefr} pos={r.pos} gender={r.gender} />
             </button>
-            {r.pos && <span className="muted small">{r.pos}{r.gender ? ` · ${r.gender}` : ""}</span>}
-            <CefrBadge level={r.cefr} />
-            {r.gloss && <span className="gloss">{r.gloss}</span>}
             <span className="spacer" />
             {isAdded(r.id) ? (
               <span className="muted small">✓ in Liste</span>
@@ -264,8 +261,7 @@ function ExtractMessage({
       {payload.matches.length === 0 && <div>Keine bekannten Wörter gefunden.</div>}
       {payload.matches.map((m) => (
         <div key={m.id} className="row">
-          <Lemma lang={lang}>{m.lemma}</Lemma>
-          {m.gloss && <span className="gloss">{m.gloss}</span>}
+          <WordView lemma={m.lemma} lang={lang} pronunciation={m.romanization} gloss={m.gloss} cefr={m.cefr} />
           <span className="spacer" />
           {fresh.some((f) => f.id === m.id) ? (
             <button className="small-btn" onClick={() => onAdd(m)}>+ Lernen</button>

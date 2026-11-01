@@ -98,7 +98,7 @@ export const community = {
 
 export interface CommunityRow {
   id: number;
-  kind: "lexeme" | "sense" | "example" | "translation" | "retract";
+  kind: "lexeme" | "sense" | "example" | "translation" | "retract" | "pronunciation";
   lang: string;
   payload: Record<string, unknown>;
   status: "pending" | "verified" | "rejected" | "revoked";

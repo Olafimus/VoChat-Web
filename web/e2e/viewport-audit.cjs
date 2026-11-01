@@ -60,7 +60,7 @@ async function audit(page, label) {
     page.on("pageerror", (e) => errors.push(e.message));
     await page.goto("${BASE}/profile", { waitUntil: "networkidle" });
     // Profil: Lernsprachen wählen, lokal speichern
-    await page.getByRole("checkbox", { name: "Persisch" }).check();
+    await page.getByRole("checkbox", { name: "Persisch", exact: true }).check();
     await page.getByRole("checkbox", { name: "Spanisch" }).check();
     await page.getByRole("button", { name: "Speichern" }).first().click();
     await page.getByText("Gespeichert.").waitFor({ timeout: 10000 });

@@ -3,7 +3,8 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { LANGUAGES, type LangCode } from "@vochat/shared";
 import { useSession } from "../session";
 import type { CardRow } from "../local/collections";
-import { CefrBadge, Empty, Lemma } from "../components/ui";
+import { Empty } from "../components/ui";
+import { WordView } from "../components/WordView";
 
 const STATUS_LABEL: Record<CardRow["status"], string> = {
   new: "neu",
@@ -59,10 +60,8 @@ export function VocabPage() {
         {visible.map((c) => (
           <li key={c.id} className="card row-card">
             <div className="row">
-              <Lemma lang={c.lang as LangCode}>{c.lemma}</Lemma>
-              <CefrBadge level={c.cefr} />
+              <WordView lemma={c.lemma} lang={c.lang as LangCode} pronunciation={c.pronunciation} gloss={c.gloss} cefr={c.cefr} />
               <span className="badge subtle">{STATUS_LABEL[c.status]}</span>
-              {c.gloss && <span className="gloss">{c.gloss}</span>}
               <span className="spacer" />
               <button className="small-btn" onClick={() => setEditing(editing === c.id ? null : c.id)}>
                 {editing === c.id ? "Fertig" : "Notiz"}

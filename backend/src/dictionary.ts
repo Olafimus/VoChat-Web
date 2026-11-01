@@ -9,12 +9,13 @@ type SummaryRow = {
   gender: string | null;
   cefr: string | null;
   frequency_rank: number | null;
+  romanization: string | null;
   gloss: string | null;
   translation: string | null;
 };
 
 const SUMMARY_SELECT = `
-  SELECT l.id, l.lang, l.lemma, l.pos, l.gender, l.cefr, l.frequency_rank,
+  SELECT l.id, l.lang, l.lemma, l.pos, l.gender, l.cefr, l.frequency_rank, l.romanization,
     (SELECT s.gloss FROM senses s WHERE s.lexeme_id = l.id AND s.hidden = 0 AND s.gloss_lang = :native
       ORDER BY s.position LIMIT 1) AS gloss,
     (SELECT t.target_lemma FROM translations t WHERE t.lexeme_id = l.id AND t.hidden = 0 AND t.target_lang = :native
@@ -30,6 +31,7 @@ function toSummary(row: SummaryRow): LexemeSummary {
     gender: row.gender,
     cefr: row.cefr,
     frequencyRank: row.frequency_rank,
+    romanization: row.romanization,
     gloss: row.gloss ?? row.translation,
   };
 }
