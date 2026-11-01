@@ -6,19 +6,19 @@ type Listener = (rows: Row[]) => void;
 
 const DATA = "data/";
 const OUTBOX = "outbox/";
-const CURSOR = "meta/cursor";
+const CURSOR = "meta/cursor/";
 
 /**
- * Local-first-Speicher: Die App liest und schreibt ausschließlich hier. Lokale
- * Änderungen landen in einer Outbox und werden später an den Server gesendet;
- * Serverstände werden per Last-Write-Wins (updatedAt) eingemischt.
+ * Local-first-Speicher des Geräts. Die App liest und schreibt ausschließlich hier.
+ * Lokale Änderungen landen in der Outbox und werden gesendet, sobald ein Konto
+ * verbunden ist. Der Pull-Cursor gehört zu einem Konto, damit Konten sich nicht mischen.
  */
 export class LocalStore {
   private rows = new Map<string, Map<string, Row>>();
   private outbox = new Map<string, { entity: SyncEntity; row: Row }>();
   private listeners = new Map<SyncEntity, Set<Listener>>();
-  private dirty = new Map<string, unknown | undefined>(); // key -> value (undefined = löschen)
-  private cursorValue = 0;
+  private dirty = new Map<string, unknown | undefined>();
+  private cursors = new Map<string, number>();
   private flushTimer: ReturnType<typeof setTimeout> | null = null;
   private onOutboxChange: (() => void) | null = null;
 
@@ -33,10 +33,9 @@ export class LocalStore {
         this.table(entity as SyncEntity).set(id, value as Row);
       } else if (key.startsWith(OUTBOX)) {
         const [, entity, id] = key.split("/");
-        const row = value as Row;
-        this.outbox.set(`${entity}/${id}`, { entity: entity as SyncEntity, row });
-      } else if (key === CURSOR) {
-        this.cursorValue = Number(value) || 0;
+        this.outbox.set(`${entity}/${id}`, { entity: entity as SyncEntity, row: value as Row });
+      } else if (key.startsWith(CURSOR)) {
+        this.cursors.set(key.slice(CURSOR.length), Number(value) || 0);
       }
     }
   }
@@ -45,8 +44,13 @@ export class LocalStore {
     this.onOutboxChange = fn;
   }
 
-  get cursor(): number {
-    return this.cursorValue;
+  cursorFor(accountId: string): number {
+    return this.cursors.get(accountId) ?? 0;
+  }
+
+  setCursor(accountId: string, value: number): void {
+    this.cursors.set(accountId, value);
+    this.persist(CURSOR + accountId, value);
   }
 
   get pendingCount(): number {
@@ -74,6 +78,17 @@ export class LocalStore {
     this.onOutboxChange?.();
   }
 
+  /** Alle lokalen Zeilen in die Outbox legen (beim ersten Verbinden eines Kontos). */
+  enqueueAll(): void {
+    for (const entity of ["cards", "messages", "reviews", "collections"] as SyncEntity[]) {
+      for (const row of this.all(entity)) {
+        this.outbox.set(`${entity}/${row.id}`, { entity, row });
+        this.persist(OUTBOX + `${entity}/${row.id}`, row);
+      }
+    }
+    this.onOutboxChange?.();
+  }
+
   /** Serverstand einmischen. Lokal neuere, noch nicht gesendete Änderungen gewinnen. */
   applyRemote(entity: SyncEntity, row: Row): void {
     const current = this.table(entity).get(row.id);
@@ -89,7 +104,11 @@ export class LocalStore {
     this.emit(entity, [row]);
   }
 
-  /** Nach erfolgreichem Push: Einträge aus der Outbox entfernen, sofern nicht inzwischen geändert. */
+  pendingBatch(limit: number): { entity: SyncEntity; row: Row }[] {
+    return [...this.outbox.values()].slice(0, limit);
+  }
+
+  /** Nach erfolgreichem Push: Einträge entfernen, sofern nicht inzwischen geändert. */
   acknowledge(sent: { entity: SyncEntity; row: Row }[]): void {
     for (const op of sent) {
       const key = `${op.entity}/${op.row.id}`;
@@ -102,16 +121,6 @@ export class LocalStore {
     this.onOutboxChange?.();
   }
 
-  pendingBatch(limit: number): { entity: SyncEntity; row: Row }[] {
-    return [...this.outbox.values()].slice(0, limit);
-  }
-
-  setCursor(value: number): void {
-    this.cursorValue = value;
-    this.persist(CURSOR, value);
-  }
-
-  /** Schreibt ausstehende Änderungen gebündelt in IndexedDB. */
   private persist(key: string, value: unknown): void {
     if (!this.kv) return;
     this.dirty.set(key, value);

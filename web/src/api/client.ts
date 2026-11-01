@@ -1,5 +1,13 @@
-import type { AuthResponse, LexemeDetail, LexemeSummary, PullResponse, PushResponse, UserProfile } from "@vochat/shared";
-import type { LangCode } from "@vochat/shared";
+import type {
+  AuthResponse,
+  CatalogCollection,
+  LangCode,
+  LexemeDetail,
+  LexemeSummary,
+  PullResponse,
+  PushResponse,
+  UserProfile,
+} from "@vochat/shared";
 
 const BASE: string = import.meta.env.VITE_API_URL ?? "/api";
 
@@ -34,6 +42,7 @@ async function request<T>(path: string, init: { method?: string; body?: unknown;
   return (await res.json()) as T;
 }
 
+/** Öffentliche Endpunkte (Wörterbuch, Katalog) brauchen kein Konto. */
 export const api = {
   register: (input: { email: string; password: string; name: string; nativeLang: LangCode }) =>
     request<AuthResponse>("/auth/register", { method: "POST", body: input }),
@@ -47,12 +56,23 @@ export const api = {
   pull: (token: string, since: number, limit = 500) =>
     request<PullResponse>(`/sync/changes?since=${since}&limit=${limit}`, { token }),
 
-  search: (token: string, lang: LangCode, q: string) =>
-    request<LexemeSummary[]>(`/dictionary/search?lang=${lang}&q=${encodeURIComponent(q)}&limit=8`, { token }),
-  browse: (token: string, lang: LangCode, cefr: string | null, offset: number) =>
+  search: (lang: LangCode, q: string, native: LangCode) =>
+    request<LexemeSummary[]>(`/dictionary/search?lang=${lang}&q=${encodeURIComponent(q)}&limit=8&native=${native}`),
+  browse: (lang: LangCode, cefr: string | null, offset: number, native: LangCode) =>
     request<LexemeSummary[]>(
-      `/dictionary/browse?lang=${lang}${cefr ? `&cefr=${cefr}` : ""}&limit=50&offset=${offset}`,
-      { token },
+      `/dictionary/browse?lang=${lang}${cefr ? `&cefr=${cefr}` : ""}&limit=50&offset=${offset}&native=${native}`,
     ),
-  lexeme: (token: string, id: number) => request<LexemeDetail>(`/dictionary/lexemes/${id}`, { token }),
+  lexeme: (id: number, native: LangCode) => request<LexemeDetail>(`/dictionary/lexemes/${id}?native=${native}`),
+
+  paths: (lang: LangCode) => request<CatalogCollection[]>(`/catalog/paths?lang=${lang}`),
+  pathDetail: (id: string, native: LangCode) =>
+    request<CatalogCollection>(`/catalog/paths/${encodeURIComponent(id)}?native=${native}`),
+  publicCollections: (params: { kind?: string; mediaType?: string; q?: string; sort?: string }, token?: string | null) => {
+    const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v) as [string, string][]).toString();
+    return request<CatalogCollection[]>(`/catalog/collections${qs ? `?${qs}` : ""}`, { token });
+  },
+  publicCollection: (id: string, token?: string | null) =>
+    request<CatalogCollection & { myRating: number | null }>(`/catalog/collections/${encodeURIComponent(id)}`, { token }),
+  rate: (token: string, id: string, difficulty: number) =>
+    request<{ ok: boolean }>(`/catalog/collections/${encodeURIComponent(id)}/rating`, { method: "PUT", body: { difficulty }, token }),
 };

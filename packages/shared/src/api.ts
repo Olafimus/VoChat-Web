@@ -55,8 +55,22 @@ export interface LexemeDetail extends LexemeSummary {
   categories: { name: string; kind: string }[];
 }
 
+export interface CatalogCollection {
+  id: string;
+  kind: "path" | "media";
+  mediaType: string | null;
+  title: string;
+  description: string;
+  lang: LangCode;
+  level: (typeof CEFR_LEVELS)[number] | null;
+  ownerName: string;
+  itemCount: number;
+  rating: { average: number | null; count: number };
+  items?: { lemma: string; lang: LangCode; lexemeId: number | null; gloss: string | null; cefr: string | null }[];
+}
+
 export interface SyncChange {
-  entity: "cards" | "messages";
+  entity: "cards" | "messages" | "reviews" | "collections";
   row: Record<string, unknown>;
 }
 

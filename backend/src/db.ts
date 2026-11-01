@@ -47,6 +47,17 @@ CREATE TABLE IF NOT EXISTS sync_rows (
 );
 CREATE INDEX IF NOT EXISTS sync_rows_seq ON sync_rows (user_id, seq);
 
+CREATE INDEX IF NOT EXISTS sync_rows_entity ON sync_rows (entity, deleted);
+
+-- Bewertungen für öffentliche Lernpfade/Medien-Sammlungen (1 pro Nutzer und Sammlung).
+CREATE TABLE IF NOT EXISTS ratings (
+  collection_id TEXT NOT NULL,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  difficulty INTEGER NOT NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (collection_id, user_id)
+);
+
 CREATE TABLE IF NOT EXISTS lexemes (
   id INTEGER PRIMARY KEY,
   lang TEXT NOT NULL,

@@ -192,3 +192,23 @@ a { color: var(--accent); }
   .composer { bottom: 0; }
   .grades { max-width: 420px; }
 }
+
+/* ---- Erweiterungen: Lernformate, Lernpfade, Medien ---- */
+.segmented.three { grid-template-columns: 1fr 1fr 1fr; }
+.learn-controls { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; justify-content: space-between; }
+.learn-controls .segmented { flex: 1; min-width: 260px; }
+.typing { display: grid; gap: 0.7rem; width: 100%; justify-items: center; }
+.typing input { text-align: center; font-size: 1.2rem; max-width: 420px; }
+.verdict { padding: 0.5rem 0.8rem; border-radius: 10px; font-size: 0.95rem; }
+.verdict-correct { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
+.verdict-typo { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+.verdict-wrong { background: color-mix(in srgb, var(--danger) 16%, transparent); color: var(--danger); }
+.coverage { display: grid; gap: 0.3rem; }
+.bar { height: 10px; background: var(--surface-2); border-radius: 999px; overflow: hidden; }
+.bar span { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
+.difficulty { display: inline-flex; align-items: center; gap: 1px; color: var(--border); }
+.difficulty .on { color: var(--warn); }
+button.star { min-height: 36px; padding: 0.1rem 0.5rem; font-size: 1.4rem; color: var(--border); background: none; }
+button.star.on { color: var(--warn); }
+.sync-local .dot { background: var(--muted); }
+.card.row-card .row { gap: 0.6rem; }

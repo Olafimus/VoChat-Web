@@ -1,7 +1,7 @@
-import { cardSchema, messageSchema, type PullResponse, type PushResponse, type SyncEntity } from "@vochat/shared";
+import { cardSchema, collectionSchema, messageSchema, reviewSchema, type PullResponse, type PushResponse, type SyncEntity } from "@vochat/shared";
 import { transaction, type Db } from "./db.js";
 
-const schemas = { cards: cardSchema, messages: messageSchema } as const;
+const schemas = { cards: cardSchema, messages: messageSchema, reviews: reviewSchema, collections: collectionSchema } as const;
 
 /**
  * Push: Last-Write-Wins pro Zeile anhand `updatedAt`. Ältere Änderungen werden

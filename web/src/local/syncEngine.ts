@@ -2,6 +2,7 @@ import { api, ApiError } from "../api/client";
 import type { LocalStore } from "./localStore";
 
 export type SyncStatus = {
+  enabled: boolean;
   online: boolean;
   syncing: boolean;
   pending: number;
@@ -14,54 +15,55 @@ const PULL_PAGE = 500;
 const INTERVAL_MS = 20_000;
 
 /**
- * Sync-Engine: schiebt die Outbox zum Server und zieht Änderungen seit dem
- * letzten Cursor. Läuft periodisch, bei Online-Wechsel und nach lokalen Schreibvorgängen.
+ * Sync-Engine. Ohne Konto ist sie deaktiviert: die App bleibt voll nutzbar, nur die
+ * Übertragung an den Server fehlt. Mit Konto schiebt sie die Outbox und zieht Änderungen.
  */
 export class SyncEngine {
-  private status: SyncStatus = {
-    online: typeof navigator === "undefined" ? true : navigator.onLine,
-    syncing: false,
-    pending: 0,
-    lastSync: null,
-    error: null,
-  };
+  private status: SyncStatus;
   private listeners = new Set<() => void>();
   private running = false;
   private rerun = false;
   private timer: ReturnType<typeof setInterval> | null = null;
   private kick: ReturnType<typeof setTimeout> | null = null;
+  private detachListeners: () => void = () => {};
 
   constructor(
     private readonly store: LocalStore,
-    private readonly token: string,
+    private readonly token: string | null,
+    private readonly accountId: string | null,
   ) {
-    this.status.pending = store.pendingCount;
+    this.status = {
+      enabled: token !== null && accountId !== null,
+      online: typeof navigator === "undefined" ? true : navigator.onLine,
+      syncing: false,
+      pending: store.pendingCount,
+      lastSync: null,
+      error: null,
+    };
     store.setOutboxListener(() => {
-      this.status = { ...this.status, pending: store.pendingCount };
-      this.emit();
-      this.scheduleKick();
+      this.update({});
+      if (this.status.enabled) this.scheduleKick();
     });
   }
 
   start(): void {
+    if (!this.status.enabled) return;
     const onOnline = () => this.update({ online: true }, true);
     const onOffline = () => this.update({ online: false });
     window.addEventListener("online", onOnline);
     window.addEventListener("offline", onOffline);
-    this.timer = setInterval(() => void this.sync(), INTERVAL_MS);
-    this.stopListening = () => {
+    this.detachListeners = () => {
       window.removeEventListener("online", onOnline);
       window.removeEventListener("offline", onOffline);
     };
+    this.timer = setInterval(() => void this.sync(), INTERVAL_MS);
     void this.sync();
   }
-
-  private stopListening: () => void = () => {};
 
   stop(): void {
     if (this.timer) clearInterval(this.timer);
     if (this.kick) clearTimeout(this.kick);
-    this.stopListening();
+    this.detachListeners();
     void this.store.flush();
   }
 
@@ -73,6 +75,7 @@ export class SyncEngine {
   getStatus = (): SyncStatus => this.status;
 
   async sync(): Promise<void> {
+    if (!this.status.enabled || !this.token || !this.accountId) return;
     if (this.running) {
       this.rerun = true;
       return;
@@ -80,8 +83,8 @@ export class SyncEngine {
     this.running = true;
     this.update({ syncing: true, error: null });
     try {
-      await this.pushAll();
-      await this.pullAll();
+      await this.pushAll(this.token);
+      await this.pullAll(this.token, this.accountId);
       this.update({ online: true, syncing: false, lastSync: Date.now(), error: null });
     } catch (error) {
       const offline = error instanceof ApiError && error.status === 0;
@@ -89,7 +92,7 @@ export class SyncEngine {
       this.update({
         online: !offline,
         syncing: false,
-        error: unauthorized ? "Sitzung abgelaufen" : offline ? null : "Synchronisation fehlgeschlagen",
+        error: unauthorized ? "Anmeldung abgelaufen – bitte neu anmelden" : offline ? null : "Synchronisation fehlgeschlagen",
       });
     } finally {
       this.running = false;
@@ -101,26 +104,23 @@ export class SyncEngine {
     }
   }
 
-  private async pushAll(): Promise<void> {
+  private async pushAll(token: string): Promise<void> {
     for (;;) {
       const batch = this.store.pendingBatch(PUSH_BATCH);
       if (batch.length === 0) return;
-      const res = await api.push(
-        this.token,
-        batch.map((op) => ({ entity: op.entity, row: op.row })),
-      );
+      const res = await api.push(token, batch.map((op) => ({ entity: op.entity, row: op.row })));
       this.store.acknowledge(batch);
       if (res.rejected.length) console.warn("Server hat Zeilen abgelehnt:", res.rejected);
     }
   }
 
-  private async pullAll(): Promise<void> {
+  private async pullAll(token: string, accountId: string): Promise<void> {
     for (;;) {
-      const page = await api.pull(this.token, this.store.cursor, PULL_PAGE);
+      const page = await api.pull(token, this.store.cursorFor(accountId), PULL_PAGE);
       for (const change of page.changes) {
         this.store.applyRemote(change.entity, change.row as never);
       }
-      this.store.setCursor(page.cursor);
+      this.store.setCursor(accountId, page.cursor);
       if (!page.hasMore) return;
     }
   }
@@ -132,11 +132,7 @@ export class SyncEngine {
 
   private update(patch: Partial<SyncStatus>, resync = false) {
     this.status = { ...this.status, ...patch, pending: this.store.pendingCount };
-    this.emit();
-    if (resync) void this.sync();
-  }
-
-  private emit() {
     this.listeners.forEach((fn) => fn());
+    if (resync) void this.sync();
   }
 }

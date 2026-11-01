@@ -6,20 +6,20 @@ import { CefrBadge, Lemma } from "./ui";
 
 /** Vollansicht eines Eintrags: Bedeutungen, Übersetzungen, Beispielsätze, Kategorien. */
 export function LexemeInfo({ lexeme, lang }: { lexeme: LexemeSummary; lang: LangCode }) {
-  const { token } = useSession();
+  const { user } = useSession();
   const [detail, setDetail] = useState<LexemeDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
     api
-      .lexeme(token, lexeme.id)
+      .lexeme(lexeme.id, user.nativeLang)
       .then((d) => alive && setDetail(d))
       .catch(() => alive && setError("Details nicht verfügbar (offline?)"));
     return () => {
       alive = false;
     };
-  }, [token, lexeme.id]);
+  }, [user.nativeLang, lexeme.id]);
 
   if (error) return <div className="muted small">{error}</div>;
   if (!detail) return <div className="muted small">Lade Details …</div>;

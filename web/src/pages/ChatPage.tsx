@@ -17,7 +17,7 @@ interface LookupPayload {
 
 /** Chat: Du schreibst ein Wort oder eine Wendung, der Assistent antwortet mit Wörterbuch-Treffern. */
 export function ChatPage() {
-  const { token, collections, user } = useSession();
+  const { collections, user } = useSession();
   const status = useSyncStatus();
   const [lang, setLang, learning] = useActiveLang();
   const messages = useLiveQuery((q) => collections.messages)
@@ -57,7 +57,7 @@ export function ChatPage() {
     }
     setBusy(true);
     try {
-      const results = await api.search(token, lang, query);
+      const results = await api.search(lang, query, user.nativeLang);
       const payload: LookupPayload = { query, results: results.slice(0, 8) };
       post({
         role: "assistant",

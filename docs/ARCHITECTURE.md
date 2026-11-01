@@ -30,6 +30,35 @@
 - Wörterbuch-Abfragen sind bewusst **online** (der Gesamtbestand ist zu groß für jedes Gerät). Lernkarten, die
   man aus dem Wörterbuch übernimmt, enthalten Lemma, Bedeutung und Niveau selbst, damit sie offline funktionieren.
 
+## Optionales Konto
+
+- Ohne Konto ist alles nutzbar: Wortschatz, Lernen, Lernpfade, eigene Sammlungen. Die Daten liegen auf dem Gerät.
+- Mit Konto startet die Sync-Engine. Beim Verbinden werden alle lokalen Zeilen in die Outbox gelegt und hochgeladen.
+- Öffentliche Endpunkte (`/dictionary/*`, `/catalog/*`) brauchen kein Konto. Schreiben, Bewerten und Synchronisieren braucht ein Bearer-Token.
+- Der Pull-Cursor gehört zu einem Konto (`meta/cursor/<konto>`), damit Konten auf demselben Gerät sich nicht vermischen.
+- Abmelden trennt nur die Synchronisation; lokale Daten bleiben erhalten.
+
+## Katalog (öffentlich)
+
+| Endpunkt | Zweck |
+|---|---|
+| `GET /catalog/paths?lang=` | Empfohlene Lernpfade (je CEFR-Niveau und „Top 500“), berechnet aus dem Wörterbuch |
+| `GET /catalog/paths/:id` | Wörter eines Pfades |
+| `GET /catalog/collections?kind&mediaType&lang&q&sort` | Öffentlich geteilte Medien-Sammlungen |
+| `GET /catalog/collections/:id` | Eine Sammlung mit Wörtern und Bewertung |
+| `PUT /catalog/collections/:id/rating` | Schwierigkeit 1–5 bewerten (Konto nötig, eine Bewertung pro Nutzer) |
+
+Geteilt wird über das Feld `visibility: "public"` der Sammlung: Die Zeile wird normal synchronisiert, und der Katalog
+zeigt nur öffentliche Zeilen. Eine Moderation gibt es noch nicht.
+
+## Lernen
+
+- Antworten werden als `reviews` protokolliert (append-only, synchronisiert).
+- Tippprüfung (`packages/shared/src/typing.ts`): Damerau-Levenshtein-Distanz nach Normalisierung; erlaubt sind
+  `floor(Länge / 10)` Fehler.
+- Lernpaket (`packages/shared/src/packs.ts`): Priorität aus Schwäche, Wiedereinreihung nach Wartezeit, Fälligkeit und Neuen.
+- Abgleich mit Medien (`packages/shared/src/coverage.ts`): bekannt = Status „review“ oder „mastered“, in Arbeit = „new“/„learning“.
+
 ## Sync-Protokoll
 
 | Endpunkt | Zweck |
@@ -37,7 +66,7 @@
 | `POST /sync/push` `{ops: [{entity, row}]}` | Zeilen speichern; Antwort: `accepted`, `rejected[]` |
 | `GET /sync/changes?since=N&limit=500` | Zeilen mit Sequenz > N; Antwort: `changes`, `cursor`, `hasMore` |
 
-- `entity` ∈ `cards`, `messages`. Löschen ist ein Tombstone (`deleted: true`), damit LWW auch für Löschungen gilt.
+- `entity` ∈ `cards`, `messages`, `reviews`, `collections`. Löschen ist ein Tombstone (`deleted: true`), damit LWW auch für Löschungen gilt.
 - Der Server vergibt pro angenommener Zeile eine globale Sequenznummer (`counters.seq`). Der Cursor ist die höchste
   gesehene Nummer; damit funktioniert der Pull inkrementell ohne Zeitstempel-Probleme.
 - Zeilen werden mit Zod validiert; ungültige Zeilen werden einzeln abgelehnt, der Rest des Batches läuft weiter.

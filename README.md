@@ -6,7 +6,9 @@ synchronisiert, sobald eine Verbindung besteht.
 
 - **Sprachen:** Deutsch, Englisch, Spanisch, Persisch (erweiterbar)
 - **Stack:** TypeScript · Backend: Hono + eingebautes `node:sqlite` · Web: React, Vite, TanStack DB, IndexedDB
-- **Auth:** E-Mail/Passwort, Sitzungs-Token
+- **Konto optional:** Alles funktioniert lokal ohne Anmeldung. Ein Konto braucht man nur für Synchronisation,
+  das Teilen von Sammlungen und das Bewerten. Die API nutzt Bearer-Tokens (kein Cookie), damit spätere
+  native Apps dieselbe API verwenden können.
 
 ## Einrichtung
 
@@ -40,6 +42,20 @@ web/               React-App (Chat, Wortschatz, Lernen, Entdecken, Profil)
   src/local/       lokaler Speicher, Outbox, Sync-Engine, TanStack-DB-Collections
 docs/              DICTIONARY_SOURCES.md (Quellen & Status), ARCHITECTURE.md (Design & Sync-Protokoll)
 ```
+
+## Funktionen
+
+- **Chat:** Wort oder Wendung eingeben, Treffer mit Bedeutungen, Beispielen und Niveau anzeigen, „+ Lernen“.
+- **Lernen in drei Formaten:** Karteikarte (Wort → Bedeutung), Umdrehen (Bedeutung → Wort) und Tippen.
+  Beim Tippen gilt: höchstens ein Fehler je 10 Buchstaben (kurze Wörter müssen exakt stimmen);
+  Groß-/Kleinschreibung, Satzzeichen und persische Schreibvarianten werden ignoriert.
+- **Lernpaket:** 15 Karten, priorisiert nach Schwäche (Trefferquote der letzten 7 Tage, mind. 2 Antworten),
+  kürzlich falsch beantworteten Karten (kommen nach einer Wartezeit wieder), Fälligkeit und neuen Wörtern.
+  Jede Antwort wird protokolliert (`reviews`).
+- **Lernpfade:** empfohlene Pfade je Sprache und CEFR-Niveau sowie „Top 500“ nach Häufigkeit.
+- **Medien-Wortschatz:** eigene Sammlungen zu Büchern, Liedern, Filmen oder Serien. Beim Öffnen siehst du,
+  wie viele Wörter du schon kennst und welche dir noch fehlen. Mit Konto teilbar und mit 1–5 Sternen
+  nach Schwierigkeit bewertbar.
 
 ## Wörterbuchquellen
 

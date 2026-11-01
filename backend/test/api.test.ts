@@ -140,7 +140,7 @@ describe("dictionary", () => {
 
   it("finds exact matches first, case-insensitively, with a gloss in the native language", async () => {
     const { token } = await register("i@example.com", "en");
-    const res = await (await app.request("/dictionary/search?lang=de&q=haus", get(token))).json();
+    const res = await (await app.request("/dictionary/search?lang=de&q=haus&native=en", get(token))).json();
     expect(res[0].lemma).toBe("Haus");
     expect(res[0].gloss).toBe("house");
     expect(res.map((r: { lemma: string }) => r.lemma)).toContain("Hausa");
@@ -148,7 +148,7 @@ describe("dictionary", () => {
 
   it("returns lexeme details with senses and translations", async () => {
     const { token } = await register("j@example.com", "en");
-    const detail = await (await app.request("/dictionary/lexemes/1", get(token))).json();
+    const detail = await (await app.request("/dictionary/lexemes/1?native=en", get(token))).json();
     expect(detail.senses[0].gloss).toBe("house");
     expect(detail.translations[0].targetLemma).toBe("house");
   });
@@ -181,5 +181,62 @@ describe("persian search", () => {
     expect(persian.map((r) => r.id)).toContain(50);
     const kaf = searchLexemes(db, { lang: "fa", q: "كتا", nativeLang: "de", limit: 10 });
     expect(kaf.map((r) => r.id)).toEqual([51]);
+  });
+});
+
+describe("optional login and catalog", () => {
+  const collection = (overrides: Record<string, unknown> = {}) => ({
+    id: "coll-0000000001", kind: "media", mediaType: "song", title: "Mein Lied", description: "Test", lang: "de", level: "B1",
+    visibility: "public", ownerName: "Olaf",
+    items: [{ lemma: "Haus", lang: "de", lexemeId: 1, gloss: "house", cefr: "A1" }, { lemma: "Liebe", lang: "de", lexemeId: null, gloss: null, cefr: null }],
+    createdAt: 1, updatedAt: 1, deleted: false, ...overrides,
+  });
+
+  it("serves dictionary and catalog without any login", async () => {
+    db.exec("INSERT INTO lexemes (id, lang, lemma, pos, frequency_rank) VALUES (1, 'de', 'Haus', 'noun', 1)");
+    expect((await app.request("/dictionary/search?lang=de&q=Ha")).status).toBe(200);
+    expect((await app.request("/catalog/paths?lang=de")).status).toBe(200);
+    expect((await app.request("/sync/changes?since=0")).status).toBe(401);
+  });
+
+  it("publishes a public collection via sync and lists it in the catalog", async () => {
+    const { token } = await register("cat1@example.com");
+    await app.request("/sync/push", json({ ops: [{ entity: "collections", row: collection() }] }, token));
+    const list = await (await app.request("/catalog/collections?kind=media&mediaType=song")).json();
+    expect(list.map((c: { title: string }) => c.title)).toEqual(["Mein Lied"]);
+    const detail = await (await app.request("/catalog/collections/coll-0000000001")).json();
+    expect(detail.items).toHaveLength(2);
+  });
+
+  it("keeps private collections out of the catalog", async () => {
+    const { token } = await register("cat2@example.com");
+    await app.request("/sync/push", json({ ops: [{ entity: "collections", row: collection({ id: "coll-0000000002", visibility: "private" }) }] }, token));
+    expect(await (await app.request("/catalog/collections")).json()).toEqual([]);
+    expect((await app.request("/catalog/collections/coll-0000000002")).status).toBe(404);
+  });
+
+  it("requires login to rate and aggregates ratings", async () => {
+    const owner = await register("cat3@example.com");
+    await app.request("/sync/push", json({ ops: [{ entity: "collections", row: collection({ id: "coll-0000000003" }) }] }, owner.token));
+    const anon = await app.request("/catalog/collections/coll-0000000003/rating", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ difficulty: 4 }) });
+    expect(anon.status).toBe(401);
+
+    const a = await register("rater1@example.com");
+    const b = await register("rater2@example.com");
+    const rate = (token: string, d: number) => app.request("/catalog/collections/coll-0000000003/rating", { method: "PUT", headers: { "content-type": "application/json", authorization: `Bearer ${token}` }, body: JSON.stringify({ difficulty: d }) });
+    expect((await rate(a.token, 2)).status).toBe(200);
+    expect((await rate(b.token, 4)).status).toBe(200);
+    const detail = await (await app.request("/catalog/collections/coll-0000000003", get(a.token))).json();
+    expect(detail.rating).toEqual({ average: 3, count: 2 });
+    expect(detail.myRating).toBe(2);
+  });
+
+  it("syncs learning reviews as an append-only log", async () => {
+    const { token } = await register("rev@example.com");
+    const review = { id: "rev-0000000001", cardId: "card-0000000001", lang: "fa", lemma: "آب", outcome: "wrong", mode: "type", typed: "ab", at: 5, updatedAt: 5, deleted: false };
+    const res = await (await app.request("/sync/push", json({ ops: [{ entity: "reviews", row: review }] }, token))).json();
+    expect(res.accepted).toBe(1);
+    const pull = await (await app.request("/sync/changes?since=0", get(token))).json();
+    expect(pull.changes[0].entity).toBe("reviews");
   });
 });

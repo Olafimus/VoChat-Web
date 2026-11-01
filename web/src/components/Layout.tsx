@@ -5,20 +5,24 @@ const TABS = [
   { to: "/chat", label: "Chat", icon: "💬" },
   { to: "/vocab", label: "Wortschatz", icon: "📚" },
   { to: "/learn", label: "Lernen", icon: "🧠" },
-  { to: "/browse", label: "Entdecken", icon: "🔎" },
+  { to: "/paths", label: "Lernpfade", icon: "🗺️" },
   { to: "/profile", label: "Profil", icon: "👤" },
 ];
 
 export function SyncIndicator() {
   const status = useSyncStatus();
-  const label = !status.online
-    ? "offline"
-    : status.syncing
+  const label = !status.enabled
+    ? status.pending > 0
+      ? `lokal · ${status.pending} ungesendet`
+      : "lokal"
+    : !status.online
+      ? "offline"
+      : status.syncing
       ? "synchronisiert…"
       : status.pending > 0
         ? `${status.pending} ausstehend`
         : "synchron";
-  const tone = !status.online ? "warn" : status.error ? "error" : status.pending > 0 ? "pending" : "ok";
+  const tone = !status.enabled ? "local" : !status.online ? "warn" : status.error ? "error" : status.pending > 0 ? "pending" : "ok";
   return (
     <span className={`sync sync-${tone}`} title={status.error ?? undefined}>
       <span className="dot" /> {label}
@@ -27,7 +31,7 @@ export function SyncIndicator() {
 }
 
 export function Layout() {
-  const { user } = useSession();
+  const { user, token } = useSession();
   return (
     <div className="app">
       <header className="topbar">
@@ -41,7 +45,7 @@ export function Layout() {
         </nav>
         <div className="topbar-right">
           <SyncIndicator />
-          <span className="muted hide-sm">{user.name}</span>
+          <span className="muted hide-sm">{token ? user.name : "Gast"}</span>
         </div>
       </header>
       <main className="content">

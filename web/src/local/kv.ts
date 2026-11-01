@@ -1,19 +1,18 @@
 import { clear, createStore, delMany, getMany, keys, setMany, type UseStore } from "idb-keyval";
 
+export type Kv = UseStore;
+
 /**
- * Lokaler Speicher pro Nutzer (IndexedDB). Jede Zeile ist ein eigener Schlüssel,
- * damit Schreibvorgänge klein bleiben. Fällt IndexedDB aus, arbeitet die App
- * rein im Speicher weiter – Synchronisation läuft dann beim nächsten Start nach.
+ * Lokaler Speicher des Geräts (IndexedDB). Ein Schlüssel je Zeile, damit Schreibvorgänge
+ * klein bleiben. Ohne IndexedDB läuft die App im Arbeitsspeicher weiter.
  */
-export function openUserKv(userId: string): UseStore | null {
+export function openLocalKv(): Kv | null {
   try {
-    return createStore(`vochat-${userId}`, "rows");
+    return createStore("vochat-device", "rows");
   } catch {
     return null;
   }
 }
-
-export type Kv = UseStore;
 
 export async function loadEntries(kv: Kv): Promise<Map<string, unknown>> {
   const result = new Map<string, unknown>();
@@ -35,10 +34,10 @@ export async function removeKeys(kv: Kv, keysToDelete: string[]): Promise<void> 
   if (keysToDelete.length) await delMany(keysToDelete, kv);
 }
 
-export async function clearUserKv(kv: Kv): Promise<void> {
+export async function clearLocalKv(kv: Kv): Promise<void> {
   try {
     await clear(kv);
   } catch {
-    // ignorieren: Speicher war ohnehin nicht verfügbar
+    // ignorieren
   }
 }

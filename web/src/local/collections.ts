@@ -7,9 +7,9 @@ import type { LocalStore, Row } from "./localStore";
  * spiegelt den lokalen Speicher in die Collection; Mutationen schreiben zuerst
  * lokal (und landen in der Outbox), die Synchronisation übernimmt die Sync-Engine.
  */
-function makeCollection<T extends Row>(store: LocalStore, entity: SyncEntity, userId: string) {
+function makeCollection<T extends Row>(store: LocalStore, entity: SyncEntity) {
   return createCollection({
-    id: `${entity}-${userId}`,
+    id: `${entity}-device`,
     getKey: (row: T) => row.id,
     sync: {
       sync: ({ begin, write, commit, markReady }) => {
@@ -42,10 +42,13 @@ function makeCollection<T extends Row>(store: LocalStore, entity: SyncEntity, us
   });
 }
 
-export function createUserCollections(store: LocalStore, userId: string) {
+/** Collections des Geräts. Unabhängig vom Konto, damit sie beim Anmelden nicht neu entstehen. */
+export function createDeviceCollections(store: LocalStore) {
   return {
-    cards: makeCollection<CardRow>(store, "cards", userId),
-    messages: makeCollection<MessageRow>(store, "messages", userId),
+    cards: makeCollection<CardRow>(store, "cards"),
+    messages: makeCollection<MessageRow>(store, "messages"),
+    reviews: makeCollection<ReviewRow>(store, "reviews"),
+    collections: makeCollection<MediaCollectionRow>(store, "collections"),
   };
 }
 
@@ -73,4 +76,27 @@ export type MessageRow = Row & {
   createdAt: number;
 };
 
-export type Collections = ReturnType<typeof createUserCollections>;
+export type ReviewRow = Row & {
+  cardId: string;
+  lang: string;
+  lemma: string;
+  outcome: "right" | "wrong";
+  mode: "flip" | "reverse" | "type";
+  typed: string | null;
+  at: number;
+};
+
+export type MediaCollectionRow = Row & {
+  kind: "path" | "media";
+  mediaType: "book" | "song" | "film" | "series" | "other" | null;
+  title: string;
+  description: string;
+  lang: string;
+  level: string | null;
+  visibility: "private" | "public";
+  ownerName: string;
+  items: { lemma: string; lang: string; lexemeId: number | null; gloss: string | null; cefr: string | null }[];
+  createdAt: number;
+};
+
+export type Collections = ReturnType<typeof createDeviceCollections>;

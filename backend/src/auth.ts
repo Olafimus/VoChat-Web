@@ -54,3 +54,23 @@ export function requireAuth(db: Db, now: () => number): MiddlewareHandler {
 }
 
 export const currentUserId = (c: Context): string => c.get("userId" as never) as string;
+
+/**
+ * Optionale Anmeldung: Öffentliche Endpunkte (Wörterbuch, Katalog) funktionieren
+ * ohne Konto. Ist ein gültiger Token mitgeschickt, steht die Nutzer-ID bereit.
+ */
+export function optionalAuth(db: Db, now: () => number): MiddlewareHandler {
+  return async (c, next) => {
+    const header = c.req.header("authorization") ?? "";
+    const token = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
+    if (token) {
+      const row = db
+        .prepare("SELECT user_id, expires_at FROM sessions WHERE token_hash = ?")
+        .get(sha256(token)) as { user_id: string; expires_at: number } | undefined;
+      if (row && row.expires_at >= now()) c.set("userId", row.user_id);
+    }
+    await next();
+  };
+}
+
+export const maybeUserId = (c: Context): string | undefined => c.get("userId" as never) as string | undefined;
