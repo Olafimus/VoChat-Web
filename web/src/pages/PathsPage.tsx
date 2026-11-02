@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useLiveQuery } from "@tanstack/react-db";
+import { useSearchParams } from "react-router-dom";
 import { coverage, LANGUAGES, MEDIA_TYPES, type CatalogCollection, type Cefr, type LangCode } from "@vochat/shared";
 import { api, ApiError } from "../api/client";
 import { extract } from "../api/client";
@@ -26,7 +27,9 @@ const MEDIA_LABEL: Record<(typeof MEDIA_TYPES)[number], string> = {
 
 /** Lernpfade: empfohlene Pfade, geteilte Medien-Wortschätze und eigene Sammlungen – mit Abgleich der fehlenden Wörter. */
 export function PathsPage() {
-  const [tab, setTab] = useState<Tab>("empfohlen");
+  // Deep-Link aus Notizen: /paths?open=<Sammlungs-ID> öffnet die eigene Sammlung.
+  const openParam = useSearchParams()[0].get("open");
+  const [tab, setTab] = useState<Tab>(openParam ? "meine" : "empfohlen");
   return (
     <div className="stack">
       <PageHeader icon={<IconPaths size={22} />} tone="qt-lime" title="Lernpfade" subtitle="Grundwortschatz, Bücher, Lieder und Filme – sieh, was dir noch fehlt" />
@@ -37,7 +40,7 @@ export function PathsPage() {
       </div>
       {tab === "empfohlen" && <RecommendedPaths />}
       {tab === "medien" && <SharedMedia />}
-      {tab === "meine" && <MyCollections />}
+      {tab === "meine" && <MyCollections initialOpen={openParam} />}
     </div>
   );
 }
@@ -301,13 +304,13 @@ function addCardOf(collections: Parameters<typeof addCard>[0], i: { lang: string
 
 /* ---------- Meine Sammlungen ---------- */
 
-function MyCollections() {
+function MyCollections({ initialOpen = null }: { initialOpen?: string | null }) {
   const { collections, token, engine } = useSession();
   const [lang] = useActiveLang();
   const cards = (useLiveQuery((q) => collections.cards).data ?? []) as CardRow[];
   const mine = (useLiveQuery((q) => collections.collections).data ?? []) as MediaCollectionRow[];
   const [creating, setCreating] = useState(false);
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(initialOpen);
   const visible = mine.filter((c) => !c.deleted).sort((a, b) => b.createdAt - a.createdAt);
   const open = visible.find((c) => c.id === openId);
 

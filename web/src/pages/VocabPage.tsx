@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { useLiveQuery } from "@tanstack/react-db";
 import { LANGUAGES, lemmaKey, type LangCode } from "@vochat/shared";
 import { ApiError, community } from "../api/client";
@@ -12,7 +13,8 @@ import { WordView } from "../components/WordView";
 import { CardLearning } from "../components/CardLearning";
 import { CardUpdates } from "../components/CardUpdates";
 import { PageHeader } from "../components/PageHeader";
-import { IconVocab } from "../components/icons";
+import { CardExtras } from "../components/CardExtras";
+import { IconNotes, IconPlus, IconTrash, IconVocab } from "../components/icons";
 
 const STATUS_LABEL: Record<CardRow["status"], string> = {
   new: "neu",
@@ -41,17 +43,24 @@ export function VocabPage() {
   const [editing, setEditing] = useState<string | null>(null);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  // Deep-Link aus Notizen: /vocab?card=<id> zeigt genau diese Karte (geöffnet).
+  const [params, setParams] = useSearchParams();
+  const only = params.get("card");
+  useEffect(() => {
+    if (only) setEditing(only);
+  }, [only]);
 
   const visible = useMemo(() => {
     const q = lemmaKey(query);
     return cards
       .filter((c) => !c.deleted)
+      .filter((c) => !only || c.id === only)
       .filter((c) => lang === "all" || c.lang === lang)
       .filter((c) => status_ === "all" || c.status === status_)
       .filter((c) => link === "all" || (link === "linked" ? !!c.lexemeId : !c.lexemeId))
       .filter((c) => !q || lemmaKey(c.lemma).includes(q) || lemmaKey(c.gloss ?? "").includes(q))
       .sort((a, b) => a.lemma.localeCompare(b.lemma));
-  }, [cards, query, lang, status_, link]);
+  }, [cards, query, lang, status_, link, only]);
 
   const unlinkedCount = cards.filter((c) => !c.deleted && !c.lexemeId).length;
 
@@ -67,7 +76,10 @@ export function VocabPage() {
 
   return (
     <div className="stack">
-      <PageHeader icon={<IconVocab size={22} />} title="Wortschatz" subtitle={`${cards.filter((c) => !c.deleted).length} Wörter in deiner Sammlung`} />
+      <PageHeader icon={<IconVocab size={22} />} title="Wortschatz" subtitle={`${cards.filter((c) => !c.deleted).length} Wörter in deiner Sammlung`}
+        actions={<Link to="/notes" className="button small-btn"><IconNotes size={16} aria-hidden /> Notizen</Link>}
+      />
+      {only && <div className="row"><button className="small-btn" onClick={() => setParams({})}>Alle Wörter anzeigen</button></div>}
       <CardUpdates cards={cards} />
       <div className="toolbar">
         <input type="search" placeholder="Suchen …" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Wortliste durchsuchen" />
@@ -126,7 +138,7 @@ export function VocabPage() {
                 Entfernen
               </button>
             </div>
-            {editing !== c.id && c.note && <div className="muted small">{c.note}</div>}
+            {editing !== c.id && <CardExtras card={c} />}
             {editing === c.id && (
               <>
                 <CardEditor card={c} onDone={() => setEditing(null)} />
@@ -149,6 +161,10 @@ function CardEditor({ card, onDone }: { card: CardRow; onDone: () => void }) {
     pronunciation: card.pronunciation ?? "",
     note: card.note,
   });
+  const [glosses, setGlosses] = useState<string[]>(card.glosses ?? []);
+  const [examples, setExamples] = useState<{ text: string; translation: string }[]>(
+    (card.examples ?? []).map((e) => ({ text: e.text, translation: e.translation ?? "" })),
+  );
   const [msg, setMsg] = useState<string | null>(null);
   const custom = new Set(card.custom ?? []);
 
@@ -158,6 +174,10 @@ function CardEditor({ card, onDone }: { card: CardRow; onDone: () => void }) {
       gloss: form.gloss.trim() || null,
       pronunciation: form.pronunciation.trim() || null,
       note: form.note,
+      glosses: [...new Set(glosses.map((g) => g.trim()).filter(Boolean))],
+      examples: examples
+        .map((e) => ({ text: e.text.trim(), translation: e.translation.trim() || null }))
+        .filter((e) => e.text),
     });
     onDone();
   };
@@ -209,10 +229,45 @@ function CardEditor({ card, onDone }: { card: CardRow; onDone: () => void }) {
       {field("lemma", "Wort")}
       {field("gloss", "Bedeutung")}
       {field("pronunciation", "Aussprache")}
+      <div className="field">
+        <div className="row field-head"><label>Weitere Übersetzungen</label></div>
+        {glosses.map((g, i) => (
+          <div className="row nowrap" key={i}>
+            <input value={g} aria-label={`Übersetzung ${i + 2}`} onChange={(e) => setGlosses(glosses.map((x, j) => (j === i ? e.target.value : x)))} />
+            <button type="button" className="small-btn danger" aria-label="Übersetzung entfernen" onClick={() => setGlosses(glosses.filter((_, j) => j !== i))}><IconTrash size={15} /></button>
+          </div>
+        ))}
+        <button type="button" className="small-btn" onClick={() => setGlosses([...glosses, ""])} disabled={glosses.length >= 20}><IconPlus size={15} aria-hidden /> Übersetzung</button>
+      </div>
+      <div className="field">
+        <div className="row field-head"><label>Beispielsätze</label></div>
+        {examples.map((e, i) => (
+          <div className="stack example-edit" key={i}>
+            <div className="row nowrap">
+              <input
+                value={e.text}
+                aria-label={`Beispielsatz ${i + 1}`}
+                placeholder="Satz in der Lernsprache"
+                dir={card.lang === "fa" ? "rtl" : "ltr"}
+                onChange={(ev) => setExamples(examples.map((x, j) => (j === i ? { ...x, text: ev.target.value } : x)))}
+              />
+              <button type="button" className="small-btn danger" aria-label="Beispielsatz entfernen" onClick={() => setExamples(examples.filter((_, j) => j !== i))}><IconTrash size={15} /></button>
+            </div>
+            <input
+              value={e.translation}
+              aria-label={`Übersetzung Beispielsatz ${i + 1}`}
+              placeholder="Übersetzung (optional)"
+              onChange={(ev) => setExamples(examples.map((x, j) => (j === i ? { ...x, translation: ev.target.value } : x)))}
+            />
+          </div>
+        ))}
+        <button type="button" className="small-btn" onClick={() => setExamples([...examples, { text: "", translation: "" }])} disabled={examples.length >= 20}><IconPlus size={15} aria-hidden /> Beispielsatz</button>
+      </div>
       <label>
-        Notiz
-        <textarea className="note" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder="Eselsbrücke, Kontext, Beispiel …" />
+        Persönliche Notiz
+        <textarea className="note" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} maxLength={2000} placeholder="Eselsbrücke, Kontext, woher du das Wort kennst …" />
       </label>
+      <CardExtrasNotes card={card} />
       <div className="row">
         <button className="primary small-btn" onClick={save}>Speichern</button>
         <button className="small-btn" onClick={onDone}>Abbrechen</button>
@@ -298,5 +353,14 @@ function OwnWordForm({ onDone }: { onDone: () => void }) {
         <button type="button" className="small-btn" onClick={onDone}>Abbrechen</button>
       </div>
     </form>
+  );
+}
+
+/** Im Editor: verlinkte Notizen der Karte (Anlegen/Verknüpfen geschieht auf der Notizen-Seite). */
+function CardExtrasNotes({ card }: { card: CardRow }) {
+  return (
+    <div className="muted small">
+      <Link to={`/notes/new?card=${card.id}`}>Allgemeine Notiz zu diesem Wort anlegen</Link>
+    </div>
   );
 }

@@ -17,7 +17,15 @@ export const cardSchema = z.object({
   pronunciation: z.string().max(200).nullable().default(null),
   /** Felder, die der Nutzer selbst geändert hat. Sie werden beim Abgleich mit dem Wörterbuch nicht überschrieben. */
   custom: z.array(z.enum(["lemma", "gloss", "pronunciation", "cefr"])).max(4).default([]),
+  /** Persönliche Notiz (Eselsbrücke, Kontext …). */
   note: z.string().max(2000),
+  /** Weitere Übersetzungen neben der Hauptbedeutung `gloss`. */
+  glosses: z.array(z.string().trim().min(1).max(200)).max(20).default([]),
+  /** Eigene Beispielsätze mit optionaler Übersetzung. */
+  examples: z
+    .array(z.object({ text: z.string().trim().min(1).max(500), translation: z.string().trim().max(500).nullable().default(null) }))
+    .max(20)
+    .default([]),
   cefr: cefrSchema.nullable(),
   status: cardStatusSchema,
   ease: z.number().min(1.3).max(3),
@@ -125,7 +133,34 @@ export const collectionSchema = z.object({
 });
 export type Collection = z.infer<typeof collectionSchema>;
 
-export const SYNC_ENTITIES = ["cards", "messages", "reviews", "collections"] as const;
+export const NOTE_LINK_TYPES = ["card", "collection", "chat", "note"] as const;
+export type NoteLinkType = (typeof NOTE_LINK_TYPES)[number];
+
+/** Allgemeine Notiz mit Querverweisen auf Karten, Lernpfade/Sammlungen, Chats und andere Notizen. */
+export const noteSchema = z.object({
+  id: z.string().min(8).max(64),
+  title: z.string().trim().max(200),
+  body: z.string().max(20000),
+  lang: langSchema.nullable().default(null),
+  links: z
+    .array(
+      z.object({
+        type: z.enum(NOTE_LINK_TYPES),
+        id: z.string().min(1).max(64),
+        /** Anzeigename beim Anlegen des Verweises (bleibt lesbar, auch wenn das Ziel fehlt). */
+        label: z.string().max(200),
+      }),
+    )
+    .max(50)
+    .default([]),
+  pinned: z.boolean().default(false),
+  createdAt: timestamp,
+  updatedAt: timestamp,
+  deleted: z.boolean(),
+});
+export type Note = z.infer<typeof noteSchema>;
+
+export const SYNC_ENTITIES = ["cards", "messages", "reviews", "collections", "notes"] as const;
 export type SyncEntity = (typeof SYNC_ENTITIES)[number];
 
 export const syncOpSchema = z.object({

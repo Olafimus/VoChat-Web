@@ -63,6 +63,8 @@ export {
   Users as IconGroup,
   CircleCheckBig as IconDone,
   Upload as IconUpload,
+  NotebookPen as IconNotes,
+  Link2 as IconLink,
 } from "lucide-react";
 
 /** Serie/Streak-Symbol im Lucide-Stil: Flamme mit Häkchen. */

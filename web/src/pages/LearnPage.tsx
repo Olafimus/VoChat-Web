@@ -14,7 +14,8 @@ import {
 } from "@vochat/shared";
 import { useSession } from "../session";
 import { useActiveLang } from "../lib/lang";
-import { markKnown, recordAnswer, setIgnored } from "../lib/cards";
+import { allGlosses, markKnown, recordAnswer, setIgnored } from "../lib/cards";
+import { CardExtras } from "../components/CardExtras";
 import { formatDays, plannerSettings, scheduleFor, startOfToday, toPlannerCard, useLearningSettings } from "../lib/learning";
 import type { CardRow, ReviewRow } from "../local/collections";
 import { CefrBadge, Empty } from "../components/ui";
@@ -269,11 +270,12 @@ export function LearnPage() {
                 <>
                   <div className="answer reveal" key="answer">
                     {format === "flip" ? (
-                      current.gloss ?? <span className="muted">(keine Bedeutung gespeichert)</span>
+                      allGlosses(current).join(" · ") || <span className="muted">(keine Bedeutung gespeichert)</span>
                     ) : (
                       <WordView lexemeId={current.lexemeId} lemma={current.lemma} lang={current.lang as LangCode} pronunciation={current.pronunciation} large />
                     )}
                   </div>
+                  <CardExtras card={current} />
                   <div className="grades">
                     {GRADES.map((g) => (
                       <button key={g.grade} className={`grade grade-${g.grade}`} onClick={() => finish(g.grade, null)}>
@@ -296,7 +298,7 @@ export function LearnPage() {
                 else submitTyped();
               }}
             >
-              <div className="answer">{current.gloss ?? <span className="muted">(keine Bedeutung)</span>}</div>
+              <div className="answer">{allGlosses(current).join(" · ") || <span className="muted">(keine Bedeutung)</span>}</div>
               <input
                 value={typed}
                 onChange={(e) => setTyped(e.target.value)}
@@ -357,6 +359,7 @@ function PromptWord({ card }: { card: CardRow }) {
 }
 
 function PromptMeaning({ card }: { card: CardRow }) {
-  return <div className="answer">{card.gloss ? splitAnswers(card.gloss).join(" · ") : <span className="muted">(keine Bedeutung)</span>}</div>;
+  const all = allGlosses(card).flatMap(splitAnswers);
+  return <div className="answer">{all.length ? [...new Set(all)].join(" · ") : <span className="muted">(keine Bedeutung)</span>}</div>;
 }
 

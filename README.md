@@ -82,6 +82,10 @@ docs/              DICTIONARY_SOURCES.md (Quellen & Status), ARCHITECTURE.md (De
 - **Aussprache:** 🔊 überall – echte Aufnahmen (Lingua Libre/Wikimedia Commons), sonst Gerätestimme, sonst eSpeak NG.
 - **Challenges:** Arbeitsbücher an Freunde schicken (Duell/Gruppe), Wochen-Challenges, Rangliste.
 - **Expertenprüfung:** alles startet ungeprüft; Korrekturen ziehen ähnliche Einträge nach vorn; Verlauf, Kommentarbäume, Punkte.
+- **Vokabeln mit Extras:** neben der Hauptbedeutung weitere Übersetzungen, eigene Beispielsätze (mit Übersetzung) und eine
+  persönliche Notiz je Wort – sichtbar in der Wortliste und nach dem Aufdecken beim Lernen.
+- **Notizen (`/notes`):** allgemeine Notizen (Grammatik, Eselsbrücken, Gesprächsideen) mit Querverweisen auf Wörter,
+  eigene Sammlungen/Lernpfade, Chats und andere Notizen; Rückverweise erscheinen am Wort und an der Notiz. Synchronisiert wie alles andere.
 - **Admin-Seite (`/admin`):** Nutzer suchen und filtern, Rollen (Admin, Experte je Sprache) vergeben und entziehen,
   Konten sperren/entsperren oder löschen, Link zum Zurücksetzen des Passworts schicken, Mailversand prüfen und Testmail senden.
   Der letzte aktive Admin lässt sich nicht entfernen; alle Aktionen landen im Änderungsprotokoll.

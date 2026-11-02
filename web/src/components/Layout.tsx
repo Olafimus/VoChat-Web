@@ -8,7 +8,7 @@ import { useDictionaryLinker } from "../lib/useDictionaryLinker";
 import { useScheduleMigration } from "../lib/useScheduleMigration";
 import { Logo } from "./Logo";
 import { Avatar } from "./Avatar";
-import { IconCards, IconChats, IconCommunity, IconHome, IconPaths, IconProfile, IconScan, IconShield, IconVocab } from "./icons";
+import { IconCards, IconChats, IconCommunity, IconHome, IconNotes, IconPaths, IconProfile, IconScan, IconShield, IconVocab } from "./icons";
 
 const TABS = [
   { to: "/", label: "Start", short: "Start", Icon: IconHome },
@@ -70,6 +70,9 @@ export function Layout() {
           ))}
         </nav>
         <div className="topbar-right">
+          <NavLink to="/notes" className="scan-link" aria-label="Notizen" title="Notizen">
+            <IconNotes size={20} strokeWidth={2} />
+          </NavLink>
           {token && user.roles?.some((r) => r.role === "admin") && (
             <NavLink to="/admin" className="scan-link" aria-label="Verwaltung" title="Verwaltung">
               <IconShield size={20} strokeWidth={2} />

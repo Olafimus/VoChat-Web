@@ -3,6 +3,7 @@ import {
   collectionSchema,
   lemmaKey,
   messageSchema,
+  noteSchema,
   reviewSchema,
   type Collection,
   type PullResponse,
@@ -11,7 +12,7 @@ import {
 } from "@vochat/shared";
 import type { Db } from "./db/index.js";
 
-const schemas = { cards: cardSchema, messages: messageSchema, reviews: reviewSchema, collections: collectionSchema } as const;
+const schemas = { cards: cardSchema, messages: messageSchema, reviews: reviewSchema, collections: collectionSchema, notes: noteSchema } as const;
 
 /**
  * Spalten für serverseitige Auswertungen ohne JSON-Funktionen:

@@ -124,6 +124,58 @@ describe("sync", () => {
     expect(res.rejected).toHaveLength(1);
   });
 
+  it("syncs extra translations, examples and personal notes of a card, and old cards without them", async () => {
+    const { token } = await register("extras@example.com");
+    const send = (entity: string, row: unknown) => app.request("/sync/push", json({ ops: [{ entity, row }] }, token));
+    const first = await (
+      await send("cards", card({ id: "card-extras-01", glosses: ["Wasser", " Flüssigkeit "], examples: [{ text: "آب میخورم", translation: "Ich trinke Wasser" }, { text: "کم‌آبی" }], note: "wie „Aqua“" }))
+    ).json();
+    expect(first.rejected).toEqual([]);
+    await send("cards", card({ id: "card-old-000001" }));
+    const pull = await (await app.request("/sync/changes?since=0", get(token))).json();
+    const extras = pull.changes.find((c: { row: { id: string } }) => c.row.id === "card-extras-01").row;
+    expect(extras.glosses).toEqual(["Wasser", "Flüssigkeit"]);
+    expect(extras.examples).toEqual([
+      { text: "آب میخورم", translation: "Ich trinke Wasser" },
+      { text: "کم‌آبی", translation: null },
+    ]);
+    expect(extras.note).toBe("wie „Aqua“");
+    const old = pull.changes.find((c: { row: { id: string } }) => c.row.id === "card-old-000001").row;
+    expect(old.glosses).toEqual([]);
+    expect(old.examples).toEqual([]);
+  });
+
+  it("syncs notes with cross-links and rejects invalid ones", async () => {
+    const { token } = await register("notes@example.com");
+    const note = (patch: Record<string, unknown> = {}) => ({
+      id: "note-0000000001",
+      title: "Höflichkeit",
+      body: "Siezen im Persischen …",
+      lang: "fa",
+      links: [
+        { type: "card", id: "card-extras-01", label: "آب" },
+        { type: "chat", id: "conv-1", label: "Anna" },
+        { type: "note", id: "note-0000000002", label: "Grammatik" },
+      ],
+      pinned: true,
+      createdAt: 1,
+      updatedAt: 1,
+      deleted: false,
+      ...patch,
+    });
+    const send = (rows: unknown[]) => app.request("/sync/push", json({ ops: rows.map((row) => ({ entity: "notes", row })) }, token));
+    const res = await (await send([note(), note({ id: "note-0000000003", links: [{ type: "website", id: "x", label: "x" }] })])).json();
+    expect(res.accepted).toBe(1);
+    expect(res.rejected).toHaveLength(1);
+    const pull = await (await app.request("/sync/changes?since=0", get(token))).json();
+    expect(pull.changes[0]).toMatchObject({ entity: "notes", row: { title: "Höflichkeit", pinned: true } });
+    expect(pull.changes[0].row.links).toHaveLength(3);
+
+    // andere Nutzer sehen die Notiz nicht
+    const other = await register("notes2@example.com");
+    expect((await (await app.request("/sync/changes?since=0", get(other.token))).json()).changes).toHaveLength(0);
+  });
+
   it("keeps users' data separate", async () => {
     const a = await register("g@example.com");
     const b = await register("h@example.com");

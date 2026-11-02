@@ -13,6 +13,7 @@ import { HomePage } from "./pages/HomePage";
 import { ChatsPage } from "./pages/ChatsPage";
 import { ConversationPage } from "./pages/ConversationPage";
 import { AdminPage } from "./pages/AdminPage";
+import { NotesPage } from "./pages/NotesPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 
 export function App() {
@@ -32,6 +33,8 @@ export function App() {
           <Route path="profile" element={<ProfilePage />} />
           <Route path="scan" element={<ScanPage />} />
           <Route path="stats" element={<StatsPage />} />
+          <Route path="notes" element={<NotesPage />} />
+          <Route path="notes/:id" element={<NotesPage />} />
           <Route path="admin" element={<AdminPage />} />
           <Route path="reset-password" element={<ResetPasswordPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />

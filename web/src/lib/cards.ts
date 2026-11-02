@@ -31,6 +31,8 @@ export function addCard(collections: Collections, input: NewCard): string {
     pronunciation: input.pronunciation ?? null,
     custom: input.custom ?? [],
     note: "",
+    glosses: [],
+    examples: [],
     cefr: input.cefr,
     status: schedule.status,
     ease: schedule.ease,
@@ -90,6 +92,10 @@ export function addOwnWord(
   });
 }
 
+/** Alle Übersetzungen einer Karte: Hauptbedeutung zuerst, dann die weiteren. */
+export const allGlosses = (card: Pick<CardRow, "gloss" | "glosses">): string[] =>
+  [...new Set([...(card.gloss ? [card.gloss] : []), ...(card.glosses ?? [])])];
+
 export const hasCardFor = (cards: CardRow[], lexemeId: number): boolean =>
   cards.some((c) => !c.deleted && c.lexemeId === lexemeId);
 
@@ -105,8 +111,13 @@ export type EditableField = "lemma" | "gloss" | "pronunciation" | "cefr";
  * Eigene Änderung an einer Karte. Geänderte Felder werden als „eigen“ markiert und beim
  * Abgleich mit dem Wörterbuch nicht überschrieben. Die Verknüpfung (lexemeId) bleibt bestehen.
  */
-export function editCard(collections: Collections, card: CardRow, patch: Partial<Pick<CardRow, EditableField | "note">>): void {
-  const changed = (Object.keys(patch) as (keyof typeof patch)[]).filter((k) => k !== "note" && patch[k] !== card[k]) as EditableField[];
+export function editCard(
+  collections: Collections,
+  card: CardRow,
+  patch: Partial<Pick<CardRow, EditableField | "note" | "glosses" | "examples">>,
+): void {
+  const personal = ["note", "glosses", "examples"];
+  const changed = (Object.keys(patch) as (keyof typeof patch)[]).filter((k) => !personal.includes(k) && patch[k] !== card[k]) as EditableField[];
   collections.cards.update(card.id, (d) => {
     Object.assign(d, patch);
     d.custom = [...new Set([...(d.custom ?? []), ...changed])];

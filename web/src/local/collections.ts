@@ -49,6 +49,7 @@ export function createDeviceCollections(store: LocalStore) {
     messages: makeCollection<MessageRow>(store, "messages"),
     reviews: makeCollection<ReviewRow>(store, "reviews"),
     collections: makeCollection<MediaCollectionRow>(store, "collections"),
+    notes: makeCollection<NoteRow>(store, "notes"),
   };
 }
 
@@ -61,6 +62,9 @@ export type CardRow = Row & {
   /** Vom Nutzer geänderte Felder; diese überschreibt der Abgleich mit dem Wörterbuch nicht. */
   custom: ("lemma" | "gloss" | "pronunciation" | "cefr")[];
   note: string;
+  /** Weitere Übersetzungen neben `gloss`. Ältere Zeilen: undefined. */
+  glosses?: string[];
+  examples?: { text: string; translation: string | null }[];
   cefr: string | null;
   status: "new" | "learning" | "review" | "mastered";
   ease: number;
@@ -114,6 +118,15 @@ export type MediaCollectionRow = Row & {
   visibility: "private" | "public";
   ownerName: string;
   items: { lemma: string; lang: string; lexemeId: number | null; gloss: string | null; pronunciation?: string | null; cefr: string | null }[];
+  createdAt: number;
+};
+
+export type NoteRow = Row & {
+  title: string;
+  body: string;
+  lang: string | null;
+  links: { type: "card" | "collection" | "chat" | "note"; id: string; label: string }[];
+  pinned: boolean;
   createdAt: number;
 };
 

@@ -32,7 +32,7 @@ import { EmojiPicker } from "../components/chat/EmojiPicker";
 import { MessageBubble, type BubbleActions } from "../components/chat/MessageBubble";
 import { WordView } from "../components/WordView";
 import { DiffText as DiffPreview } from "../components/DiffText";
-import { IconAttach, IconBack, IconCheck, IconClose, IconDown, IconEmoji, IconMic, IconSend } from "../components/icons";
+import { IconAttach, IconBack, IconCheck, IconClose, IconDown, IconEmoji, IconMic, IconNotes, IconSend } from "../components/icons";
 
 const MAX_VOICE_MS = 120_000;
 const dayLabel = (t: number) => {
@@ -279,6 +279,11 @@ export function ConversationPage() {
           <b>{conv?.title ?? "…"}</b>
           {conv?.kind === "group" && <span className="muted small">{conv.members.length} Mitglieder</span>}
         </div>
+        {conv && (
+          <Link to={`/notes/new?chat=${encodeURIComponent(conv.id)}&label=${encodeURIComponent(conv.title)}`} className="conv-back" aria-label="Notiz zu diesem Chat" title="Notiz zu diesem Chat">
+            <IconNotes size={19} />
+          </Link>
+        )}
       </header>
       {error && <div className="error small">{error}</div>}
       {notice && <div className="offline-note small">{notice}</div>}
