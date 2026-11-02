@@ -9,6 +9,7 @@ import { createMediaStore } from "./media.js";
 import { backfillDerivedColumns } from "./sync.js";
 import { randomBytes } from "node:crypto";
 import type { Db } from "./db/index.js";
+import { createMailAdapter, MailService } from "./mail/index.js";
 
 /** Dauerhaftes Geheimnis der Installation: aus APP_SECRET oder einmalig erzeugt und in der DB gespeichert. */
 async function loadAppSecret(db: Db, fromEnv: string | undefined): Promise<string> {
@@ -28,6 +29,15 @@ const db = await openDatabase(config.database);
 const backfilled = await backfillDerivedColumns(db);
 if (backfilled) console.log(`${backfilled} Sync-Zeilen um Auswertungs-Spalten ergänzt.`);
 const media = await createMediaStore(config.media);
+const mail = new MailService(await createMailAdapter(config.mail), {
+  from: config.mail.from,
+  replyTo: config.mail.replyTo,
+  publicUrl: config.publicUrl,
+});
+if (mail.enabled && mail.driver !== "console") {
+  // Nur prüfen und melden: ein nicht erreichbarer Mailserver soll den Start nicht verhindern.
+  void mail.verify().then((r) => console.log(r.ok ? `Mailversand bereit (${mail.driver}).` : `Mailversand (${mail.driver}) nicht erreichbar: ${r.error}`));
+}
 const app = createApp({
   db,
   corsOrigins: config.corsOrigins,
@@ -36,15 +46,17 @@ const app = createApp({
   media,
   trustProxy: config.trustProxy,
   tts: config.tts ? new Tts(config.ttsCacheDir) : null,
+  mail,
 });
 
 const label = /^postgres/.test(config.database) ? "Postgres" : config.database.startsWith("pglite:") ? "PGlite" : `SQLite (${config.database})`;
 const server = serve({ fetch: app.fetch, port: config.port }, (info) => {
-  console.log(`VoChat API läuft auf http://localhost:${info.port} · DB: ${label} · Medien: ${media?.driver ?? "aus"}`);
+  console.log(`VoChat API läuft auf http://localhost:${info.port} · DB: ${label} · Medien: ${media?.driver ?? "aus"} · Mail: ${mail.driver ?? "aus"}`);
 });
 
 const shutdown = async () => {
   server.close();
+  await mail.close();
   await db.close();
   process.exit(0);
 };

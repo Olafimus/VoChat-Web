@@ -46,7 +46,8 @@ const bearer = (c: Context) => {
 
 async function sessionUser(db: Db, token: string, now: number): Promise<string | null> {
   const row = await db.get<{ user_id: string; expires_at: number }>(
-    "SELECT user_id, expires_at FROM sessions WHERE token_hash = ?",
+    // Gesperrte Konten verlieren sofort den Zugang, auch falls noch eine Session übrig wäre.
+    "SELECT s.user_id, s.expires_at FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = ? AND u.disabled_at IS NULL",
     [sha256(token)],
   );
   return row && row.expires_at >= now ? row.user_id : null;
@@ -79,3 +80,40 @@ export function optionalAuth(db: Db, now: () => number): MiddlewareHandler {
 
 export const currentUserId = (c: Context): string => c.get("userId" as never) as string;
 export const maybeUserId = (c: Context): string | undefined => c.get("userId" as never) as string | undefined;
+
+// ---- Passwort zurücksetzen ------------------------------------------------
+
+export const RESET_TTL_MS = 60 * 60 * 1000;
+
+/** Einmal-Link zum Zurücksetzen. Ältere offene Links desselben Kontos werden ungültig. */
+export async function createPasswordReset(db: Db, userId: string, now: number): Promise<string> {
+  const token = randomBytes(32).toString("base64url");
+  await db.tx(async (t) => {
+    await t.run("DELETE FROM password_resets WHERE user_id = ?", [userId]);
+    await t.run("INSERT INTO password_resets (token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)", [
+      sha256(token),
+      userId,
+      now,
+      now + RESET_TTL_MS,
+    ]);
+  });
+  return token;
+}
+
+/** Löst einen Link ein: setzt das Passwort und beendet alle Sessions. Liefert die Nutzer-ID oder null. */
+export async function consumePasswordReset(db: Db, token: string, passwordHash: string, now: number): Promise<string | null> {
+  return db.tx(async (t) => {
+    const row = await t.get<{ user_id: string }>(
+      `SELECT r.user_id FROM password_resets r JOIN users u ON u.id = r.user_id
+       WHERE r.token_hash = ? AND r.used_at IS NULL AND r.expires_at >= ? AND u.disabled_at IS NULL`,
+      [sha256(token), now],
+    );
+    if (!row) return null;
+    const claimed = await t.run("UPDATE password_resets SET used_at = ? WHERE token_hash = ? AND used_at IS NULL", [now, sha256(token)]);
+    if (claimed.changes === 0) return null;
+    await t.run("UPDATE users SET password_hash = ? WHERE id = ?", [passwordHash, row.user_id]);
+    await t.run("DELETE FROM sessions WHERE user_id = ?", [row.user_id]);
+    await t.run("DELETE FROM password_resets WHERE user_id = ? AND token_hash <> ?", [row.user_id, sha256(token)]);
+    return row.user_id;
+  });
+}

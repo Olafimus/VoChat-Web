@@ -44,7 +44,7 @@ describe("profile and avatar", () => {
 
   it("reports the avatar feature as disabled without a media store", async () => {
     const off = createApp({ db: await testDb() });
-    expect(await (await off.request("/features")).json()).toEqual({ avatars: false, mediaDriver: null });
+    expect(await (await off.request("/features")).json()).toEqual({ avatars: false, mediaDriver: null, mail: false });
     const reg = await off.request("/auth/register", json({ email: "p2@example.com", password: "geheimes-passwort", name: "p2", nativeLang: "de" }));
     const a = (await reg.json()) as { token: string };
     const res = await off.request("/me/avatar", { method: "PUT", headers: { authorization: `Bearer ${a.token}`, "content-type": "image/png" }, body: PNG });

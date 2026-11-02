@@ -82,6 +82,11 @@ docs/              DICTIONARY_SOURCES.md (Quellen & Status), ARCHITECTURE.md (De
 - **Aussprache:** 🔊 überall – echte Aufnahmen (Lingua Libre/Wikimedia Commons), sonst Gerätestimme, sonst eSpeak NG.
 - **Challenges:** Arbeitsbücher an Freunde schicken (Duell/Gruppe), Wochen-Challenges, Rangliste.
 - **Expertenprüfung:** alles startet ungeprüft; Korrekturen ziehen ähnliche Einträge nach vorn; Verlauf, Kommentarbäume, Punkte.
+- **Admin-Seite (`/admin`):** Nutzer suchen und filtern, Rollen (Admin, Experte je Sprache) vergeben und entziehen,
+  Konten sperren/entsperren oder löschen, Link zum Zurücksetzen des Passworts schicken, Mailversand prüfen und Testmail senden.
+  Der letzte aktive Admin lässt sich nicht entfernen; alle Aktionen landen im Änderungsprotokoll.
+- **E-Mail:** Passwort vergessen, Willkommensmail, Hinweise bei Rollen- und Sperränderungen. Versand über austauschbare
+  Adapter (eigener SMTP-Server, Gmail, Konsole).
 
 ## Wörterbuchquellen
 
@@ -100,8 +105,26 @@ Medien (Profilbilder):
 | `MEDIA_S3_REGION` | `auto` | Region des Buckets |
 | `MEDIA_S3_ENDPOINT` | – | Für S3-kompatible Dienste (R2, MinIO) |
 
-Rollen (Admin, Experte je Sprache) vergibt der Betreiber per Kommando:
+Den ersten Admin ernennt der Betreiber per Kommando:
 `npm run admin:grant -w backend -- --email ich@example.com --role admin` bzw. `--role expert --lang fa`.
+Alle weiteren Rollen lassen sich danach in der App unter **Profil → Verwaltung** (`/admin`) vergeben.
+
+E-Mail (`backend/src/mail/`): Der `MailService` kennt nur die Schnittstelle `MailAdapter`; welcher Adapter verwendet wird,
+bestimmt `MAIL_DRIVER`. Eigene Versandwege (z. B. eine HTTP-API) lassen sich mit `registerMailDriver(name, factory)` ergänzen.
+
+| Variable | Standard | Zweck |
+|---|---|---|
+| `MAIL_DRIVER` | `none` | `none`, `console` (nur Log), `smtp` (eigener Server) oder `gmail` |
+| `MAIL_FROM` | `VoChat <noreply@localhost>` | Absender (bei Gmail die Kontoadresse oder ein bestätigter Alias) |
+| `MAIL_REPLY_TO` | – | Antwortadresse |
+| `PUBLIC_URL` | erste `CORS_ORIGINS` | Adresse der Web-App für Links in Mails |
+| `SMTP_HOST`, `SMTP_PORT` | –, `587` | SMTP-Server (465 = TLS, 587 = STARTTLS) |
+| `SMTP_SECURE` | nach Port | `1` erzwingt TLS ab Verbindungsbeginn |
+| `SMTP_USER`, `SMTP_PASS` | – | Anmeldung am SMTP-Server |
+| `SMTP_ALLOW_SELF_SIGNED` | – | `1` erlaubt selbstsignierte Zertifikate (nur intern) |
+| `GMAIL_USER` | – | Gmail-/Workspace-Adresse |
+| `GMAIL_APP_PASSWORD` | – | App-Passwort (Google-Konto → Sicherheit → 2-Faktor → App-Passwörter) |
+| `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN` | – | Alternativ OAuth2 (Scope `https://mail.google.com/`) |
 
 Zusätzlich für die Community:
 

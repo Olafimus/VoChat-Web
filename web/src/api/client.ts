@@ -54,6 +54,9 @@ export const api = {
   logout: (token: string) => request<{ ok: boolean }>("/auth/logout", { method: "POST", token }),
   me: (token: string) => request<UserProfile>("/me", { token }),
   updateProfile: (token: string, body: unknown) => request<UserProfile>("/me", { method: "PATCH", body, token }),
+  forgotPassword: (email: string) => request<{ ok: boolean }>("/auth/password/forgot", { method: "POST", body: { email } }),
+  resetPassword: (token: string, password: string) =>
+    request<{ ok: boolean }>("/auth/password/reset", { method: "POST", body: { token, password } }),
 
   push: (token: string, ops: { entity: string; row: unknown }[]) =>
     request<PushResponse>("/sync/push", { method: "POST", body: { ops }, token }),
@@ -133,7 +136,7 @@ export interface PersonRef {
 }
 
 export const media = {
-  features: () => request<{ avatars: boolean; mediaDriver: string | null }>("/features"),
+  features: () => request<{ avatars: boolean; mediaDriver: string | null; mail: boolean }>("/features"),
   async uploadAvatar(token: string, file: Blob): Promise<UserProfile> {
     let res: Response;
     try {
@@ -384,4 +387,58 @@ export const chat = {
     if (!res.ok) throw new ApiError(res.status, ((await res.json().catch(() => ({}))) as { error?: string }).error ?? res.statusText);
     return (await res.json()) as ChatMessage;
   },
+};
+
+// ---- Admin -------------------------------------------------------------------
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  name: string;
+  nativeLang: LangCode;
+  createdAt: number;
+  disabledAt: number | null;
+  lastLoginAt: number | null;
+  roles: { role: string; lang: string }[];
+}
+
+export interface MailStatus {
+  enabled: boolean;
+  driver: string | null;
+  from: string | null;
+}
+
+export interface AdminStats {
+  users: number;
+  newLast7Days: number;
+  disabled: number;
+  admins: number;
+  experts: Record<string, number>;
+  mail: MailStatus;
+}
+
+export type AdminFilter = "" | "admin" | "expert" | "disabled";
+
+export const admin = {
+  stats: (token: string) => request<AdminStats>("/admin/stats", { token }),
+  users: (token: string, params: { q?: string; filter?: AdminFilter; offset?: number; limit?: number }) => {
+    const qs = new URLSearchParams(
+      Object.entries(params)
+        .filter(([, v]) => v !== undefined && v !== "")
+        .map(([k, v]) => [k, String(v)]),
+    ).toString();
+    return request<{ total: number; users: AdminUser[] }>(`/admin/users${qs ? `?${qs}` : ""}`, { token });
+  },
+  update: (token: string, id: string, body: { disabled?: boolean; name?: string }) =>
+    request<AdminUser>(`/admin/users/${encodeURIComponent(id)}`, { method: "PATCH", body, token }),
+  remove: (token: string, id: string) => request<{ ok: boolean }>(`/admin/users/${encodeURIComponent(id)}`, { method: "DELETE", token }),
+  grantRole: (token: string, id: string, role: "admin" | "expert", lang: string | null) =>
+    request<{ roles: AdminUser["roles"] }>(`/admin/users/${encodeURIComponent(id)}/roles`, { method: "POST", body: { role, lang }, token }),
+  revokeRole: (token: string, id: string, role: string, lang: string | null) =>
+    request<{ roles: AdminUser["roles"] }>(`/admin/users/${encodeURIComponent(id)}/roles`, { method: "DELETE", body: { role, lang }, token }),
+  sendPasswordReset: (token: string, id: string) =>
+    request<{ ok: boolean }>(`/admin/users/${encodeURIComponent(id)}/password-reset`, { method: "POST", body: {}, token }),
+  mail: (token: string) => request<MailStatus & { publicUrl: string }>("/admin/mail", { token }),
+  verifyMail: (token: string) => request<{ ok: boolean; error?: string }>("/admin/mail/verify", { method: "POST", body: {}, token }),
+  testMail: (token: string, to: string) => request<{ ok: boolean }>("/admin/mail/test", { method: "POST", body: { to }, token }),
 };

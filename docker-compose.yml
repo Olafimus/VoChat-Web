@@ -29,6 +29,22 @@ services:
       MEDIA_LOCAL_DIR: /app/backend/data/media
       APP_SECRET: ${APP_SECRET:-}
       TTS_CACHE_DIR: /app/backend/data/media/tts-cache
+      PUBLIC_URL: ${PUBLIC_ORIGIN:-http://localhost:8080}
+      # E-Mail: none | console | smtp | gmail (siehe .env.example)
+      MAIL_DRIVER: ${MAIL_DRIVER:-none}
+      MAIL_FROM: ${MAIL_FROM:-}
+      MAIL_REPLY_TO: ${MAIL_REPLY_TO:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_ALLOW_SELF_SIGNED: ${SMTP_ALLOW_SELF_SIGNED:-}
+      GMAIL_USER: ${GMAIL_USER:-}
+      GMAIL_APP_PASSWORD: ${GMAIL_APP_PASSWORD:-}
+      GMAIL_CLIENT_ID: ${GMAIL_CLIENT_ID:-}
+      GMAIL_CLIENT_SECRET: ${GMAIL_CLIENT_SECRET:-}
+      GMAIL_REFRESH_TOKEN: ${GMAIL_REFRESH_TOKEN:-}
     volumes:
       - media:/app/backend/data/media
     depends_on:

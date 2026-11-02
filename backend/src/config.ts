@@ -1,4 +1,5 @@
 import type { MediaConfig } from "./media.js";
+import { loadMailConfig, type MailConfig } from "./mail/config.js";
 
 export interface Config {
   port: number;
@@ -14,16 +15,22 @@ export interface Config {
   /** Sprachsynthese (eSpeak NG) für Wörter ohne Aufnahme. */
   tts: boolean;
   ttsCacheDir: string | null;
+  /** Öffentliche Adresse der Web-App (für Links in E-Mails). */
+  publicUrl: string;
+  mail: MailConfig;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const driver = (env.MEDIA_DRIVER ?? "none") as MediaConfig["driver"];
   if (!["none", "local", "s3"].includes(driver)) throw new Error(`MEDIA_DRIVER ungültig: ${driver}`);
+  const corsOrigins = (env.CORS_ORIGINS ?? "http://localhost:5173").split(",").map((s) => s.trim()).filter(Boolean);
   return {
     port: Number(env.PORT ?? 8787),
     database: env.DATABASE_URL || env.DB_PATH || "data/vochat.db",
     trustProxy: env.TRUST_PROXY === "1" || env.TRUST_PROXY === "true",
-    corsOrigins: (env.CORS_ORIGINS ?? "http://localhost:5173").split(",").map((s) => s.trim()).filter(Boolean),
+    corsOrigins,
+    publicUrl: env.PUBLIC_URL || corsOrigins[0] || "http://localhost:5173",
+    mail: loadMailConfig(env),
     appSecret: env.APP_SECRET || undefined,
     verifyThreshold: Number(env.COMMUNITY_VERIFY_THRESHOLD ?? 3),
     rejectThreshold: Number(env.COMMUNITY_REJECT_THRESHOLD ?? 3),

@@ -1,17 +1,19 @@
-import { Hono, type Context } from "hono";
+import { Hono, type Context, type MiddlewareHandler } from "hono";
 import { cors } from "hono/cors";
 import {
   CEFR_LEVELS,
   type Cefr,
   isLangCode,
   loginSchema,
+  passwordForgotSchema,
+  passwordResetSchema,
   profileUpdateSchema,
   pushRequestSchema,
   ratingSchema,
   registerSchema,
   type LangCode,
 } from "@vochat/shared";
-import { createSession, deleteSession, hashPassword, requireAuth, optionalAuth, maybeUserId, verifyPassword, currentUserId } from "./auth.js";
+import { consumePasswordReset, createPasswordReset, RESET_TTL_MS, createSession, deleteSession, hashPassword, requireAuth, optionalAuth, maybeUserId, verifyPassword, currentUserId } from "./auth.js";
 import { builtinPathDetail, builtinPaths, getPublicCollection, listPublicCollections, myRating, upsertRating } from "./catalog.js";
 import type { Db } from "./db/index.js";
 import { browseLexemes, extractWords, languageStats, lexemeDetail, lexemesByIds, resolveWords, searchLexemes } from "./dictionary.js";
@@ -66,7 +68,9 @@ import { expertAction, reviewQueue, reviewStats, type ExpertAction, type QueueFi
 import { addComment, COMMENT_TARGETS, deleteComment, editComment, listComments, voteComment, type CommentTarget } from "./comments.js";
 import { reputation } from "./reputation.js";
 import { challengeDetail, createChallenge, joinWeekly, leaveChallenge, listChallenges, respondChallenge, weeklyChallenge } from "./challenges.js";
-import { challengeCreateSchema } from "@vochat/shared";
+import { adminUserUpdateSchema, challengeCreateSchema, mailTestSchema, roleChangeSchema } from "@vochat/shared";
+import { activeAdminCount, adminStats, adminUser, deleteUser, listUsers, setDisabled, type UserFilter } from "./admin.js";
+import { MailService } from "./mail/index.js";
 
 export interface AppOptions {
   db: Db;
@@ -85,6 +89,8 @@ export interface AppOptions {
   tts?: Tts | null;
   /** Echtzeit-Verteiler für Chats (Standard: neu je App). */
   chatHub?: ChatHub;
+  /** E-Mail-Versand (Standard: ausgeschaltet). */
+  mail?: MailService;
 }
 
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
@@ -101,6 +107,7 @@ export function createApp({
   publicRateLimit = 120,
   tts = new Tts(),
   chatHub = new ChatHub(),
+  mail = new MailService(null),
 }: AppOptions): Hono {
   const app = new Hono();
   if (appSecret) setAvatarSecret(appSecret);
@@ -136,6 +143,7 @@ export function createApp({
       return c.json({ error: "email already registered" }, 409); // gleichzeitige Registrierung
     }
     const token = await createSession(db, userId, now());
+    mail.sendLater(mail.welcome(email, parsed.data.name.trim()));
     return c.json(authResponse(token, (await loadProfile(db, userId))!), 201);
   });
 
@@ -159,12 +167,39 @@ export function createApp({
       return c.json({ error: "invalid credentials" }, 401);
     }
     loginAttempts.delete(email);
+    if (user.disabled_at !== null) return c.json({ error: "account disabled" }, 403);
     const token = await createSession(db, user.id, now());
     return c.json(authResponse(token, (await loadProfile(db, user.id))!));
   });
 
   const auth = requireAuth(db, now);
   const maybeAuth = optionalAuth(db, now);
+
+  // ---- Passwort vergessen ------------------------------------------------
+  const resetLimit = rateLimit({ windowMs: 15 * 60_000, max: 5, trustProxy, name: "password-reset" });
+
+  /** Antwortet immer gleich, damit sich nicht herausfinden lässt, welche Adressen registriert sind. */
+  app.post("/auth/password/forgot", resetLimit, async (c) => {
+    const parsed = passwordForgotSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "invalid input" }, 400);
+    if (!mail.enabled) return c.json({ error: "mail not configured" }, 503);
+    const email = parsed.data.email.trim().toLowerCase();
+    const user = await findUserByEmail(db, email);
+    if (user && user.disabled_at === null) {
+      const token = await createPasswordReset(db, user.id, now());
+      mail.sendLater(mail.passwordReset(email, user.name, token, RESET_TTL_MS / 60_000));
+    }
+    return c.json({ ok: true });
+  });
+
+  app.post("/auth/password/reset", resetLimit, async (c) => {
+    const parsed = passwordResetSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "invalid input" }, 400);
+    const userId = await consumePasswordReset(db, parsed.data.token, await hashPassword(parsed.data.password), now());
+    if (!userId) return c.json({ error: "invalid or expired token" }, 400);
+    await logAudit(db, { actorId: userId, action: "account.password_reset", itemType: "user", itemId: userId }, now());
+    return c.json({ ok: true });
+  });
 
   app.post("/auth/logout", auth, async (c) => {
     const token = (c.req.header("authorization") ?? "").slice(7).trim();
@@ -199,7 +234,7 @@ export function createApp({
   });
 
   // ---- Features & Medien ---------------------------------------------------
-  app.get("/features", (c) => c.json({ avatars: media !== null, mediaDriver: media?.driver ?? null }));
+  app.get("/features", (c) => c.json({ avatars: media !== null, mediaDriver: media?.driver ?? null, mail: mail.enabled }));
 
   app.put("/me/avatar", auth, bodyLimit({ maxSize: MAX_AVATAR_BYTES + 1024, onError: (c) => c.json({ error: "image too large or empty" }, 413) }), async (c) => {
     if (!media) return c.json({ error: "media storage not configured" }, 503);
@@ -833,26 +868,135 @@ export function createApp({
     return c.json({ error: "invalid action" }, 400);
   });
 
-  // ---- Admin: Rollen vergeben -----------------------------------------
-  app.post("/admin/roles", auth, async (c) => {
+  // ---- Admin: Nutzerverwaltung, Rollen, E-Mail ----------------------------
+  const adminOnly: MiddlewareHandler = async (c, next) => {
     if (!(await isAdmin(db, currentUserId(c)))) return c.json({ error: "forbidden" }, 403);
-    const parsed = grantSchema.safeParse(await c.req.json().catch(() => null));
-    if (!parsed.success) return c.json({ error: "invalid input" }, 400);
-    if (parsed.data.role === "expert" && !parsed.data.lang) return c.json({ error: "expert needs a language" }, 400);
-    const target = await db.get<{ id: string }>("SELECT id FROM users WHERE email = ?", [parsed.data.email.toLowerCase()]);
+    await next();
+  };
+  const audit = (c: Context, action: string, targetId: string, details?: Record<string, unknown>) =>
+    logAudit(db, { actorId: currentUserId(c), action, itemType: "user", itemId: targetId, details }, now());
+
+  /** Gemeinsam für beide Wege (per Nutzer-ID oder – wie bisher – per E-Mail). */
+  const changeRole = async (c: Context, targetId: string, role: "admin" | "expert", lang: string | null, grant: boolean) => {
+    if (role === "expert" && !lang) return c.json({ error: "expert needs a language" }, 400);
+    const target = await adminUser(db, targetId);
     if (!target) return c.json({ error: "user not found" }, 404);
-    await grantRole(db, target.id, parsed.data.role, parsed.data.lang ?? "", now());
-    return c.json({ ok: true, roles: await rolesOf(db, target.id) }, 201);
+    const has = target.roles.some((r) => r.role === role && (role === "admin" || r.lang === lang));
+    if (!grant && role === "admin" && has && target.disabledAt === null && (await activeAdminCount(db)) <= 1) {
+      return c.json({ error: "cannot remove the last admin" }, 409);
+    }
+    if (grant) await grantRole(db, target.id, role, lang ?? "", now());
+    else await revokeRole(db, target.id, role, lang ?? "");
+    if (grant !== has) {
+      await audit(c, grant ? "admin.role_grant" : "admin.role_revoke", target.id, { role, lang });
+      mail.sendLater(mail.roleChanged(target.email, target.name, role, lang ?? "", grant));
+    }
+    return c.json({ ok: true, roles: await rolesOf(db, target.id) }, grant ? 201 : 200);
+  };
+
+  app.use("/admin/*", auth, adminOnly);
+
+  app.get("/admin/stats", async (c) => c.json({ ...(await adminStats(db, now())), mail: mail.status() }));
+
+  app.get("/admin/users", async (c) => {
+    const filter = c.req.query("filter") ?? "";
+    if (!["", "admin", "expert", "disabled"].includes(filter)) return c.json({ error: "invalid input" }, 400);
+    return c.json(
+      await listUsers(db, {
+        q: c.req.query("q"),
+        filter: filter as UserFilter,
+        limit: Number(c.req.query("limit") ?? 25) || 25,
+        offset: Number(c.req.query("offset") ?? 0) || 0,
+      }),
+    );
   });
 
-  app.delete("/admin/roles", auth, async (c) => {
-    if (!(await isAdmin(db, currentUserId(c)))) return c.json({ error: "forbidden" }, 403);
+  app.get("/admin/users/:id", async (c) => {
+    const user = await adminUser(db, c.req.param("id"));
+    return user ? c.json(user) : c.json({ error: "not found" }, 404);
+  });
+
+  app.patch("/admin/users/:id", async (c) => {
+    const parsed = adminUserUpdateSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "invalid input" }, 400);
+    const target = await adminUser(db, c.req.param("id"));
+    if (!target) return c.json({ error: "not found" }, 404);
+    const { disabled, name } = parsed.data;
+    if (disabled !== undefined && disabled !== (target.disabledAt !== null)) {
+      if (disabled && target.id === currentUserId(c)) return c.json({ error: "cannot disable yourself" }, 409);
+      await setDisabled(db, target.id, disabled, now());
+      await audit(c, disabled ? "admin.user_disable" : "admin.user_enable", target.id);
+      mail.sendLater(mail.accountStatus(target.email, target.name, disabled));
+    }
+    if (name !== undefined && name !== target.name) {
+      await db.run("UPDATE users SET name = ? WHERE id = ?", [name, target.id]);
+      await audit(c, "admin.user_rename", target.id, { from: target.name, to: name });
+    }
+    return c.json(await adminUser(db, target.id));
+  });
+
+  app.delete("/admin/users/:id", async (c) => {
+    const id = c.req.param("id");
+    if (id === currentUserId(c)) return c.json({ error: "cannot delete yourself" }, 409);
+    const target = await adminUser(db, id);
+    if (!target) return c.json({ error: "not found" }, 404);
+    if (target.roles.some((r) => r.role === "admin") && target.disabledAt === null && (await activeAdminCount(db)) <= 1) {
+      return c.json({ error: "cannot remove the last admin" }, 409);
+    }
+    const avatar = await db.get<{ avatar_ext: string | null }>("SELECT avatar_ext FROM users WHERE id = ?", [id]);
+    await deleteUser(db, id);
+    if (media && avatar?.avatar_ext) await media.delete(`avatars/${id}.${avatar.avatar_ext}`).catch(() => undefined);
+    await audit(c, "admin.user_delete", id, { email: target.email, name: target.name });
+    return c.json({ ok: true });
+  });
+
+  app.post("/admin/users/:id/roles", async (c) => {
+    const parsed = roleChangeSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "invalid input" }, 400);
+    return changeRole(c, c.req.param("id"), parsed.data.role, parsed.data.lang, true);
+  });
+
+  app.delete("/admin/users/:id/roles", async (c) => {
+    const parsed = roleChangeSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "invalid input" }, 400);
+    return changeRole(c, c.req.param("id"), parsed.data.role, parsed.data.lang, false);
+  });
+
+  /** Admin verschickt den Link zum Zurücksetzen (z. B. auf Nachfrage per Support). */
+  app.post("/admin/users/:id/password-reset", async (c) => {
+    if (!mail.enabled) return c.json({ error: "mail not configured" }, 503);
+    const target = await adminUser(db, c.req.param("id"));
+    if (!target) return c.json({ error: "not found" }, 404);
+    if (target.disabledAt !== null) return c.json({ error: "account disabled" }, 409);
+    const token = await createPasswordReset(db, target.id, now());
+    const sent = await mail.send(mail.passwordReset(target.email, target.name, token, RESET_TTL_MS / 60_000));
+    if (!sent.ok) return c.json({ error: "mail failed", detail: sent.error }, 502);
+    await audit(c, "admin.password_reset_mail", target.id);
+    return c.json({ ok: true });
+  });
+
+  // Bisherige Endpunkte (per E-Mail), weiterhin unterstützt.
+  const byEmail = async (c: Context, grant: boolean) => {
     const parsed = grantSchema.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) return c.json({ error: "invalid input" }, 400);
     const target = await db.get<{ id: string }>("SELECT id FROM users WHERE email = ?", [parsed.data.email.toLowerCase()]);
     if (!target) return c.json({ error: "user not found" }, 404);
-    await revokeRole(db, target.id, parsed.data.role, parsed.data.lang ?? "");
-    return c.json({ ok: true, roles: await rolesOf(db, target.id) });
+    return changeRole(c, target.id, parsed.data.role, parsed.data.lang, grant);
+  };
+  app.post("/admin/roles", (c) => byEmail(c, true));
+  app.delete("/admin/roles", (c) => byEmail(c, false));
+
+  app.get("/admin/mail", async (c) => c.json({ ...mail.status(), publicUrl: mail.publicUrl }));
+
+  app.post("/admin/mail/verify", async (c) => c.json(await mail.verify()));
+
+  app.post("/admin/mail/test", async (c) => {
+    const parsed = mailTestSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: "invalid input" }, 400);
+    if (!mail.enabled) return c.json({ error: "mail not configured" }, 503);
+    const me = await loadProfile(db, currentUserId(c));
+    const sent = await mail.send(mail.test(parsed.data.to, me?.name ?? "Admin"));
+    return sent.ok ? c.json({ ok: true }) : c.json({ error: "mail failed", detail: sent.error }, 502);
   });
 
   // ---- Katalog: Lernpfade & Medien-Sammlungen (öffentlich lesbar) ------

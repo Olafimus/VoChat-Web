@@ -14,6 +14,8 @@ export interface UserProfile {
   profilePublic: boolean;
   /** Lernfortschritt für Freunde sichtbar. */
   showProgress: boolean;
+  /** Rollen des Kontos (admin, expert je Sprache). Fehlt beim lokalen Profil ohne Konto. */
+  roles?: { role: string; lang: string }[];
 }
 
 export type FollowState = "none" | "requested" | "accepted";

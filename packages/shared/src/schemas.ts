@@ -152,6 +152,13 @@ export const loginSchema = z.object({
   password: z.string().min(1).max(200),
 });
 
+export const passwordForgotSchema = z.object({ email: z.email().max(254) });
+
+export const passwordResetSchema = z.object({
+  token: z.string().min(20).max(200),
+  password: z.string().min(8).max(200),
+});
+
 export const profileUpdateSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   bio: z.string().max(500).optional(),

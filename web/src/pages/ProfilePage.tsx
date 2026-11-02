@@ -196,6 +196,7 @@ export function ProfilePage() {
           <>
             <div className="muted">Angemeldet als <b>{user.email}</b>. Deine Daten werden zwischen Geräten synchronisiert.</div>
             {user.id && <a href={`/users/${user.id}`}>Mein öffentliches Profil ansehen</a>}
+            {user.roles?.some((r) => r.role === "admin") && <a href="/admin">Verwaltung: Nutzer, Rollen & E-Mail</a>}
             <div className="small">Status: {status.error ?? (status.online ? "verbunden" : "offline")} · {status.pending} Änderungen warten</div>
             <div className="row">
               <button className="danger" onClick={logout}>Abmelden</button>

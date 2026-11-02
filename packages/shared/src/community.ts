@@ -68,4 +68,18 @@ export const grantSchema = z.object({
   lang: langSchema.nullable().default(null),
 });
 
+/** Rolle eines bestimmten Kontos ändern (Admin-Seite). */
+export const roleChangeSchema = z.object({
+  role: z.enum(ROLES),
+  lang: langSchema.nullable().default(null),
+});
+
+/** Konto-Einstellungen, die nur Admins ändern. */
+export const adminUserUpdateSchema = z.object({
+  disabled: z.boolean().optional(),
+  name: z.string().trim().min(1).max(100).optional(),
+});
+
+export const mailTestSchema = z.object({ to: z.email().max(254) });
+
 export type ContributionStatus = "pending" | "verified" | "rejected" | "revoked";

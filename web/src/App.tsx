@@ -12,6 +12,8 @@ import { StatsPage } from "./pages/StatsPage";
 import { HomePage } from "./pages/HomePage";
 import { ChatsPage } from "./pages/ChatsPage";
 import { ConversationPage } from "./pages/ConversationPage";
+import { AdminPage } from "./pages/AdminPage";
+import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 
 export function App() {
   return (
@@ -30,6 +32,8 @@ export function App() {
           <Route path="profile" element={<ProfilePage />} />
           <Route path="scan" element={<ScanPage />} />
           <Route path="stats" element={<StatsPage />} />
+          <Route path="admin" element={<AdminPage />} />
+          <Route path="reset-password" element={<ResetPasswordPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

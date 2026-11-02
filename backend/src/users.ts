@@ -53,6 +53,7 @@ export async function loadProfile(db: Db, userId: string): Promise<UserProfile |
     "SELECT lang, target_cefr FROM user_learn_langs WHERE user_id = ? ORDER BY lang",
     [userId],
   );
+  const roles = await db.all<{ role: string; lang: string }>("SELECT role, lang FROM user_roles WHERE user_id = ? ORDER BY role, lang", [userId]);
   return {
     id: user.id,
     email: user.email,
@@ -63,6 +64,7 @@ export async function loadProfile(db: Db, userId: string): Promise<UserProfile |
     learnLangs: langs.map((l) => ({ lang: l.lang, targetCefr: l.target_cefr })),
     profilePublic: Number(user.profile_public) === 1,
     showProgress: Number(user.show_progress) === 1,
+    roles,
   };
 }
 
@@ -84,7 +86,10 @@ export async function createUser(
 }
 
 export function findUserByEmail(db: Db, email: string) {
-  return db.get<{ id: string; password_hash: string }>("SELECT id, password_hash FROM users WHERE email = ?", [email]);
+  return db.get<{ id: string; name: string; password_hash: string; disabled_at: number | null }>(
+    "SELECT id, name, password_hash, disabled_at FROM users WHERE email = ?",
+    [email],
+  );
 }
 
 export function authResponse(token: string, profile: UserProfile): AuthResponse {
