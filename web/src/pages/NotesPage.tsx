@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useLiveQuery } from "@tanstack/react-db";
-import { LANGUAGES, LANG_CODES, lemmaKey, type LangCode, type NoteLinkType } from "@vochat/shared";
+import { LANGUAGES, LANG_CODES, lemmaKey, wordRefKey, type LangCode, type NoteLinkType } from "@vochat/shared";
 import { useSession } from "../session";
 import type { CardRow, MediaCollectionRow, NoteRow } from "../local/collections";
 import { useConversations } from "../lib/useChats";
 import { newId } from "../lib/ids";
+import { resolveCardLink } from "../lib/cards";
 import { PageHeader } from "../components/PageHeader";
 import { Empty } from "../components/ui";
 import { IconClose, IconLink, IconNotes, IconPin, IconPlus, IconSearch, IconTrash } from "../components/icons";
@@ -16,7 +17,7 @@ const TYPE_LABEL: Record<NoteLinkType, string> = { card: "Wort", collection: "Sa
 
 /** Ziel eines Querverweises in der App. */
 export const linkTarget = (l: NoteLink): string =>
-  l.type === "card" ? `/vocab?card=${encodeURIComponent(l.id)}`
+  l.type === "card" ? `/vocab?card=${encodeURIComponent(l.id)}${l.key ? `&key=${encodeURIComponent(l.key)}` : ""}`
   : l.type === "collection" ? `/paths?open=${encodeURIComponent(l.id)}`
   : l.type === "chat" ? `/chat/${encodeURIComponent(l.id)}`
   : `/notes/${encodeURIComponent(l.id)}`;
@@ -117,7 +118,7 @@ function NoteEditor({ id }: { id: string }) {
     };
     const card = params.get("card");
     const found = card ? cards.find((c) => c.id === card && !c.deleted) : undefined;
-    if (found) add("card", { type: "card", id: found.id, label: found.lemma });
+    if (found) add("card", { type: "card", id: found.id, label: found.lemma, key: wordRefKey(found.lang, found.lemma) });
     const chat = params.get("chat");
     if (chat) add("chat", { type: "chat", id: chat, label: params.get("label") ?? "Chat" });
     const coll = params.get("collection");
@@ -165,7 +166,7 @@ function NoteEditor({ id }: { id: string }) {
   };
 
   const addLink = (l: NoteLink) => {
-    setLinks((prev) => (prev.some((x) => x.type === l.type && x.id === l.id) ? prev : [...prev, l]));
+    setLinks((prev) => (prev.some((x) => x.type === l.type && (x.id === l.id || (!!l.key && x.key === l.key))) ? prev : [...prev, l]));
     setPicking(false);
   };
 
@@ -215,6 +216,7 @@ function NoteEditor({ id }: { id: string }) {
             <li key={`${l.type}:${l.id}`} className="row">
               <span className="badge subtle">{TYPE_LABEL[l.type]}</span>
               <Link to={linkTarget(l)}>{l.label || l.id}</Link>
+              {l.type === "card" && !resolveCardLink(cards, l) && <span className="muted small">(nicht mehr im Wortschatz)</span>}
               <span className="spacer" />
               <button type="button" className="small-btn" aria-label={`Verweis ${l.label} entfernen`} onClick={() => setLinks(links.filter((x) => !(x.type === l.type && x.id === l.id)))}>
                 <IconClose size={14} />
@@ -252,7 +254,7 @@ function LinkPicker({ token, selfId, cards, notes, onPick }: { token: string | n
   const key = lemmaKey(q);
   const options: NoteLink[] = useMemo(() => {
     const all: NoteLink[] =
-      type === "card" ? cards.filter((c) => !c.deleted).map((c) => ({ type, id: c.id, label: c.gloss ? `${c.lemma} – ${c.gloss}` : c.lemma }))
+      type === "card" ? cards.filter((c) => !c.deleted).map((c) => ({ type, id: c.id, label: c.gloss ? `${c.lemma} – ${c.gloss}` : c.lemma, key: wordRefKey(c.lang, c.lemma) }))
       : type === "collection" ? own.filter((c) => !c.deleted).map((c) => ({ type, id: c.id, label: c.title }))
       : type === "chat" ? (chats ?? []).map((c) => ({ type, id: c.id, label: c.title }))
       : notes.filter((n) => n.id !== selfId).map((n) => ({ type, id: n.id, label: n.title || "Ohne Titel" }));

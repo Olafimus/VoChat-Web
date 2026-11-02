@@ -277,7 +277,7 @@ function LookupMessage({
               <button className="small-btn" onClick={() => onAdd(r)}>+ Lernen</button>
             )}
           </div>
-          {open === r.id && <LexemeInfo lexeme={r} lang={lang} />}
+          {open === r.id && <LexemeInfo lexemeId={r.id} lang={lang} />}
         </div>
       ))}
     </div>

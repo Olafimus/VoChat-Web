@@ -1,5 +1,6 @@
 import type { Db } from "../db/index.js";
-import { addForm, parseCsv, recordRun, upsertLexeme } from "./common.js";
+import { parseShortTags } from "@vochat/shared";
+import { addInflection, parseCsv, recordRun, upsertLexeme } from "./common.js";
 
 const POS_ALIASES: Record<string, string> = {
   DET: "determiner",
@@ -38,7 +39,9 @@ export async function importWordhoard(db: Db, lang: string, csv: string, file: s
   if (idx.lemma < 0) throw new Error("wordhoard CSV: Spalte 'lemma' fehlt");
 
   let rows = 0;
+  const source = `wordhoard:${lang}`;
   await db.tx(async (t) => {
+    await t.run("DELETE FROM lexeme_inflections WHERE source = ?", [source]);
     for (const r of body) {
       const lemma = r[idx.lemma]?.trim();
       if (!lemma) continue;
@@ -54,9 +57,11 @@ export async function importWordhoard(db: Db, lang: string, csv: string, file: s
         [gender, cefr, rank, count, id],
       );
       if (idx.forms >= 0) {
+        // „ist:pres.3sg;gewesen:part.perf;war:surface“ – Form und grammatische Angabe
+        let position = 0;
         for (const part of (r[idx.forms] ?? "").split(";")) {
-          const form = part.split(":")[0]?.trim();
-          if (form) await addForm(t, id, lang, form);
+          const [form, short = ""] = part.split(":");
+          if (form?.trim() && form.trim() !== lemma) await addInflection(t, id, lang, form.trim(), parseShortTags(short), position++, source);
         }
       }
       rows++;

@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { CEFR_LEVELS, LANG_CODES } from "./languages.js";
+import { lemmaKey } from "./keys.js";
+import { goalSchema } from "./goals.js";
 
 export const langSchema = z.enum(LANG_CODES as [string, ...string[]]);
 export const cefrSchema = z.enum(CEFR_LEVELS);
@@ -149,6 +151,11 @@ export const noteSchema = z.object({
         id: z.string().min(1).max(64),
         /** Anzeigename beim Anlegen des Verweises (bleibt lesbar, auch wenn das Ziel fehlt). */
         label: z.string().max(200),
+        /**
+         * Nur Wörter: „<sprache>:<wortschlüssel>“. Findet die Karte auch, wenn die ID nicht mehr existiert
+         * (Wort gelöscht und neu angelegt, auf zwei Geräten doppelt angelegt).
+         */
+        key: z.string().max(260).optional(),
       }),
     )
     .max(50)
@@ -160,7 +167,11 @@ export const noteSchema = z.object({
 });
 export type Note = z.infer<typeof noteSchema>;
 
-export const SYNC_ENTITIES = ["cards", "messages", "reviews", "collections", "notes"] as const;
+/** Schlüssel eines Wortes für Verweise und Abgleich: gleiche Sprache und gleiche normalisierte Schreibung. */
+export const wordRefKey = (lang: string, lemma: string): string => `${lang}:${lemmaKey(lemma)}`;
+
+export const SYNC_ENTITIES = ["cards", "messages", "reviews", "collections", "notes", "goals"] as const;
+export { goalSchema };
 export type SyncEntity = (typeof SYNC_ENTITIES)[number];
 
 export const syncOpSchema = z.object({

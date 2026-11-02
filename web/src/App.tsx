@@ -14,6 +14,7 @@ import { ChatsPage } from "./pages/ChatsPage";
 import { ConversationPage } from "./pages/ConversationPage";
 import { AdminPage } from "./pages/AdminPage";
 import { NotesPage } from "./pages/NotesPage";
+import { GoalsPage } from "./pages/GoalsPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 
 export function App() {
@@ -33,6 +34,7 @@ export function App() {
           <Route path="profile" element={<ProfilePage />} />
           <Route path="scan" element={<ScanPage />} />
           <Route path="stats" element={<StatsPage />} />
+          <Route path="goals" element={<GoalsPage />} />
           <Route path="notes" element={<NotesPage />} />
           <Route path="notes/:id" element={<NotesPage />} />
           <Route path="admin" element={<AdminPage />} />

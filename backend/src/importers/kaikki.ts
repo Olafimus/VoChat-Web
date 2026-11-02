@@ -1,11 +1,14 @@
-import { LANG_CODES } from "@vochat/shared";
+import { KAIKKI_RELATION_FIELDS, LANG_CODES, lemmaKey, normalizeFormTags, RELATION_KINDS } from "@vochat/shared";
 import type { Db } from "../db/index.js";
-import { addAudio, addCategory, addExample, addForm, addSense, addTranslation, clearSource, recordRun, upsertLexeme } from "./common.js";
+import { addAudio, addCategory, addExample, addInflection, addRelation, addSense, addTranslation, clearSource, recordRun, upsertLexeme } from "./common.js";
 
 const GENDER_TAGS: Record<string, string> = { masculine: "m", feminine: "f", neuter: "n" };
 const KNOWN_LANG_CODES = new Set<string>(LANG_CODES);
 // Formen-Tags, die keine echten Wortformen sind (Tabellenköpfe, Umschriften o. Ä.).
 const SKIP_FORM_TAGS = new Set(["table-tags", "inflection-template", "romanization", "class"]);
+const MAX_FORMS = 120;
+const MAX_RELATIONS_PER_KIND = 15;
+type KaikkiWordRef = { word?: string };
 
 interface KaikkiExample {
   text?: string;
@@ -17,6 +20,8 @@ interface KaikkiSense {
   tags?: string[];
   topics?: string[];
   examples?: KaikkiExample[];
+  synonyms?: KaikkiWordRef[];
+  antonyms?: KaikkiWordRef[];
 }
 interface KaikkiEntry {
   word: string;
@@ -27,6 +32,12 @@ interface KaikkiEntry {
   translations?: { lang_code?: string; word?: string }[];
   forms?: { form?: string; tags?: string[] }[];
   sounds?: { roman?: string; ipa?: string; audio?: string; ogg_url?: string; mp3_url?: string; tags?: string[] }[];
+  synonyms?: KaikkiWordRef[];
+  antonyms?: KaikkiWordRef[];
+  related?: KaikkiWordRef[];
+  derived?: KaikkiWordRef[];
+  hypernyms?: KaikkiWordRef[];
+  hyponyms?: KaikkiWordRef[];
 }
 
 /**
@@ -86,9 +97,24 @@ export async function importKaikki(
           await addExample(t, id, ex.text, translation, translation ? opts.glossLang : null, source);
         }
       }
-      for (const f of entry.forms ?? []) {
+      let position = 0;
+      for (const f of (entry.forms ?? []).slice(0, MAX_FORMS)) {
         if (!f.form || f.form === entry.word || (f.tags ?? []).some((tag) => SKIP_FORM_TAGS.has(tag))) continue;
-        await addForm(t, id, opts.lang, f.form);
+        await addInflection(t, id, opts.lang, f.form, normalizeFormTags(f.tags ?? []), position++, source);
+      }
+      // Beziehungen stehen am Eintrag und an einzelnen Bedeutungen (Synonyme/Gegenteile).
+      const selfKey = lemmaKey(entry.word);
+      for (const kind of RELATION_KINDS) {
+        const field = KAIKKI_RELATION_FIELDS[kind] as keyof KaikkiEntry & keyof KaikkiSense;
+        const refs = [...((entry[field] as KaikkiWordRef[] | undefined) ?? []), ...(entry.senses ?? []).flatMap((s) => (s[field] as KaikkiWordRef[] | undefined) ?? [])];
+        const seen = new Set<string>([selfKey]);
+        for (const r of refs) {
+          const key = r.word ? lemmaKey(r.word) : "";
+          if (!key || seen.has(key)) continue;
+          seen.add(key);
+          await addRelation(t, id, kind, r.word!, source);
+          if (seen.size > MAX_RELATIONS_PER_KIND) break;
+        }
       }
       for (const tr of entry.translations ?? []) {
         if (tr.lang_code && KNOWN_LANG_CODES.has(tr.lang_code) && tr.word) await addTranslation(t, id, tr.lang_code, tr.word, source);

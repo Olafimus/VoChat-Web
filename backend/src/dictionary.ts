@@ -1,4 +1,4 @@
-import { lemmaKey, tokenize, type AudioRecording, type Cefr, type ExtractResult, type LangCode, type LexemeDetail, type LexemeSummary } from "@vochat/shared";
+import { lemmaKey, parseTags, tokenize, type AudioRecording, type Cefr, type ExtractResult, type LangCode, type LexemeDetail, type LexemeSummary } from "@vochat/shared";
 import type { Db, Param } from "./db/index.js";
 
 type SummaryRow = {
@@ -161,7 +161,7 @@ export async function lexemeDetail(db: Db, id: number, nativeLang: LangCode): Pr
   const row = await db.get<SummaryRow>(`${SUMMARY_SELECT} WHERE l.id = ? AND l.hidden = 0`, [nativeLang, nativeLang, id]);
   if (!row) return null;
 
-  const [senses, examples, translations, categories, audio, ipaRow] = await Promise.all([
+  const [senses, examples, translations, categories, audio, ipaRow, forms, relations] = await Promise.all([
     db.all<{ position: number; gloss_lang: string; gloss: string; source: string }>(
       "SELECT position, gloss_lang, gloss, source FROM senses WHERE lexeme_id = ? AND hidden = 0 ORDER BY (gloss_lang = ?) DESC, position LIMIT 40",
       [id, nativeLang],
@@ -181,6 +181,16 @@ export async function lexemeDetail(db: Db, id: number, nativeLang: LangCode): Pr
     ),
     lexemeAudio(db, id),
     db.get<{ ipa: string | null }>("SELECT ipa FROM lexemes WHERE id = ?", [id]),
+    db.all<{ form: string; tags: string }>("SELECT form, tags FROM lexeme_inflections WHERE lexeme_id = ? ORDER BY position, form LIMIT 200", [id]),
+    // Ziel über Sprache + Wortschlüssel auflösen (häufigstes sichtbares Lexem), damit es verlinkbar ist.
+    db.all<{ kind: string; target_lemma: string; target_id: number | null }>(
+      `SELECT r.kind, r.target_lemma,
+              (SELECT l2.id FROM lexemes l2 WHERE l2.lang = l.lang AND l2.lemma_key = r.target_key AND l2.hidden = 0 AND l2.id <> l.id
+               ORDER BY CASE WHEN l2.frequency_rank IS NULL THEN 1 ELSE 0 END, l2.frequency_rank, l2.id LIMIT 1) AS target_id
+       FROM lexeme_relations r JOIN lexemes l ON l.id = r.lexeme_id
+       WHERE r.lexeme_id = ? ORDER BY r.kind, r.target_lemma LIMIT 90`,
+      [id],
+    ),
   ]);
 
   return {
@@ -191,6 +201,8 @@ export async function lexemeDetail(db: Db, id: number, nativeLang: LangCode): Pr
     categories,
     ipa: ipaRow?.ipa ?? null,
     audio,
+    forms: forms.map((f) => ({ form: f.form, tags: parseTags(f.tags) })),
+    relations: relations.map((r) => ({ kind: r.kind, lemma: r.target_lemma, lexemeId: r.target_id === null ? null : Number(r.target_id) })),
   };
 }
 

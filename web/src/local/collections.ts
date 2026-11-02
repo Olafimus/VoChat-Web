@@ -1,5 +1,5 @@
 import { createCollection } from "@tanstack/db";
-import type { SyncEntity } from "@vochat/shared";
+import type { Goal, SyncEntity } from "@vochat/shared";
 import type { LocalStore, Row } from "./localStore";
 
 /**
@@ -50,6 +50,7 @@ export function createDeviceCollections(store: LocalStore) {
     reviews: makeCollection<ReviewRow>(store, "reviews"),
     collections: makeCollection<MediaCollectionRow>(store, "collections"),
     notes: makeCollection<NoteRow>(store, "notes"),
+    goals: makeCollection<GoalRow>(store, "goals"),
   };
 }
 
@@ -125,9 +126,12 @@ export type NoteRow = Row & {
   title: string;
   body: string;
   lang: string | null;
-  links: { type: "card" | "collection" | "chat" | "note"; id: string; label: string }[];
+  links: { type: "card" | "collection" | "chat" | "note"; id: string; label: string; key?: string }[];
   pinned: boolean;
   createdAt: number;
 };
+
+/** Eigenes Ziel; Felder wie goalSchema in @vochat/shared. */
+export type GoalRow = Row & Omit<Goal, "id" | "updatedAt" | "deleted">;
 
 export type Collections = ReturnType<typeof createDeviceCollections>;

@@ -1,4 +1,4 @@
-import { lemmaKey, newSchedule, type Grade, type LangCode, type LexemeSummary, type Mode, type Cefr } from "@vochat/shared";
+import { lemmaKey, newSchedule, wordRefKey, type Grade, type LangCode, type LexemeSummary, type Mode, type Cefr } from "@vochat/shared";
 import type { ReviewRow } from "../local/collections";
 import { readLearning, scheduleFor } from "./learning";
 import type { Collections, CardRow } from "../local/collections";
@@ -92,9 +92,32 @@ export function addOwnWord(
   });
 }
 
-/** Alle Übersetzungen einer Karte: Hauptbedeutung zuerst, dann die weiteren. */
-export const allGlosses = (card: Pick<CardRow, "gloss" | "glosses">): string[] =>
-  [...new Set([...(card.gloss ? [card.gloss] : []), ...(card.glosses ?? [])])];
+/** Alle Übersetzungen einer Karte: Hauptbedeutung zuerst, dann die weiteren – ohne Dubletten (gleicher Wortschlüssel). */
+export const allGlosses = (card: Pick<CardRow, "gloss" | "glosses">): string[] => uniqueByKey([...(card.gloss ? [card.gloss] : []), ...(card.glosses ?? [])]);
+
+/** Einträge mit gleichem Wortschlüssel („Haus“, „haus “) nur einmal, erste Schreibung gewinnt. */
+export function uniqueByKey(values: readonly string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const v of values) {
+    const text = v.trim();
+    const k = lemmaKey(text);
+    if (!text || seen.has(k)) continue;
+    seen.add(k);
+    out.push(text);
+  }
+  return out;
+}
+
+/** Durchsuchbarer Text einer Karte (Wort, alle Übersetzungen, Beispiele, Notiz) als Wortschlüssel. */
+export const cardSearchKey = (c: CardRow): string =>
+  lemmaKey([c.lemma, c.gloss ?? "", ...(c.glosses ?? []), ...(c.examples ?? []).flatMap((e) => [e.text, e.translation ?? ""]), c.note].join(" "));
+
+/** Karte zu einem Notiz-Verweis: zuerst über die ID, sonst über Sprache + Wortschlüssel. */
+export function resolveCardLink(cards: CardRow[], link: { id: string; key?: string }): CardRow | undefined {
+  const live = cards.filter((c) => !c.deleted);
+  return live.find((c) => c.id === link.id) ?? (link.key ? live.find((c) => wordRefKey(c.lang, c.lemma) === link.key) : undefined);
+}
 
 export const hasCardFor = (cards: CardRow[], lexemeId: number): boolean =>
   cards.some((c) => !c.deleted && c.lexemeId === lexemeId);

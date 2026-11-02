@@ -1,4 +1,4 @@
-import { LANG_CODES, lemmaKey, type LangCode } from "@vochat/shared";
+import { LANG_CODES, lemmaKey, serializeTags, type LangCode, type RelationKind } from "@vochat/shared";
 import type { Db } from "../db/index.js";
 
 export const isKnownLang = (value: string): value is LangCode => (LANG_CODES as string[]).includes(value);
@@ -9,6 +9,8 @@ export async function clearSource(db: Db, source: string): Promise<void> {
   await db.run("DELETE FROM examples WHERE source = ?", [source]);
   await db.run("DELETE FROM translations WHERE source = ?", [source]);
   await db.run("DELETE FROM lexeme_audio WHERE source = ?", [source]);
+  await db.run("DELETE FROM lexeme_inflections WHERE source = ?", [source]);
+  await db.run("DELETE FROM lexeme_relations WHERE source = ?", [source]);
   await db.run("DELETE FROM lexeme_categories WHERE category_id IN (SELECT id FROM categories WHERE kind = ?)", [source]);
 }
 
@@ -51,6 +53,31 @@ export async function addForm(db: Db, lexemeId: number, lang: string, form: stri
   const key = lemmaKey(form);
   if (!key) return;
   await db.run("INSERT INTO lexeme_forms (lexeme_id, lang, form_key) VALUES (?, ?, ?) ON CONFLICT DO NOTHING", [lexemeId, lang, key]);
+}
+
+/**
+ * Gebeugte Form mit grammatischen Tags: lesbar für die Anzeige und als Wortschlüssel für die Suche
+ * (so findet „sah“ weiterhin „sehen“). Tags vorher mit normalizeFormTags/parseShortTags vereinheitlichen.
+ */
+export async function addInflection(db: Db, lexemeId: number, lang: string, form: string, tags: readonly string[], position: number, source: string): Promise<void> {
+  const text = form.replace(/\s+/g, " ").trim();
+  if (!text || text.length > 200) return;
+  await addForm(db, lexemeId, lang, text);
+  await db.run(
+    "INSERT INTO lexeme_inflections (lexeme_id, form, tags, position, source) VALUES (?, ?, ?, ?, ?) ON CONFLICT DO NOTHING",
+    [lexemeId, text, serializeTags(tags), position, source],
+  );
+}
+
+/** Wortbeziehung; das Ziel wird über seinen Wortschlüssel gefunden (gleiche Sprache). */
+export async function addRelation(db: Db, lexemeId: number, kind: RelationKind, target: string, source: string): Promise<void> {
+  const lemma = target.replace(/\s+/g, " ").trim();
+  const key = lemmaKey(lemma);
+  if (!key || lemma.length > 200) return;
+  await db.run(
+    "INSERT INTO lexeme_relations (lexeme_id, kind, target_lemma, target_key, source) VALUES (?, ?, ?, ?, ?) ON CONFLICT DO NOTHING",
+    [lexemeId, kind, lemma, key, source],
+  );
 }
 
 export async function addSense(db: Db, lexemeId: number, glossLang: string, gloss: string, source: string): Promise<void> {

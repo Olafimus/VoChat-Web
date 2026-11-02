@@ -176,6 +176,27 @@ describe("sync", () => {
     expect((await (await app.request("/sync/changes?since=0", get(other.token))).json()).changes).toHaveLength(0);
   });
 
+  it("syncs goals and rejects invalid ones", async () => {
+    const { token } = await register("goals@example.com");
+    const goal = (patch: Record<string, unknown> = {}) => ({
+      id: "goal-0000000001", title: "50 neue Wörter", kind: "words_new", target: 50, lang: "fa", baseline: 12,
+      startAt: 1, deadline: 1000, createdAt: 1, updatedAt: 1, deleted: false, ...patch,
+    });
+    const res = await (
+      await app.request("/sync/push", json({ ops: [
+        { entity: "goals", row: goal() },
+        { entity: "goals", row: goal({ id: "goal-0000000002", kind: "checklist", items: [{ id: "a", text: "Begrüßung", done: true, doneAt: 5 }] }) },
+        { entity: "goals", row: goal({ id: "goal-0000000003", kind: "jump" }) },
+        { entity: "goals", row: goal({ id: "goal-0000000004", target: 0 }) },
+      ] }, token))
+    ).json();
+    expect(res.accepted).toBe(2);
+    expect(res.rejected).toHaveLength(2);
+    const pull = await (await app.request("/sync/changes?since=0", get(token))).json();
+    expect(pull.changes[0]).toMatchObject({ entity: "goals", row: { kind: "words_new", baseline: 12, archived: false, completedAt: null, items: [] } });
+    expect(pull.changes[1].row.items).toEqual([{ id: "a", text: "Begrüßung", done: true, doneAt: 5 }]);
+  });
+
   it("keeps users' data separate", async () => {
     const a = await register("g@example.com");
     const b = await register("h@example.com");

@@ -84,6 +84,13 @@ docs/              DICTIONARY_SOURCES.md (Quellen & Status), ARCHITECTURE.md (De
 - **Expertenprüfung:** alles startet ungeprüft; Korrekturen ziehen ähnliche Einträge nach vorn; Verlauf, Kommentarbäume, Punkte.
 - **Vokabeln mit Extras:** neben der Hauptbedeutung weitere Übersetzungen, eigene Beispielsätze (mit Übersetzung) und eine
   persönliche Notiz je Wort – sichtbar in der Wortliste und nach dem Aufdecken beim Lernen.
+- **Wortformen & Beziehungen:** In den Details einer Vokabel stehen Konjugation (je Zeit/Modus mit Pronomen), Deklination,
+  Steigerung und infinite Formen sowie Synonyme, Gegenteile, verwandte und abgeleitete Wörter, Ober- und Unterbegriffe
+  (aus wordhoard und Wiktionary/kaikki). Steht ein verwandtes Wort im Wörterbuch, lässt es sich direkt lernen.
+  Nach dem Update die Wörterbuchquellen neu importieren (`npm run import:dictionary -w backend -- starter`), damit die Formen gefüllt werden.
+- **Ziele (`/goals`):** eigene Ziele mit Frist – neue Wörter, Wortschatz-Größe, Sammlung zu X %, Antworten, Lernserie oder
+  Checkliste. Vorlagen von leicht bis ambitioniert, Tempo-Einschätzung („≈ 3 Wörter/Tag“), Stand auf der Startseite.
+  Wörter zählen über Lexem-ID bzw. Sprache + Wortschlüssel nur einmal.
 - **Notizen (`/notes`):** allgemeine Notizen (Grammatik, Eselsbrücken, Gesprächsideen) mit Querverweisen auf Wörter,
   eigene Sammlungen/Lernpfade, Chats und andere Notizen; Rückverweise erscheinen am Wort und an der Notiz. Synchronisiert wie alles andere.
 - **Admin-Seite (`/admin`):** Nutzer suchen und filtern, Rollen (Admin, Experte je Sprache) vergeben und entziehen,

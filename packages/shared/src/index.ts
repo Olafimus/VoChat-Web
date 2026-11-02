@@ -12,3 +12,5 @@ export * from "./community.js";
 export * from "./keys.js";
 export * from "./challenges.js";
 export * from "./diff.js";
+export * from "./grammar.js";
+export * from "./goals.js";

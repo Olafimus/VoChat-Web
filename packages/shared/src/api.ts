@@ -91,6 +91,10 @@ export interface LexemeDetail extends LexemeSummary {
   ipa?: string | null;
   /** Aussprache-Aufnahmen mit freier Lizenz (z. B. Lingua Libre / Wikimedia Commons). */
   audio?: AudioRecording[];
+  /** Gebeugte Formen mit grammatischen Tags (siehe grammar.ts, groupForms für die Anzeige). */
+  forms?: { form: string; tags: string[] }[];
+  /** Wortbeziehungen; `lexemeId` ist gesetzt, wenn das Ziel selbst im Wörterbuch steht. */
+  relations?: { kind: string; lemma: string; lexemeId: number | null }[];
 }
 
 export interface AudioRecording {
@@ -134,7 +138,7 @@ export interface CatalogCollection {
 }
 
 export interface SyncChange {
-  entity: "cards" | "messages" | "reviews" | "collections" | "notes";
+  entity: "cards" | "messages" | "reviews" | "collections" | "notes" | "goals";
   row: Record<string, unknown>;
 }
 

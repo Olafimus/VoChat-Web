@@ -5,7 +5,8 @@ import { LANGUAGES, lemmaKey, type LangCode } from "@vochat/shared";
 import { ApiError, community } from "../api/client";
 import { useSession, useSyncStatus } from "../session";
 import type { CardRow, MediaCollectionRow } from "../local/collections";
-import { addOwnWord, editCard, resetField, type EditableField } from "../lib/cards";
+import { addOwnWord, cardSearchKey, editCard, resetField, resolveCardLink, uniqueByKey, type EditableField } from "../lib/cards";
+import { LexemeInfo } from "../components/LexemeInfo";
 import { useActiveLang } from "../lib/lang";
 import { linkWithDictionary } from "../lib/linker";
 import { Empty } from "../components/ui";
@@ -45,7 +46,9 @@ export function VocabPage() {
   const [adding, setAdding] = useState(false);
   // Deep-Link aus Notizen: /vocab?card=<id> zeigt genau diese Karte (geöffnet).
   const [params, setParams] = useSearchParams();
-  const only = params.get("card");
+  // Verweis über die ID oder – falls die Karte neu angelegt wurde – über Sprache + Wortschlüssel.
+  const linked = params.get("card") ? resolveCardLink(cards, { id: params.get("card")!, key: params.get("key") ?? undefined }) : undefined;
+  const only = params.get("card") ? (linked?.id ?? params.get("card")) : null;
   useEffect(() => {
     if (only) setEditing(only);
   }, [only]);
@@ -58,7 +61,7 @@ export function VocabPage() {
       .filter((c) => lang === "all" || c.lang === lang)
       .filter((c) => status_ === "all" || c.status === status_)
       .filter((c) => link === "all" || (link === "linked" ? !!c.lexemeId : !c.lexemeId))
-      .filter((c) => !q || lemmaKey(c.lemma).includes(q) || lemmaKey(c.gloss ?? "").includes(q))
+      .filter((c) => !q || cardSearchKey(c).includes(q))
       .sort((a, b) => a.lemma.localeCompare(b.lemma));
   }, [cards, query, lang, status_, link, only]);
 
@@ -82,7 +85,7 @@ export function VocabPage() {
       {only && <div className="row"><button className="small-btn" onClick={() => setParams({})}>Alle Wörter anzeigen</button></div>}
       <CardUpdates cards={cards} />
       <div className="toolbar">
-        <input type="search" placeholder="Suchen …" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Wortliste durchsuchen" />
+        <input type="search" placeholder="Wort, Übersetzung, Beispiel, Notiz …" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Wortliste durchsuchen" />
         <select value={lang} onChange={(e) => setLang(e.target.value as LangCode | "all")} aria-label="Sprache">
           <option value="all">Alle Sprachen</option>
           {Object.values(LANGUAGES).map((l) => (
@@ -142,6 +145,12 @@ export function VocabPage() {
             {editing === c.id && (
               <>
                 <CardEditor card={c} onDone={() => setEditing(null)} />
+                {c.lexemeId && (
+                  <section className="stack">
+                    <b>Aus dem Wörterbuch</b>
+                    <LexemeInfo lexemeId={c.lexemeId} lang={c.lang as LangCode} />
+                  </section>
+                )}
                 <CardLearning card={c} />
               </>
             )}
@@ -174,7 +183,8 @@ function CardEditor({ card, onDone }: { card: CardRow; onDone: () => void }) {
       gloss: form.gloss.trim() || null,
       pronunciation: form.pronunciation.trim() || null,
       note: form.note,
-      glosses: [...new Set(glosses.map((g) => g.trim()).filter(Boolean))],
+      // gleiche Übersetzung („Haus“/„haus“) nur einmal, und nicht noch einmal neben der Hauptbedeutung
+      glosses: uniqueByKey([form.gloss, ...glosses]).filter((g) => lemmaKey(g) !== lemmaKey(form.gloss)),
       examples: examples
         .map((e) => ({ text: e.text.trim(), translation: e.translation.trim() || null }))
         .filter((e) => e.text),

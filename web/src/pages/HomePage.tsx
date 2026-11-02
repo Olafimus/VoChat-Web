@@ -11,7 +11,9 @@ import { plannerSettings, startOfToday, toPlannerCard, toStatsCard, toStatsRevie
 import { Empty } from "../components/ui";
 import { useConversations } from "../lib/useChats";
 import { InstallApp } from "../components/PwaBanner";
-import { IconBell, IconCards, IconChats, IconCheck, IconDone, IconEdit, IconPlay, IconScan, IconStats, IconStreak, IconTimer, IconTrophy } from "../components/icons";
+import { useGoals } from "../lib/goals";
+import { GoalCard } from "./GoalsPage";
+import { IconBell, IconCards, IconChats, IconCheck, IconDone, IconEdit, IconPlay, IconScan, IconStats, IconStreak, IconTarget, IconTimer, IconTrophy } from "../components/icons";
 
 const SEEN_KEY = "vochat.notificationsSeen";
 const daysLeft = (end: number) => Math.max(0, Math.ceil((end - Date.now()) / 86_400_000));
@@ -129,6 +131,8 @@ export function HomePage() {
           })}
         </div>
       </section>
+
+      <GoalsSection />
 
       {(() => {
         const n = cards.filter((c) => !c.deleted && c.pendingUpdate).length;
@@ -330,5 +334,33 @@ function ProgressRing({ value, label }: { value: number; label: string }) {
       {v > 0 && <circle cx="38" cy="38" r={r} className="ring-value" stroke="url(#ring-g)" strokeDasharray={`${c * v} ${c}`} transform="rotate(-90 38 38)" />}
       <text x="38" y="43" textAnchor="middle" className="ring-label">{label}</text>
     </svg>
+  );
+}
+
+/** Aktive Ziele mit Stand – die nächsten Fristen zuerst. */
+function GoalsSection() {
+  const { active } = useGoals();
+  return (
+    <section className="stack">
+      <div className="row">
+        <h2 className="section-title"><IconTarget size={20} aria-hidden /> Deine Ziele</h2>
+        <span className="spacer" />
+        <Link to="/goals" className="small">{active.length ? "Alle Ziele" : "Ziel setzen"}</Link>
+      </div>
+      {active.length === 0 ? (
+        <Link to="/goals" className="card notice-link">
+          <span className="qt-icon qt-lime"><IconTarget size={18} /></span>
+          <span>Setz dir ein Ziel – z. B. <b>50 neue Wörter in 30 Tagen</b> oder eine Sammlung bis zum Urlaub. Vorlagen von leicht bis ambitioniert.</span>
+        </Link>
+      ) : (
+        <div className="home-grid">
+          {active.slice(0, 3).map((v) => (
+            <Link key={v.goal.id} to="/goals" className="goal-link">
+              <GoalCard view={v} compact />
+            </Link>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
