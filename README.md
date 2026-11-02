@@ -105,9 +105,21 @@ Medien (Profilbilder):
 | `MEDIA_S3_REGION` | `auto` | Region des Buckets |
 | `MEDIA_S3_ENDPOINT` | – | Für S3-kompatible Dienste (R2, MinIO) |
 
-Den ersten Admin ernennt der Betreiber per Kommando:
+Den ersten Admin legst du am einfachsten über Umgebungsvariablen an. Alternativ ernennst du ein bereits
+registriertes Konto per Kommando:
 `npm run admin:grant -w backend -- --email ich@example.com --role admin` bzw. `--role expert --lang fa`.
 Alle weiteren Rollen lassen sich danach in der App unter **Profil → Verwaltung** (`/admin`) vergeben.
+
+| Variable | Standard | Zweck |
+|---|---|---|
+| `ADMIN_EMAIL` | – | Admin-Konto, das beim Start angelegt wird, falls es fehlt |
+| `ADMIN_PASSWORD` | – | Startpasswort (mind. 8 Zeichen) bzw. neues Passwort beim Reset |
+| `ADMIN_NAME` | `Admin` | Anzeigename beim Anlegen |
+| `ADMIN_NATIVE_LANG` | `de` | Muttersprache beim Anlegen |
+| `ADMIN_PASSWORD_RESET` | – | `1`: Passwort des bestehenden Kontos auf `ADMIN_PASSWORD` setzen, alle Sitzungen beenden, Admin-Rolle sichern, Sperre aufheben. Nach dem Neustart wieder entfernen |
+
+Ein bestehendes Konto mit `ADMIN_EMAIL` wird ohne `ADMIN_PASSWORD_RESET` nie verändert oder zum Admin gemacht – E-Mail-Adressen
+sind nicht verifiziert, jemand anderes könnte sich zuvor damit registriert haben. Mit dem Reset übernimmt, wer `ADMIN_PASSWORD` kennt.
 
 E-Mail (`backend/src/mail/`): Der `MailService` kennt nur die Schnittstelle `MailAdapter`; welcher Adapter verwendet wird,
 bestimmt `MAIL_DRIVER`. Eigene Versandwege (z. B. eine HTTP-API) lassen sich mit `registerMailDriver(name, factory)` ergänzen.

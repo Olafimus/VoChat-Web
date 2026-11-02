@@ -30,6 +30,12 @@ services:
       APP_SECRET: ${APP_SECRET:-}
       TTS_CACHE_DIR: /app/backend/data/media/tts-cache
       PUBLIC_URL: ${PUBLIC_ORIGIN:-http://localhost:8080}
+      # Erster Admin bzw. Notfall-Reset (siehe .env.example)
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_NAME: ${ADMIN_NAME:-}
+      ADMIN_NATIVE_LANG: ${ADMIN_NATIVE_LANG:-}
+      ADMIN_PASSWORD_RESET: ${ADMIN_PASSWORD_RESET:-}
       # E-Mail: none | console | smtp | gmail (siehe .env.example)
       MAIL_DRIVER: ${MAIL_DRIVER:-none}
       MAIL_FROM: ${MAIL_FROM:-}

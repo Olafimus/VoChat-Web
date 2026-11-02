@@ -10,6 +10,7 @@ import { backfillDerivedColumns } from "./sync.js";
 import { randomBytes } from "node:crypto";
 import type { Db } from "./db/index.js";
 import { createMailAdapter, MailService } from "./mail/index.js";
+import { bootstrapAdmin, loadInitialAdmin } from "./bootstrap.js";
 
 /** Dauerhaftes Geheimnis der Installation: aus APP_SECRET oder einmalig erzeugt und in der DB gespeichert. */
 async function loadAppSecret(db: Db, fromEnv: string | undefined): Promise<string> {
@@ -26,6 +27,7 @@ const isFile = !/^(postgres(ql)?:\/\/|pglite:)/.test(config.database) && config.
 if (isFile) mkdirSync(dirname(config.database), { recursive: true });
 
 const db = await openDatabase(config.database);
+await bootstrapAdmin(db, loadInitialAdmin(), Date.now());
 const backfilled = await backfillDerivedColumns(db);
 if (backfilled) console.log(`${backfilled} Sync-Zeilen um Auswertungs-Spalten ergänzt.`);
 const media = await createMediaStore(config.media);
