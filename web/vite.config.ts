@@ -54,6 +54,12 @@ export default defineConfig({
             options: { cacheName: "ocr", expiration: { maxEntries: 30 } },
           },
           {
+            // Zeichendaten (Kana/Kanji, Strichpfade) – blockweise beim ersten Öffnen laden, danach offline
+            urlPattern: ({ url }) => url.pathname.startsWith("/glyphs/"),
+            handler: "StaleWhileRevalidate",
+            options: { cacheName: "glyphs", expiration: { maxEntries: 60 } },
+          },
+          {
             // Öffentliche Aussprache-Aufnahmen (Wikimedia) – einmal geladen, offline abspielbar
             urlPattern: ({ url }) => url.hostname === "upload.wikimedia.org",
             handler: "CacheFirst",

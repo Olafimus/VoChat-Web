@@ -2,6 +2,7 @@ import { z } from "zod";
 import { CEFR_LEVELS, LANG_CODES } from "./languages.js";
 import { lemmaKey } from "./keys.js";
 import { goalSchema } from "./goals.js";
+import { glyphSchema } from "./glyphs.js";
 
 export const langSchema = z.enum(LANG_CODES as [string, ...string[]]);
 export const cefrSchema = z.enum(CEFR_LEVELS);
@@ -170,8 +171,8 @@ export type Note = z.infer<typeof noteSchema>;
 /** Schlüssel eines Wortes für Verweise und Abgleich: gleiche Sprache und gleiche normalisierte Schreibung. */
 export const wordRefKey = (lang: string, lemma: string): string => `${lang}:${lemmaKey(lemma)}`;
 
-export const SYNC_ENTITIES = ["cards", "messages", "reviews", "collections", "notes", "goals"] as const;
-export { goalSchema };
+export const SYNC_ENTITIES = ["cards", "messages", "reviews", "collections", "notes", "goals", "glyphs"] as const;
+export { goalSchema, glyphSchema };
 export type SyncEntity = (typeof SYNC_ENTITIES)[number];
 
 export const syncOpSchema = z.object({

@@ -14,3 +14,5 @@ export * from "./challenges.js";
 export * from "./diff.js";
 export * from "./grammar.js";
 export * from "./goals.js";
+export * from "./strokes.js";
+export * from "./glyphs.js";

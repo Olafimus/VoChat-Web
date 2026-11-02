@@ -1,5 +1,5 @@
 import { createCollection } from "@tanstack/db";
-import type { Goal, SyncEntity } from "@vochat/shared";
+import type { Goal, GlyphProgress, SyncEntity } from "@vochat/shared";
 import type { LocalStore, Row } from "./localStore";
 
 /**
@@ -51,6 +51,7 @@ export function createDeviceCollections(store: LocalStore) {
     collections: makeCollection<MediaCollectionRow>(store, "collections"),
     notes: makeCollection<NoteRow>(store, "notes"),
     goals: makeCollection<GoalRow>(store, "goals"),
+    glyphs: makeCollection<GlyphRow>(store, "glyphs"),
   };
 }
 
@@ -133,5 +134,8 @@ export type NoteRow = Row & {
 
 /** Eigenes Ziel; Felder wie goalSchema in @vochat/shared. */
 export type GoalRow = Row & Omit<Goal, "id" | "updatedAt" | "deleted">;
+
+/** Lernstand eines Zeichens (Kana, Kanji …) – je Fertigkeit „lesen“ und „schreiben“. */
+export type GlyphRow = Row & Omit<GlyphProgress, "id" | "updatedAt" | "deleted">;
 
 export type Collections = ReturnType<typeof createDeviceCollections>;

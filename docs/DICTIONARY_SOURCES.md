@@ -22,6 +22,17 @@ Quelle hier nicht lag – sie ist aber lokal mit Internetzugang nutzbar.
 | es | ELELex / CEFRLex Spanisch (14.290 Einträge, A1–C1) | CEFR-Niveaus, rezeptiv | Download bei UCLouvain CENTAL – **nicht erreichbar** | CC BY-NC? prüfen |
 | fa | CEFR-Listen | – | **nichts gefunden** | – |
 
+## Zeichen (Kana und Kanji)
+
+| Quelle | Inhalt | Status | Lizenz |
+|---|---|---|---|
+| [KanjiVG](https://kanjivg.tagaini.net) (Release r20250816) | Strichpfade in Strichreihenfolge (SVG, 109×109) für Kana und Kanji | **geprüft, eingebunden** (`web/public/glyphs/ja/strokes/`) | CC BY-SA 3.0 |
+| [kanji-data](https://github.com/davidluzgouveia/kanji-data) (KANJIDIC2-Auszug) | Strichzahl, Schuljahr, Häufigkeitsrang, JLPT-Stufe (neu, N5–N1, inoffiziell), englische Bedeutungen, On/Kun-Lesungen | **geprüft, eingebunden** (`web/public/glyphs/ja/index.json`); WaniKani-Felder werden nicht übernommen | Code MIT, KANJIDIC2 CC BY-SA 4.0 (EDRDG) |
+
+Neu erzeugen: `node web/scripts/build-glyph-data.mjs` (lädt von raw.githubusercontent.com) oder mit
+`--kanjivg <entpackter kanji-Ordner> --kanjidata <kanji.json>`. Aufgenommen werden alle Jōyō-Kanji und alle Kanji mit JLPT-Stufe (2.383)
+sowie 71 Hiragana und 71 Katakana. Deutsche Bedeutungen fehlen in KANJIDIC2; angezeigt wird Englisch.
+
 ## Was das für „vollständig“ bedeutet
 
 - **Deutsch, Englisch, Spanisch:** Häufigkeit für 50.000 Lemmata; CEFR nur für die Top-2000 (wordhoard).

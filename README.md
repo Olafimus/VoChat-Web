@@ -93,6 +93,14 @@ docs/              DICTIONARY_SOURCES.md (Quellen & Status), ARCHITECTURE.md (De
   Wörter zählen über Lexem-ID bzw. Sprache + Wortschlüssel nur einmal.
 - **Notizen (`/notes`):** allgemeine Notizen (Grammatik, Eselsbrücken, Gesprächsideen) mit Querverweisen auf Wörter,
   eigene Sammlungen/Lernpfade, Chats und andere Notizen; Rückverweise erscheinen am Wort und an der Notiz. Synchronisiert wie alles andere.
+- **Zeichen lernen (`/glyphs`, Einstieg unter „Lernen“):** Hiragana, Katakana und 2.383 Kanji mit Kategorien – JLPT N5–N1,
+  Häufigkeit (Top 100 … 2500), Schuljahr (1.–6. Klasse, Mittelstufe), Kana-Reihen und Dakuten. Drei Formate: **Erkennen**
+  (Lesung/Bedeutung wählen), **Nachzeichnen** (mit Vorlage) und **Masterclass** (aus dem Gedächtnis schreiben; Strichreihenfolge
+  und Zugrichtung zählen). Striche mit Maus, Stift oder Finger müssen nicht perfekt sein: Jeder Strich wird nach Form, Lage,
+  Länge, Richtung und Reihenfolge mit der Strichmatrix verglichen (`packages/shared/src/strokes.ts`, Strenge einstellbar).
+  Lesen und Schreiben haben je ein eigenes Gedächtnismodell (FSRS), synchronisiert als Entität `glyphs`.
+  Wiederverwendbare Bausteine: `StrokeBoard` (Schreibfläche) und `GlyphAnimation` (Strichreihenfolge) in `web/src/components/glyphs/`.
+  Daten: KanjiVG (CC BY-SA 3.0) und KANJIDIC2 (CC BY-SA 4.0), erzeugt mit `node web/scripts/build-glyph-data.mjs`.
 - **Admin-Seite (`/admin`):** Nutzer suchen und filtern, Rollen (Admin, Experte je Sprache) vergeben und entziehen,
   Konten sperren/entsperren oder löschen, Link zum Zurücksetzen des Passworts schicken, Mailversand prüfen und Testmail senden.
   Der letzte aktive Admin lässt sich nicht entfernen; alle Aktionen landen im Änderungsprotokoll.

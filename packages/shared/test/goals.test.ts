@@ -67,7 +67,7 @@ describe("goal progress", () => {
     const cards = [card("haus", "review", { lang: "de" }), card("Hund", "mastered", { lang: "de" }), card("Katze", "learning", { lang: "de" })];
     expect(goalProgress(g, ctx({ cards, collections: [{ id: "col-1", title: "Tiere", items, deleted: false }] }))).toMatchObject({ current: 50, reached: true });
     expect(goalProgress(g, ctx({ cards })).missingCollection).toBe(true);
-    const list = goal({ kind: "checklist", items: [{ id: "a", text: "eins", done: true }, { id: "b", text: "zwei", done: false }] });
+    const list = goal({ kind: "checklist", items: [{ id: "a", text: "eins", done: true, doneAt: 1 }, { id: "b", text: "zwei", done: false, doneAt: null }] });
     expect(goalProgress(list, ctx())).toMatchObject({ current: 1, target: 2, reached: false });
   });
 

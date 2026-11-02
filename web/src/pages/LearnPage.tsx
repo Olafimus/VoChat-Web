@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useLiveQuery } from "@tanstack/react-db";
 import {
   buildPlan,
+  hasGlyphLearning,
   judgeAnswer,
   splitAnswers,
   type Grade,
@@ -22,7 +23,7 @@ import { CefrBadge, Empty } from "../components/ui";
 import { WordView } from "../components/WordView";
 import { useDisplay } from "../lib/display";
 import { playPronunciation } from "../lib/audio";
-import { IconFlame, IconStats } from "../components/icons";
+import { IconFlame, IconLanguages, IconStats } from "../components/icons";
 import { PageHeader } from "../components/PageHeader";
 import { IconCards } from "../components/icons";
 
@@ -178,8 +179,17 @@ export function LearnPage() {
     finish(judgement.verdict === "typo" ? "hard" : "again", typed);
   };
 
+  const glyphLink = hasGlyphLearning(lang) && (
+    <Link to="/glyphs" className="small icon-line"><IconLanguages size={15} aria-hidden /> Zeichen lernen (Kana & Kanji)</Link>
+  );
+
   if (langCards.length === 0) {
-    return <Empty>Noch keine Karten für diese Sprache. Füge im Chat oder unter „Lernpfade“ Wörter hinzu.</Empty>;
+    return (
+      <>
+        <Empty>Noch keine Karten für diese Sprache. Füge im Chat oder unter „Lernpfade“ Wörter hinzu.</Empty>
+        {glyphLink && <p className="text-center">{glyphLink}</p>}
+      </>
+    );
   }
 
   return (
@@ -202,6 +212,7 @@ export function LearnPage() {
           </button>
         </div>
         <Link to="/stats" className="small icon-line"><IconStats size={15} aria-hidden /> Statistik & Einstellungen</Link>
+        {glyphLink}
       </div>
       {planNotes.length > 0 && <div className="muted small" role="status">{planNotes.join(" ")}</div>}
 

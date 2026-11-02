@@ -113,7 +113,7 @@ export class LocalStore {
 
   /** Alle lokalen Zeilen in die Outbox legen (beim ersten Verbinden eines Kontos). */
   enqueueAll(): void {
-    for (const entity of ["cards", "messages", "reviews", "collections", "notes", "goals"] as SyncEntity[]) {
+    for (const entity of ["cards", "messages", "reviews", "collections", "notes", "goals", "glyphs"] as SyncEntity[]) {
       for (const row of this.all(entity)) {
         this.outbox.set(`${entity}/${row.id}`, { entity, row });
         this.persist(OUTBOX + `${entity}/${row.id}`, row);

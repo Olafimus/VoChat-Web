@@ -197,6 +197,25 @@ describe("sync", () => {
     expect(pull.changes[1].row.items).toEqual([{ id: "a", text: "Begrüßung", done: true, doneAt: 5 }]);
   });
 
+  it("syncs glyph progress and rejects invalid rows", async () => {
+    const { token } = await register("glyphs@example.com");
+    const track = { stability: 3.2, difficulty: 5, lastReviewAt: 10, lastGrade: "good", dueAt: 99, reps: 1, lapses: 0 };
+    const glyph = (patch: Record<string, unknown> = {}) => ({
+      id: "g-ja-065e5", lang: "ja", char: "日", script: "kanji", write: track, createdAt: 1, updatedAt: 1, deleted: false, ...patch,
+    });
+    const res = await (
+      await app.request("/sync/push", json({ ops: [
+        { entity: "glyphs", row: glyph() },
+        { entity: "glyphs", row: glyph({ id: "g-ja-03042", char: "あ", script: "runes" }) },
+        { entity: "glyphs", row: glyph({ id: "g-ja-03044", char: "い", write: { ...track, lastGrade: "perfect" } }) },
+      ] }, token))
+    ).json();
+    expect(res.accepted).toBe(1);
+    expect(res.rejected).toHaveLength(2);
+    const pull = await (await app.request("/sync/changes?since=0", get(token))).json();
+    expect(pull.changes[0]).toMatchObject({ entity: "glyphs", row: { char: "日", read: null, traces: 0, write: { reps: 1, lastMistakes: 0 } } });
+  });
+
   it("keeps users' data separate", async () => {
     const a = await register("g@example.com");
     const b = await register("h@example.com");

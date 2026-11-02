@@ -138,7 +138,7 @@ export interface CatalogCollection {
 }
 
 export interface SyncChange {
-  entity: "cards" | "messages" | "reviews" | "collections" | "notes" | "goals";
+  entity: "cards" | "messages" | "reviews" | "collections" | "notes" | "goals" | "glyphs";
   row: Record<string, unknown>;
 }
 
